@@ -4,6 +4,8 @@
    {
       public bool IsRunning { get; private set; } = true;
       public readonly Board Board = new();
+      TimeManager Timer = new();
+      private readonly Search Search;
 
       public Engine()
       {
@@ -18,6 +20,8 @@
 
          // Initializes the Zobirst table static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
+
+         Search = new Search(Board, Timer);
       }
 
       public void NewGame()
@@ -126,7 +130,7 @@
 
       public void UCIParseGo(string[] command)
       {
-         TimeManager timer = new();
+         Timer.Reset();
 
          for (int i = 0; i < command.Length; i++)
          {
@@ -136,51 +140,50 @@
             {
                case "wtime":
                   {
-                     timer.wtime = int.Parse(command[i + 1]);
+                     Timer.wtime = int.Parse(command[i + 1]);
                      break;
                   }
                case "btime":
                   {
-                     timer.btime = int.Parse(command[i + 1]);
+                     Timer.btime = int.Parse(command[i + 1]);
                      break;
                   }
                case "winc":
                   {
-                     timer.winc = int.Parse(command[i + 1]);
+                     Timer.winc = int.Parse(command[i + 1]);
                      break;
                   }
                case "binc":
                   {
-                     timer.binc = int.Parse(command[i + 1]);
+                     Timer.binc = int.Parse(command[i + 1]);
                      break;
                   }
                case "movestogo":
                   {
-                     timer.movestogo = int.Parse(command[i + 1]);
+                     Timer.movestogo = int.Parse(command[i + 1]);
                      break;
                   }
                case "movetime":
                   {
-                     timer.TimeLimit = int.Parse(command[i + 1]);
+                     Timer.TimeLimit = int.Parse(command[i + 1]);
                      break;
                   }
                case "depth":
                   {
                      int depth = Math.Min(int.Parse(command[1]), Constants.MAX_PLY);
-                     timer.depthLimit = depth;
-                     timer.infititeTime = true;
+                     Timer.depthLimit = depth;
+                     Timer.infititeTime = true;
                      break;
                   }
             }
 
-            if (timer.TimeLimit == 0)
+            if (Timer.TimeLimit == 0)
             {
-               timer.SetTimeLimit(Board);
+               Timer.SetTimeLimit(Board);
             }
          }
 
-         Search search = new(Board, timer);
-         search.Run(timer.depthLimit);
+         Search.Run(Timer.depthLimit);
       }
 
       public void SetOption(string[] option)

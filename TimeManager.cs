@@ -50,6 +50,20 @@ namespace Skookum
          StopWatch.Stop();
       }
 
+      public void Reset()
+      {
+         wtime = 0;
+         btime = 0;
+         winc = 0;
+         binc = 0;
+         movestogo = 0;
+         depthLimit = Constants.MAX_PLY;
+         infititeTime = false;
+         ForcedStop = false;
+         TimeLimit = 0;
+         StopWatch.Reset();
+      }
+
       public long GetElapsedMs()
       {
          return StopWatch.ElapsedMilliseconds;

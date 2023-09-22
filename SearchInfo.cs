@@ -4,11 +4,23 @@ namespace Skookum
 {
    internal class SearchInfo
    {
-      readonly Move[][] Pv;
-      readonly int[] PvLength;
+      Move[][] Pv;
+      int[] PvLength;
       public int Nodes;
 
       public SearchInfo()
+      {
+         Pv = new Move[Constants.MAX_PLY][];
+         PvLength = new int[Constants.MAX_PLY];
+         Nodes = 0;
+
+         for (int i = 0; i < Constants.MAX_PLY; i++)
+         {
+            Pv[i] = new Move[Constants.MAX_PLY];
+         }
+      }
+
+      public void Reset()
       {
          Pv = new Move[Constants.MAX_PLY][];
          PvLength = new int[Constants.MAX_PLY];
