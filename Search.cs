@@ -31,21 +31,18 @@
 
       public void Run(int target)
       {
+         Info.Reset();
          Time.Start();
 
          int alpha = -Constants.INFINITY;
          int beta = Constants.INFINITY;
 
-         try
+         // Iterative deepening
+         for (int i = 1; i <= target && !Time.LimitReached(); i++)
          {
-            // Iterative deepening
-            for (int i = 1; i <= target && !Time.LimitReached(); i++)
-            {
-               int score = NegaScout(alpha, beta, i, 0);
-               Console.WriteLine($"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)(Info.Nodes * 1000) / Time.GetElapsedMs(), 0)} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
-            }
+            int score = NegaScout(alpha, beta, i, 0);
+            Console.WriteLine($"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
          }
-         catch (TimeoutException) { }
          
          Time.Stop();
          Console.WriteLine($"bestmove {Info.GetBestMove()}");
@@ -53,16 +50,21 @@
 
       private int NegaScout(int alpha, int beta, int depth, int ply)
       {
-         Info.InitPvLength(ply);
-
-         if (depth <= 0)
+         if (Info.Nodes % 1000 == 0 && Time.LimitReached())
          {
             return new Evaluation(Board).Score;
          }
 
-         if (Time.LimitReached())
+         Info.InitPvLength(ply);
+
+         if (ply >= Constants.MAX_PLY)
          {
-            throw new TimeoutException();
+            return 0;
+         }
+
+         if (depth <= 0)
+         {
+            return new Evaluation(Board).Score;
          }
 
          int bestScore = -Constants.INFINITY;
@@ -94,6 +96,11 @@
             }
 
             Board.UndoMove(move);
+
+            if (Time.LimitReached())
+            {
+               return new Evaluation(Board).Score;
+            }
 
             if (score > bestScore)
             {
