@@ -15,7 +15,18 @@
 
       static string FormatScore(int score)
       {
-         return $"cp {score}";
+         if (score < -Constants.MATE + Constants.MAX_PLY)
+         {
+            return $"mate {(-Constants.MATE - score) / 2}";
+         }
+         else if (score > Constants.MATE - Constants.MAX_PLY)
+         {
+            return $"mate {(Constants.MATE - score + 1) / 2}";
+         }
+         else
+         {
+            return $"cp {score}";
+         }
       }
 
       public void Run(int target)
@@ -57,21 +68,23 @@
          int bestScore = -Constants.INFINITY;
          Move bestMove = new();
          int b = beta;
+         int legalMoves = 0;
+         bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
          MoveList moves = new(Board);
 
-         for (int i = 0, legalMoves = 0; i < moves.Moves.Count; i++, legalMoves++)
+         for (int i = 0; i < moves.Moves.Count; i++)
          {
             Move move = moves.NextMove(i);
 
             if (!Board.MakeMove(move))
             {
                Board.UndoMove(move);
-               legalMoves--;
                continue;
             }
 
             Info.Nodes += 1;
+            legalMoves += 1;
 
             int score = -NegaScout(-b, -alpha, depth - 1, ply + 1);
 
@@ -100,6 +113,18 @@
             }
 
             b = alpha + 1;
+         }
+
+         if (legalMoves == 0)
+         {
+            if (inCheck)
+            {
+               return -Constants.MATE + ply;
+            }
+            else
+            {
+               return 0;
+            }
          }
 
          return bestScore;

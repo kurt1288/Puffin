@@ -339,7 +339,7 @@ namespace Skookum
 
          Debug.Assert(Zobrist.Verify(this));
 
-         if (IsAttacked(new Bitboard(PieceBB[(int)PieceType.King].Value & ColorBB[(int)SideToMove ^ 1].Value).GetLSB(), (int)SideToMove))
+         if (IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove))
          {
             return false;
          }
@@ -424,7 +424,12 @@ namespace Skookum
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
       }
 
-      private bool IsAttacked(int square, int color)
+      public int GetSquareByPiece(PieceType piece, Color color)
+      {
+         return new Bitboard(PieceBB[(int)piece].Value & ColorBB[(int)color].Value).GetLSB();
+      }
+
+      public bool IsAttacked(int square, int color)
       {
          if ((Attacks.PawnAttacks[color ^ 1][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[color].Value) != 0)
          {
