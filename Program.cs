@@ -1,10 +1,18 @@
 ﻿using Skookum;
+using System.Runtime.Intrinsics.X86;
 
 const string Name = "Skookum";
 const string Version = "0.1";
 const string Author = "Kurt Peters";
 
 Console.WriteLine($"{Name} {Version}");
+
+if (!Bmi1.X64.IsSupported || !Bmi2.X64.IsSupported || !Lzcnt.X64.IsSupported || !Popcnt.X64.IsSupported)
+{
+   Console.WriteLine("Your device hardware is not supported. Press any key to exit.");
+   Console.ReadLine();
+   Environment.Exit(100);
+}
 
 Engine engine = new();
 
