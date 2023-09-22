@@ -14,6 +14,10 @@
          // Initializes the Constants static class
          var constants = typeof(Constants);
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(constants.TypeHandle);
+
+         // Initializes the Transposition table static class
+         var ttable = typeof(TranspositionTable);
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(constants.TypeHandle);
       }
 
       public void NewGame()
@@ -177,6 +181,25 @@
 
          Search search = new(Board, timer);
          search.Run(timer.depthLimit);
+      }
+
+      public void SetOption(string[] option)
+      {
+         switch (option[0].ToLower())
+         {
+            case "hash":
+               {
+                  _ = int.TryParse(option[2], out int value);
+                  value = Math.Clamp(value, 1, 512);
+                  TranspositionTable.Resize(value);
+                  break;
+               }
+            default:
+               {
+                  Console.WriteLine($"Unknown or unsupported option: {option[0]}");
+                  break;
+               }
+         }
       }
    }
 }

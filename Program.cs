@@ -25,6 +25,7 @@ while (engine.IsRunning)
          {
             Console.WriteLine($"id name {Name} {Version}");
             Console.WriteLine($"id author {Author}");
+            Console.WriteLine($"option name Hash type spin default 32 min 1 max 512");
             Console.WriteLine("uciok");
             break;
          }
@@ -78,6 +79,11 @@ while (engine.IsRunning)
       case "go":
          {
             engine.UCIParseGo(tokens[1..]);
+            break;
+         }
+      case "setoption":
+         {
+            engine.SetOption(tokens[1..]);
             break;
          }
       case "perft":
