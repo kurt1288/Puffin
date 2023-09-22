@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Skookum
 {
@@ -138,6 +139,8 @@ namespace Skookum
 
             Halfmoves = int.Parse(fenParts[4]);
             Fullmoves = int.Parse(fenParts[5]);
+
+            Zobrist.Hash = Zobrist.GenerateHash(this);
          }
          catch
          {
@@ -154,8 +157,13 @@ namespace Skookum
          Piece piece = Mailbox[from];
 
          PreviousStates.Push(
-            new BoardState(SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to], Halfmoves, Fullmoves)
+            new BoardState(SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to], Halfmoves, Fullmoves, Zobrist.Hash)
          );
+
+         if (En_Passant != Square.Null)
+         {
+            Zobrist.Hash ^= Zobrist.EnPassant[(int)En_Passant];
+         }
 
          En_Passant = Square.Null;
          Halfmoves += 1;
@@ -178,6 +186,7 @@ namespace Skookum
                   RemovePiece(piece, from);
                   SetPiece(piece, to);
                   En_Passant = (Square)((to + from) / 2);
+                  Zobrist.Hash ^= Zobrist.EnPassant[(int)En_Passant];
                   break;
                }
             case MoveFlag.Capture:
@@ -306,6 +315,7 @@ namespace Skookum
          if (piece.Type == PieceType.King)
          {
             // If the king moves, remove the castle squares from the home rank
+            Zobrist.Hash ^= Zobrist.UpdateCastle(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
             CastleSquares &= ~Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
          }
 
@@ -313,15 +323,21 @@ namespace Skookum
          // on that side are gone.
          if ((Constants.SquareBB[move.GetFrom()] & CastleSquares) != 0)
          {
+            Zobrist.Hash ^= Zobrist.UpdateCastle(CastleSquares & Constants.SquareBB[move.GetFrom()]);
             CastleSquares &= ~Constants.SquareBB[move.GetFrom()];
          }
          if ((Constants.SquareBB[move.GetTo()] & CastleSquares) != 0)
          {
+            Zobrist.Hash ^= Zobrist.UpdateCastle(CastleSquares & Constants.SquareBB[move.GetTo()]);
             CastleSquares &= ~Constants.SquareBB[move.GetTo()];
          }
 
          SideToMove = (Color)((int)SideToMove ^ 1);
          Fullmoves += 1;
+
+         Zobrist.Hash ^= Zobrist.SideToMove;
+
+         Debug.Assert(Zobrist.Verify(this));
 
          if (IsAttacked(new Bitboard(PieceBB[(int)PieceType.King].Value & ColorBB[(int)SideToMove ^ 1].Value).GetLSB(), (int)SideToMove))
          {
@@ -385,6 +401,9 @@ namespace Skookum
                SetPiece(previousState.CapturedPiece, to);
             }
          }
+
+         Zobrist.Hash = previousState.Hash;
+         Debug.Assert(Zobrist.Verify(this));
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -393,6 +412,7 @@ namespace Skookum
          ColorBB[(int)piece.Color].SetBit(square);
          PieceBB[(int)piece.Type].SetBit(square);
          Mailbox[square] = piece;
+         Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -401,6 +421,7 @@ namespace Skookum
          ColorBB[(int)piece.Color].ResetBit(square);
          PieceBB[(int)piece.Type].ResetBit(square);
          Mailbox[square] = new Piece();
+         Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
       }
 
       private bool IsAttacked(int square, int color)

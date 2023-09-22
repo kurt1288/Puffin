@@ -8,16 +8,16 @@
       public Engine()
       {
          // Initializes the Attacks static class
-         var attacks = typeof(Attacks);
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(attacks.TypeHandle);
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Attacks).TypeHandle);
 
          // Initializes the Constants static class
-         var constants = typeof(Constants);
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(constants.TypeHandle);
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Constants).TypeHandle);
 
          // Initializes the Transposition table static class
-         var ttable = typeof(TranspositionTable);
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(constants.TypeHandle);
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(TranspositionTable).TypeHandle);
+
+         // Initializes the Zobirst table static class
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
       }
 
       public void NewGame()
