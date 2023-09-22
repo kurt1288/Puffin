@@ -68,7 +68,7 @@
             
             if (move.Length == 5)
             {
-               if (move[5] == 'n')
+               if (move[4] == 'n')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -79,7 +79,7 @@
                      flag = MoveFlag.KnightPromotion;
                   }
                }
-               if (move[5] == 'b')
+               if (move[4] == 'b')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -90,7 +90,7 @@
                      flag = MoveFlag.BishopPromotion;
                   }
                }
-               if (move[5] == 'r')
+               if (move[4] == 'r')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -101,7 +101,7 @@
                      flag = MoveFlag.RookPromotion;
                   }
                }
-               if (move[5] == 'q')
+               if (move[4] == 'q')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
