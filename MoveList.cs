@@ -6,13 +6,13 @@
       private readonly List<int> Scores = new();
       private readonly Random random = new();
 
-      public MoveList(Board board, bool quietOnly = false)
+      public MoveList(Board board, bool noisyOnly = false)
       {
          MoveGen gen = new(board);
 
-         if (quietOnly)
+         if (noisyOnly)
          {
-            gen.GenerateQuiet(this);
+            gen.GenerateNoisy(this);
          }
          else
          {

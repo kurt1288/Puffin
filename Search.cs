@@ -73,7 +73,7 @@
 
          if (depth <= 0)
          {
-            return new Evaluation(Board).Score;
+            return Quiescence(alpha, beta, ply);
          }
 
          int bestScore = -Constants.INFINITY;
@@ -140,6 +140,66 @@
             else
             {
                return 0;
+            }
+         }
+
+         return bestScore;
+      }
+
+      private int Quiescence(int alpha, int beta, int ply)
+      {
+         if (Info.Nodes % 1000 == 0 && Time.LimitReached())
+         {
+            return Constants.INFINITY * 10;
+         }
+
+         if (ply >= Constants.MAX_PLY)
+         {
+            return 0;
+         }
+
+         int bestScore = new Evaluation(Board).Score;
+
+         if (bestScore >= beta)
+         {
+            return bestScore;
+         }
+         else if (bestScore > alpha)
+         {
+            alpha = bestScore;
+         }
+
+         MoveList moves = new(Board, true);
+
+         for (int i = 0; i < moves.Moves.Count; i++)
+         {
+            Move move = moves.NextMove(i);
+
+            if (!Board.MakeMove(move))
+            {
+               Board.UndoMove(move);
+               continue;
+            }
+
+            Info.Nodes += 1;
+
+            int score = -Quiescence(-beta, -alpha, ply + 1);
+
+            Board.UndoMove(move);
+
+            if (score > bestScore)
+            {
+               bestScore = score;
+            }
+
+            if (score > alpha)
+            {
+               alpha = score;
+            }
+
+            if (score >= beta)
+            {
+               break;
             }
          }
 
