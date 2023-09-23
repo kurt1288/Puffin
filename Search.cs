@@ -36,23 +36,32 @@
 
          int alpha = -Constants.INFINITY;
          int beta = Constants.INFINITY;
+         Move bestMove = new Move();
 
          // Iterative deepening
-         for (int i = 1; i <= target && !Time.LimitReached(); i++)
+         for (int i = 1; i <= target; i++)
          {
             int score = NegaScout(alpha, beta, i, 0);
+
+            if (Time.LimitReached())
+            {
+               break;
+            }
+
+            bestMove = Info.GetBestMove();
+
             Console.WriteLine($"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
          }
          
          Time.Stop();
-         Console.WriteLine($"bestmove {Info.GetBestMove()}");
+         Console.WriteLine($"bestmove {bestMove}");
       }
 
       private int NegaScout(int alpha, int beta, int depth, int ply)
       {
          if (Info.Nodes % 1000 == 0 && Time.LimitReached())
          {
-            return new Evaluation(Board).Score;
+            return Constants.INFINITY * 10;
          }
 
          Info.InitPvLength(ply);
@@ -99,7 +108,7 @@
 
             if (Time.LimitReached())
             {
-               return new Evaluation(Board).Score;
+               return Constants.INFINITY * 10;
             }
 
             if (score > bestScore)
