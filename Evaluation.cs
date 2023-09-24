@@ -1,31 +1,39 @@
 ﻿namespace Skookum
 {
-   internal class Evaluation
+   internal static class Evaluation
    {
-      public static readonly int[] PieceValues = { 100, 250, 275, 350, 500, 10000 };
-      readonly Random random = new();
-      public int Score = 0;
+      public static readonly Score[] PieceValues = { new Score(100, 100), new Score(250, 250), new Score(275, 275), new Score(350, 350), new Score(500, 500), new Score(10000, 10000) };
+      readonly static Random random = new();
 
-      public Evaluation(Board board)
+      public static int Evaluate(Board board)
       {
-         Evaluate(board);
-      }
+         Score white = Material(board, Color.White);
+         Score black = Material(board, Color.Black);
+         Score total = white - black;
 
-      private void Evaluate(Board board)
-      {
-         Bitboard all = new (board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
-         int[] score = { 0, 0 };
-
-         while (!all.IsEmpty())
+         if (board.SideToMove == Color.Black)
          {
-            int square = all.GetLSB();
-            all.ClearLSB();
-            Piece piece = board.Mailbox[square];
-
-            score[(int)piece.Color] += PieceValues[(int)piece.Type];
+            total *= -1;
          }
 
-         Score = score[(int)board.SideToMove] - score[(int)board.SideToMove ^ 1] + random.Next(-5, 5);
+         return total.Mg + random.Next(-5, 5);
+      }
+
+      private static Score Material(Board board, Color color)
+      {
+         Bitboard us = new(board.ColorBB[(int)color].Value);
+         Score score = new();
+
+         while (!us.IsEmpty())
+         {
+            int square = us.GetLSB();
+            us.ClearLSB();
+            Piece piece = board.Mailbox[square];
+
+            score += PieceValues[(int)piece.Type];
+         }
+
+         return score;
       }
    }
 }

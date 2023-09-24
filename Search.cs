@@ -158,7 +158,7 @@
             return 0;
          }
 
-         int bestScore = new Evaluation(Board).Score;
+         int bestScore = Evaluation.Evaluate(Board);
 
          if (bestScore >= beta)
          {

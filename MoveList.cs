@@ -35,7 +35,7 @@
       {
          if (move.HasType(MoveType.Capture))
          {
-            Scores.Add(10000 + (int)(Evaluation.PieceValues[(int)captured!.Value.Type] - piece!.Value.Type));
+            Scores.Add(10000 + (Evaluation.PieceValues[(int)captured!.Value.Type] - Evaluation.PieceValues[(int)piece!.Value.Type]).Mg);
          }
          else
          {
