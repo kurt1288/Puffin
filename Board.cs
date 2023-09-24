@@ -13,8 +13,11 @@ namespace Skookum
       public ulong CastleSquares { get; private set; } = 0;
       public int Halfmoves { get; private set; } = 0;
       public int Fullmoves { get; private set; } = 0;
+      public int Phase { get; private set; } = 0;
 
       Stack<BoardState> PreviousStates = new();
+
+      private int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
 
       public Board()
       {
@@ -39,6 +42,7 @@ namespace Skookum
          PreviousStates = new();
          Halfmoves = 0;
          Fullmoves = 0;
+         Phase = 0;
       }
 
       public void Reset()
@@ -64,6 +68,7 @@ namespace Skookum
          PreviousStates = new();
          Halfmoves = 0;
          Fullmoves = 0;
+         Phase = 0;
       }
 
       public void SetPosition(string fen)
@@ -157,7 +162,9 @@ namespace Skookum
          Piece piece = Mailbox[from];
 
          PreviousStates.Push(
-            new BoardState(SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to], Halfmoves, Fullmoves, Zobrist.Hash)
+            new BoardState(
+               SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to],
+               Halfmoves, Fullmoves, Zobrist.Hash, Phase)
          );
 
          if (En_Passant != Square.Null)
@@ -338,6 +345,7 @@ namespace Skookum
          Zobrist.Hash ^= Zobrist.SideToMove;
 
          Debug.Assert(Zobrist.Verify(this));
+         Debug.Assert(Phase == VerifyPhase());
 
          if (IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove))
          {
@@ -402,8 +410,10 @@ namespace Skookum
             }
          }
 
+         Phase = previousState.Phase;
          Zobrist.Hash = previousState.Hash;
          Debug.Assert(Zobrist.Verify(this));
+         Debug.Assert(Phase == VerifyPhase());
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -412,6 +422,7 @@ namespace Skookum
          ColorBB[(int)piece.Color].SetBit(square);
          PieceBB[(int)piece.Type].SetBit(square);
          Mailbox[square] = piece;
+         Phase += PhaseValues[(int)piece.Type];
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
       }
 
@@ -421,6 +432,7 @@ namespace Skookum
          ColorBB[(int)piece.Color].ResetBit(square);
          PieceBB[(int)piece.Type].ResetBit(square);
          Mailbox[square] = new Piece();
+         Phase -= PhaseValues[(int)piece.Type];
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
       }
 
@@ -462,6 +474,23 @@ namespace Skookum
          }
 
          return false;
+      }
+
+      private int VerifyPhase()
+      {
+         int phase = 0;
+         Bitboard pieces = new(ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value);
+
+         while (!pieces.IsEmpty())
+         {
+            int square = pieces.GetLSB();
+            pieces.ClearLSB();
+            Piece piece = Mailbox[square];
+
+            phase += PhaseValues[(int)piece.Type];
+         }
+
+         return phase;
       }
    }
 }

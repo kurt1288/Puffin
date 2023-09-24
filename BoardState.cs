@@ -9,8 +9,9 @@
       public readonly int Halfmoves;
       public readonly int Fullmoves;
       public readonly ulong Hash;
+      public readonly int Phase;
 
-      public BoardState(Color side, Square en_passant, ulong castling, Piece captured, int halfmoves, int fullmoves, ulong hash)
+      public BoardState(Color side, Square en_passant, ulong castling, Piece captured, int halfmoves, int fullmoves, ulong hash, int phase)
       {
          SideToMove = side;
          En_Passant = en_passant;
@@ -19,6 +20,7 @@
          Halfmoves = halfmoves;
          Fullmoves = fullmoves;
          Hash = hash;
+         Phase = phase;
       }
    }
 }
