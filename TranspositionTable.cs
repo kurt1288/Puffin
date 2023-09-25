@@ -66,6 +66,17 @@
          };
       }
 
+      public static ushort GetHashMove()
+      {
+         TTEntry entry = Table[Zobrist.Hash % (ulong)Table.Length];
+         if (entry.Hash == Zobrist.Hash)
+         {
+            return entry.Move;
+         }
+
+         return 0;
+      }
+
       public static int GetUsed()
       {
          return 1000 * Used / Table.Length;

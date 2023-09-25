@@ -33,7 +33,11 @@
 
       private void ScoreMove(Move move, Piece? piece, Piece? captured)
       {
-         if (move.HasType(MoveType.Capture))
+         if (move.GetEncoded() == TranspositionTable.GetHashMove())
+         {
+            Scores.Add(1000000);
+         }
+         else if (move.HasType(MoveType.Capture))
          {
             Scores.Add(10000 + (Evaluation.PieceValues[(int)captured!.Value.Type] - Evaluation.PieceValues[(int)piece!.Value.Type]).Mg);
          }
