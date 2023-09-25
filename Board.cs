@@ -17,7 +17,7 @@ namespace Skookum
 
       Stack<BoardState> PreviousStates = new();
 
-      private int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
+      public int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
 
       public Board()
       {
@@ -142,8 +142,15 @@ namespace Skookum
                En_Passant = (Square)(rank * 8 + file);
             }
 
-            Halfmoves = int.Parse(fenParts[4]);
-            Fullmoves = int.Parse(fenParts[5]);
+            if (fenParts.Length > 4 && int.TryParse(fenParts[4], out int halfMoves))
+            {
+               Halfmoves = halfMoves;
+            }
+
+            if (fenParts.Length > 5 && int.TryParse(fenParts[5], out int fullMoves))
+            {
+               Fullmoves = fullMoves;
+            }
 
             Zobrist.Hash = Zobrist.GenerateHash(this);
          }

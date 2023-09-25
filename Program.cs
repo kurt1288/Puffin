@@ -16,6 +16,21 @@ if (!Bmi1.X64.IsSupported || !Bmi2.X64.IsSupported || !Lzcnt.X64.IsSupported || 
 
 Engine engine = new();
 
+if (args.Length != 0)
+{
+   for (int i = 0; i < args.Length; i++)
+   {
+      var arg = args[i];
+      if (arg == "tune")
+      {
+         int epochs = int.Parse(args[i + 1]);
+         Tuner tuner = new(engine);
+         tuner.Run(epochs);
+         break;
+      }
+   }
+}
+
 while (engine.IsRunning)
 {
    string input = await Task.Run(Console.ReadLine);
