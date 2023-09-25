@@ -1,4 +1,6 @@
-﻿namespace Skookum
+﻿using static Skookum.TranspositionTable;
+
+namespace Skookum
 {
    internal class Search
    {
@@ -50,7 +52,7 @@
 
             bestMove = Info.GetBestMove();
 
-            Console.WriteLine($"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
+            Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TranspositionTable.GetUsed()} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
          }
          
          Time.Stop();
@@ -76,9 +78,26 @@
             return Quiescence(alpha, beta, ply);
          }
 
+         bool isPVNode = beta != alpha + 1;
+
+         if (!isPVNode)
+         {
+            TTEntry? entry = GetEntry(Zobrist.Hash);
+
+            if (entry.HasValue && entry.Value.Depth >= depth
+               && (entry.Value.Flag == HashFlag.Exact
+               || (entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta)
+               || (entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha)
+               ))
+            {
+               return entry.Value.Score;
+            }
+         }
+
          int bestScore = -Constants.INFINITY;
          Move bestMove = new();
          int b = beta;
+         HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
@@ -120,11 +139,13 @@
             if (score > alpha)
             {
                alpha = score;
+               flag = HashFlag.Exact;
                Info.UpdatePV(bestMove, ply);
             }
 
             if (alpha >= beta)
             {
+               flag = HashFlag.Beta;
                break;
             }
 
@@ -142,6 +163,8 @@
                return 0;
             }
          }
+
+         SaveEntry(Zobrist.Hash, (byte)depth, bestMove.GetEncoded(), bestScore, flag);
 
          return bestScore;
       }

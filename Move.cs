@@ -42,6 +42,12 @@ namespace Skookum
          return GetFlag() == MoveFlag.KingCastle || GetFlag() == MoveFlag.QueenCastle;
       }
 
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public ushort GetEncoded()
+      {
+         return Encoded;
+      }
+
       public override string ToString()
       {
          string str = $"{Enum.GetName(typeof(Square), GetFrom()).ToLower()}{Enum.GetName(typeof(Square), GetTo()).ToLower()}";

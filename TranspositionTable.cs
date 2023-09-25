@@ -20,6 +20,7 @@
       }
 
       static TTEntry[] Table;
+      static int Used = 0;
 
       static TranspositionTable()
       {
@@ -29,13 +30,16 @@
       // Size in MB
       public static void Resize(int size)
       {
+         // Note that the Array.Resize method doesn't actually resize. It creates a copy of the original with the new size,
+         // and then updates the memory pointer.
          Array.Resize(ref Table, (size * 1024 * 1024) / 16);
          Array.Clear(Table);
+         Used = 0;
       }
 
       public static TTEntry? GetEntry(ulong hash)
       {
-         TTEntry entry = Table[hash & (ulong)Table.Length];
+         TTEntry entry = Table[hash % (ulong)Table.Length];
 
          if (entry.Hash != hash)
          {
@@ -45,9 +49,14 @@
          return entry;
       }
 
-      public static void SaveEntry(uint hash, byte depth, ushort move, int score, HashFlag flag)
+      public static void SaveEntry(ulong hash, byte depth, ushort move, int score, HashFlag flag)
       {
-         Table[hash & (ulong)Table.Length] = new TTEntry
+         if (Table[hash % (ulong)Table.Length].Hash == 0)
+         {
+            Used++;
+         }
+
+         Table[hash % (ulong)Table.Length] = new TTEntry
          {
             Hash = hash,
             Depth = depth,
@@ -55,6 +64,11 @@
             Score = score,
             Flag = flag,
          };
+      }
+
+      public static int GetUsed()
+      {
+         return 1000 * Used / Table.Length;
       }
    }
 }
