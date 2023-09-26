@@ -24,8 +24,10 @@ namespace Skookum
          ulong totalNodes = 0;
          MoveList moves = new(Board);
 
-         foreach (Move move in moves.Moves)
+         for (int i = 0; i < moves.MovesIndex; i++)
          {
+            Move move = moves.Moves[i];
+
             if (!Board.MakeMove(move))
             {
                Board.UndoMove(move);
@@ -62,8 +64,10 @@ namespace Skookum
 
          MoveList moves = new(Board);
 
-         foreach (Move move in moves.Moves)
+         for (int i = 0; i < moves.MovesIndex; i++)
          {
+            Move move = moves.Moves[i];
+
             if (!Board.MakeMove(move))
             {
                Board.UndoMove(move);
