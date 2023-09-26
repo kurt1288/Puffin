@@ -18,6 +18,7 @@ namespace Skookum
       Stack<BoardState> PreviousStates = new();
 
       public int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
+      public Score[] MaterialValue = { new Score(0, 0), new Score(0, 0) };
 
       public Board()
       {
@@ -43,6 +44,8 @@ namespace Skookum
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
+         MaterialValue[(int)Color.White] = new Score(0, 0);
+         MaterialValue[(int)Color.Black] = new Score(0, 0);
       }
 
       public void Reset()
@@ -69,6 +72,8 @@ namespace Skookum
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
+         MaterialValue[(int)Color.White] = new Score(0, 0);
+         MaterialValue[(int)Color.Black] = new Score(0, 0);
       }
 
       public void SetPosition(string fen)
@@ -432,6 +437,7 @@ namespace Skookum
          Mailbox[square] = piece;
          Phase += PhaseValues[(int)piece.Type];
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
+         MaterialValue[(int)piece.Color] += Evaluation.PieceValues[(int)piece.Type];
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -442,6 +448,7 @@ namespace Skookum
          Mailbox[square] = new Piece();
          Phase -= PhaseValues[(int)piece.Type];
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
+         MaterialValue[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];
       }
 
       public int GetSquareByPiece(PieceType piece, Color color)

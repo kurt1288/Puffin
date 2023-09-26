@@ -95,8 +95,8 @@
 
       public static int Evaluate(Board board)
       {
-         Score white = Material(board, Color.White);
-         Score black = Material(board, Color.Black);
+         Score white = board.MaterialValue[(int)Color.White];
+         Score black = board.MaterialValue[(int)Color.Black];
          white += Knights(board, Color.White);
          black += Knights(board, Color.Black);
          white += Bishops(board, Color.White);
@@ -113,23 +113,6 @@
          }
 
          return total.Eg + Math.Clamp(board.Phase, 0, 24) / 24 * (total.Mg - total.Eg);
-      }
-
-      private static Score Material(Board board, Color color)
-      {
-         Bitboard us = new(board.ColorBB[(int)color].Value);
-         Score score = new();
-
-         while (!us.IsEmpty())
-         {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            Piece piece = board.Mailbox[square];
-
-            score += PieceValues[(int)piece.Type];
-         }
-
-         return score;
       }
 
       private static Score Knights(Board board, Color color)

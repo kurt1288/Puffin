@@ -23,5 +23,8 @@
       public static Score operator -(Score a, Score b) => new(a._Score - b._Score);
 
       public static Score operator *(Score a, int b) => new(a._Score * b);
+      
+      public static bool operator ==(Score a, Score b) => a._Score == b._Score;
+      public static bool operator !=(Score a, Score b) => a._Score != b._Score;
    }
 }
