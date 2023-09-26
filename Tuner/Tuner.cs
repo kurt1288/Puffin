@@ -382,13 +382,14 @@ namespace Skookum
 
       private Score Knights(Color color, Trace trace)
       {
-         Bitboard us = new(Engine.Board.PieceBB[(int)PieceType.Knight].Value & Engine.Board.ColorBB[(int)color].Value);
+         Bitboard knightsBB = new(Engine.Board.PieceBB[(int)PieceType.Knight].Value & Engine.Board.ColorBB[(int)color].Value);
+         ulong us = Engine.Board.ColorBB[(int)color].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!knightsBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            int attacks = new Bitboard(Attacks.KnightAttacks[square]).CountBits();
+            int square = knightsBB.GetLSB();
+            knightsBB.ClearLSB();
+            int attacks = new Bitboard(Attacks.KnightAttacks[square] & ~us).CountBits();
             score += Evaluation.KnightMobility[attacks];
             trace.knightMobility[attacks][(int)color]++;
          }
@@ -397,14 +398,15 @@ namespace Skookum
 
       private Score Bishops(Color color, Trace trace)
       {
-         Bitboard us = new(Engine.Board.PieceBB[(int)PieceType.Bishop].Value & Engine.Board.ColorBB[(int)color].Value);
-         Bitboard them = new(Engine.Board.ColorBB[(int)color ^ 1].Value);
+         Bitboard bishopBB = new(Engine.Board.PieceBB[(int)PieceType.Bishop].Value & Engine.Board.ColorBB[(int)color].Value);
+         ulong us = Engine.Board.ColorBB[(int)color].Value;
+         ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!bishopBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetBishopAttacks(square, them.Value)).CountBits();
+            int square = bishopBB.GetLSB();
+            bishopBB.ClearLSB();
+            int attacks = new Bitboard(Attacks.GetBishopAttacks(square, occupied) & ~us).CountBits();
             score += Evaluation.BishopMobility[attacks];
             trace.bishopMobility[attacks][(int)color]++;
          }
@@ -413,14 +415,15 @@ namespace Skookum
 
       private Score Rooks(Color color, Trace trace)
       {
-         Bitboard us = new(Engine.Board.PieceBB[(int)PieceType.Rook].Value & Engine.Board.ColorBB[(int)color].Value);
-         Bitboard them = new(Engine.Board.ColorBB[(int)color ^ 1].Value);
+         Bitboard rooksBB = new(Engine.Board.PieceBB[(int)PieceType.Rook].Value & Engine.Board.ColorBB[(int)color].Value);
+         ulong us = Engine.Board.ColorBB[(int)color].Value;
+         ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!rooksBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetRookAttacks(square, them.Value)).CountBits();
+            int square = rooksBB.GetLSB();
+            rooksBB.ClearLSB();
+            int attacks = new Bitboard(Attacks.GetRookAttacks(square, occupied) & ~us).CountBits();
             score += Evaluation.RookMobility[attacks];
             trace.rookMobility[attacks][(int)color]++;
          }
@@ -428,14 +431,15 @@ namespace Skookum
       }
       private Score Queens(Color color, Trace trace)
       {
-         Bitboard us = new(Engine.Board.PieceBB[(int)PieceType.Queen].Value & Engine.Board.ColorBB[(int)color].Value);
-         Bitboard them = new(Engine.Board.ColorBB[(int)color ^ 1].Value);
+         Bitboard queensBB = new(Engine.Board.PieceBB[(int)PieceType.Queen].Value & Engine.Board.ColorBB[(int)color].Value);
+         ulong us = Engine.Board.ColorBB[(int)color].Value;
+         ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!queensBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetQueenAttacks(square, them.Value)).CountBits();
+            int square = queensBB.GetLSB();
+            queensBB.ClearLSB();
+            int attacks = new Bitboard(Attacks.GetQueenAttacks(square, occupied) & ~us).CountBits();
             score += Evaluation.QueenMobility[attacks];
             trace.queenMobility[attacks][(int)color]++;
          }

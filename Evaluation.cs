@@ -3,34 +3,94 @@
    internal static class Evaluation
    {
       public static readonly Score[] PieceValues = {
-         new Score(211, 58), new Score(232, 211), new Score(275, 223), new Score(349, 320), new Score(508, 615), new Score(10000, 10000),
+         new Score(111, 91),
+         new Score(292, 293),
+         new Score(332, 317),
+         new Score(500, 480),
+         new Score(900, 953),
+         new Score(10000, 10000),
       };
 
       public static readonly Score[] KnightMobility =
       {
-         new Score(0, 0), new Score(0, 0), new Score(-41, -58), new Score(-32, -40), new Score(-32, -14),
-         new Score(0, 0), new Score(-26, -14), new Score(0, 0), new Score(31, 3),
+         new Score(-32, -43),
+         new Score(-30, -42),
+         new Score(-22, -32),
+         new Score(-11, -17),
+         new Score(21, -2),
+         new Score(22, 8),
+         new Score(19, 18),
+         new Score(25, 18),
+         new Score(28, 18),
       };
 
       public static readonly Score[] BishopMobility =
       {
-         new Score(0, 0), new Score(-3, -22), new Score(-32, -71), new Score(-29, -40), new Score(-32, -13), new Score(-35, -13), new Score(-26, -13),
-         new Score(-26, -13), new Score(22, 0), new Score(25, 0), new Score(28, 4), new Score(31, 4), new Score(21, 4), new Score(65, 4),
+         new Score(-31, -37),
+         new Score(-25, -31),
+         new Score(-13, -16),
+         new Score(-3, -11),
+         new Score(-11, 3),
+         new Score(21, 13),
+         new Score(20, 24),
+         new Score(27, 24),
+         new Score(26, 24),
+         new Score(29, 24),
+         new Score(31, 24),
+         new Score(30, 34),
+         new Score(-8, 24),
+         new Score(3, 39),
       };
 
       public static readonly Score[] RookMobility =
       {
-         new Score(0, 0), new Score(0, 0), new Score(0, -92), new Score(0, -42), new Score(6, -11), new Score(-48, -11), new Score(-6, -11),
-         new Score(-38, -2), new Score(27, -11), new Score(-33, -11), new Score(-33, -11), new Score(-18, -6), new Score(27, -2), new Score(-24, -11),
-         new Score(21, 6),
+         new Score(-26, -36),
+         new Score(-14, -21),
+         new Score(-9, -26),
+         new Score(-14, -21),
+         new Score(15, -11),
+         new Score(19, -6),
+         new Score(25, 0),
+         new Score(29, 0),
+         new Score(32, 14),
+         new Score(20, 19),
+         new Score(24, 19),
+         new Score(34, 24),
+         new Score(27, 19),
+         new Score(21, 29),
+         new Score(13, 44),
       };
 
       public static readonly Score[] QueenMobility =
       {
-         new Score(0, 0), new Score(0, 0), new Score(0, 0), new Score(0, -6), new Score(0, 7), new Score(-3, -18), new Score(0, 16), new Score(-6, 7),
-         new Score(9, 25), new Score(0, 7), new Score(33, 43), new Score(-46, 25), new Score(-27, 25), new Score(-24, 25), new Score(-36, 25),
-         new Score(-24, 20), new Score(-39, 11), new Score(-36, 12), new Score(-24, 12), new Score(35, 11), new Score(26, 25), new Score(26, 25),
-         new Score(29, 25), new Score(23, 25), new Score(26, 25), new Score(8, 29), new Score(6, 16), new Score(-3, 29),
+         new Score(-18, -24),
+         new Score(-23, -34),
+         new Score(-28, -40),
+         new Score(-26, -29),
+         new Score(-14, -24),
+         new Score(-9, -14),
+         new Score(14, -9),
+         new Score(23, -4),
+         new Score(26, 0),
+         new Score(26, 5),
+         new Score(26, 10),
+         new Score(13, 10),
+         new Score(28, 16),
+         new Score(26, 16),
+         new Score(-32, 26),
+         new Score(-19, 16),
+         new Score(-29, 26),
+         new Score(-36, 16),
+         new Score(-16, 26),
+         new Score(3, 16),
+         new Score(8, 26),
+         new Score(6, 16),
+         new Score(3, 31),
+         new Score(0, 41),
+         new Score(0, 16),
+         new Score(0, 26),
+         new Score(0, 41),
+         new Score(0, 26),
       };
 
       public static int Evaluate(Board board)
@@ -74,54 +134,58 @@
 
       private static Score Knights(Board board, Color color)
       {
-         Bitboard us = new(board.PieceBB[(int)PieceType.Knight].Value & board.ColorBB[(int)color].Value);
+         Bitboard knightsBB = new(board.PieceBB[(int)PieceType.Knight].Value & board.ColorBB[(int)color].Value);
+         ulong us = board.ColorBB[(int)color].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!knightsBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            score += KnightMobility[new Bitboard(Attacks.KnightAttacks[square]).CountBits()];
+            int square = knightsBB.GetLSB();
+            knightsBB.ClearLSB();
+            score += KnightMobility[new Bitboard(Attacks.KnightAttacks[square] & ~us).CountBits()];
          }
          return score;
       }
 
       private static Score Bishops(Board board, Color color)
       {
-         Bitboard us = new(board.PieceBB[(int)PieceType.Bishop].Value & board.ColorBB[(int)color].Value);
-         Bitboard them = new(board.ColorBB[(int)color ^ 1].Value);
+         Bitboard bishopBB = new(board.PieceBB[(int)PieceType.Bishop].Value & board.ColorBB[(int)color].Value);
+         ulong us = board.ColorBB[(int)color].Value;
+         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!bishopBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            score += BishopMobility[new Bitboard(Attacks.GetBishopAttacks(square, them.Value)).CountBits()];
+            int square = bishopBB.GetLSB();
+            bishopBB.ClearLSB();
+            score += BishopMobility[new Bitboard(Attacks.GetBishopAttacks(square, occupied) & ~us).CountBits()];
          }
          return score;
       }
 
       private static Score Rooks(Board board, Color color)
       {
-         Bitboard us = new(board.PieceBB[(int)PieceType.Rook].Value & board.ColorBB[(int)color].Value);
-         Bitboard them = new(board.ColorBB[(int)color ^ 1].Value);
+         Bitboard rookBB = new(board.PieceBB[(int)PieceType.Rook].Value & board.ColorBB[(int)color].Value);
+         ulong us = board.ColorBB[(int)color].Value;
+         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!rookBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            score += RookMobility[new Bitboard(Attacks.GetRookAttacks(square, them.Value)).CountBits()];
+            int square = rookBB.GetLSB();
+            rookBB.ClearLSB();
+            score += RookMobility[new Bitboard(Attacks.GetRookAttacks(square, occupied) & ~us).CountBits()];
          }
          return score;
       }
       private static Score Queens(Board board, Color color)
       {
-         Bitboard us = new(board.PieceBB[(int)PieceType.Queen].Value & board.ColorBB[(int)color].Value);
-         Bitboard them = new(board.ColorBB[(int)color ^ 1].Value);
+         Bitboard queenBB = new(board.PieceBB[(int)PieceType.Queen].Value & board.ColorBB[(int)color].Value);
+         ulong us = board.ColorBB[(int)color].Value;
+         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
          Score score = new();
-         while (!us.IsEmpty())
+         while (!queenBB.IsEmpty())
          {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            score += QueenMobility[new Bitboard(Attacks.GetQueenAttacks(square, them.Value)).CountBits()];
+            int square = queenBB.GetLSB();
+            queenBB.ClearLSB();
+            score += QueenMobility[new Bitboard(Attacks.GetQueenAttacks(square, occupied) & ~us).CountBits()];
          }
          return score;
       }
