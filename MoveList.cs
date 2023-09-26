@@ -43,7 +43,7 @@
          }
          else
          {
-            Scores.Add(random.Next(1000));
+            Scores.Add(0);
          }
       }
 
