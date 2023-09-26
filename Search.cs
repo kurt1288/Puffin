@@ -66,12 +66,12 @@ namespace Skookum
             return Constants.INFINITY * 10;
          }
 
-         Info.InitPvLength(ply);
-
          if (ply >= Constants.MAX_PLY)
          {
             return 0;
          }
+
+         Info.InitPvLength(ply);
 
          if (depth <= 0)
          {
