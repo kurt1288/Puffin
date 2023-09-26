@@ -17,10 +17,11 @@ namespace Skookum
       private class Trace
       {
          public int[][] material = new int[6][];
-         public int[][] knightMobility = new int[9][];
-         public int[][] bishopMobility = new int[14][];
-         public int[][] rookMobility = new int[15][];
-         public int[][] queenMobility = new int[28][];
+         public int[][] pst = new int[384][];
+         //public int[][] knightMobility = new int[9][];
+         //public int[][] bishopMobility = new int[14][];
+         //public int[][] rookMobility = new int[15][];
+         //public int[][] queenMobility = new int[28][];
          public int score = 0;
 
          public Trace()
@@ -30,25 +31,30 @@ namespace Skookum
                material[i] = new int[2];
             }
 
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < 384; i++)
             {
-               knightMobility[i] = new int[2];
+               pst[i] = new int[2];
             }
 
-            for (int i = 0; i < 14; i++)
-            {
-               bishopMobility[i] = new int[2];
-            }
+            //for (int i = 0; i < 9; i++)
+            //{
+            //   knightMobility[i] = new int[2];
+            //}
 
-            for (int i = 0; i < 15; i++)
-            {
-               rookMobility[i] = new int[2];
-            }
+            //for (int i = 0; i < 14; i++)
+            //{
+            //   bishopMobility[i] = new int[2];
+            //}
 
-            for (int i = 0; i < 28; i++)
-            {
-               queenMobility[i] = new int[2];
-            }
+            //for (int i = 0; i < 15; i++)
+            //{
+            //   rookMobility[i] = new int[2];
+            //}
+
+            //for (int i = 0; i < 28; i++)
+            //{
+            //   queenMobility[i] = new int[2];
+            //}
          }
       }
 
@@ -253,10 +259,11 @@ namespace Skookum
       public void LoadParameters()
       {
          AddParameters(Evaluation.PieceValues);
-         AddParameters(Evaluation.KnightMobility);
-         AddParameters(Evaluation.BishopMobility);
-         AddParameters(Evaluation.RookMobility);
-         AddParameters(Evaluation.QueenMobility);
+         AddParameters(Evaluation.PST);
+         //AddParameters(Evaluation.KnightMobility);
+         //AddParameters(Evaluation.BishopMobility);
+         //AddParameters(Evaluation.RookMobility);
+         //AddParameters(Evaluation.QueenMobility);
       }
 
       private void AddParameters(Score[] values)
@@ -339,14 +346,14 @@ namespace Skookum
 
          Score white = Material(Color.White, trace);
          Score black = Material(Color.Black, trace);
-         white += Knights(Color.White, trace);
-         black += Knights(Color.Black, trace);
-         white += Bishops(Color.White, trace);
-         black += Bishops(Color.Black, trace);
-         white += Rooks(Color.White, trace);
-         black += Rooks(Color.Black, trace);
-         white += Queens(Color.White, trace);
-         black += Queens(Color.Black, trace);
+         //white += Knights(Color.White, trace);
+         //black += Knights(Color.Black, trace);
+         //white += Bishops(Color.White, trace);
+         //black += Bishops(Color.Black, trace);
+         //white += Rooks(Color.White, trace);
+         //black += Rooks(Color.Black, trace);
+         //white += Queens(Color.White, trace);
+         //black += Queens(Color.Black, trace);
          Score total = white - black;
 
          if (Engine.Board.SideToMove == Color.Black)
@@ -375,86 +382,95 @@ namespace Skookum
 
             score += Evaluation.PieceValues[(int)piece.Type];
             trace.material[(int)piece.Type][(int)piece.Color]++;
+
+            if (piece.Color == Color.Black)
+            {
+               square ^= 56;
+            }
+
+            score += Evaluation.PST[((int)piece.Type * 64) + square];
+            trace.pst[((int)piece.Type * 64) + square][(int)piece.Color]++;
          }
 
          return score;
       }
 
-      private Score Knights(Color color, Trace trace)
-      {
-         Bitboard knightsBB = new(Engine.Board.PieceBB[(int)PieceType.Knight].Value & Engine.Board.ColorBB[(int)color].Value);
-         ulong us = Engine.Board.ColorBB[(int)color].Value;
-         Score score = new();
-         while (!knightsBB.IsEmpty())
-         {
-            int square = knightsBB.GetLSB();
-            knightsBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.KnightAttacks[square] & ~us).CountBits();
-            score += Evaluation.KnightMobility[attacks];
-            trace.knightMobility[attacks][(int)color]++;
-         }
-         return score;
-      }
+      //private Score Knights(Color color, Trace trace)
+      //{
+      //   Bitboard knightsBB = new(Engine.Board.PieceBB[(int)PieceType.Knight].Value & Engine.Board.ColorBB[(int)color].Value);
+      //   ulong us = Engine.Board.ColorBB[(int)color].Value;
+      //   Score score = new();
+      //   while (!knightsBB.IsEmpty())
+      //   {
+      //      int square = knightsBB.GetLSB();
+      //      knightsBB.ClearLSB();
+      //      int attacks = new Bitboard(Attacks.KnightAttacks[square] & ~us).CountBits();
+      //      score += Evaluation.KnightMobility[attacks];
+      //      trace.knightMobility[attacks][(int)color]++;
+      //   }
+      //   return score;
+      //}
 
-      private Score Bishops(Color color, Trace trace)
-      {
-         Bitboard bishopBB = new(Engine.Board.PieceBB[(int)PieceType.Bishop].Value & Engine.Board.ColorBB[(int)color].Value);
-         ulong us = Engine.Board.ColorBB[(int)color].Value;
-         ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
-         Score score = new();
-         while (!bishopBB.IsEmpty())
-         {
-            int square = bishopBB.GetLSB();
-            bishopBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetBishopAttacks(square, occupied) & ~us).CountBits();
-            score += Evaluation.BishopMobility[attacks];
-            trace.bishopMobility[attacks][(int)color]++;
-         }
-         return score;
-      }
+      //private Score Bishops(Color color, Trace trace)
+      //{
+      //   Bitboard bishopBB = new(Engine.Board.PieceBB[(int)PieceType.Bishop].Value & Engine.Board.ColorBB[(int)color].Value);
+      //   ulong us = Engine.Board.ColorBB[(int)color].Value;
+      //   ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
+      //   Score score = new();
+      //   while (!bishopBB.IsEmpty())
+      //   {
+      //      int square = bishopBB.GetLSB();
+      //      bishopBB.ClearLSB();
+      //      int attacks = new Bitboard(Attacks.GetBishopAttacks(square, occupied) & ~us).CountBits();
+      //      score += Evaluation.BishopMobility[attacks];
+      //      trace.bishopMobility[attacks][(int)color]++;
+      //   }
+      //   return score;
+      //}
 
-      private Score Rooks(Color color, Trace trace)
-      {
-         Bitboard rooksBB = new(Engine.Board.PieceBB[(int)PieceType.Rook].Value & Engine.Board.ColorBB[(int)color].Value);
-         ulong us = Engine.Board.ColorBB[(int)color].Value;
-         ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
-         Score score = new();
-         while (!rooksBB.IsEmpty())
-         {
-            int square = rooksBB.GetLSB();
-            rooksBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetRookAttacks(square, occupied) & ~us).CountBits();
-            score += Evaluation.RookMobility[attacks];
-            trace.rookMobility[attacks][(int)color]++;
-         }
-         return score;
-      }
-      private Score Queens(Color color, Trace trace)
-      {
-         Bitboard queensBB = new(Engine.Board.PieceBB[(int)PieceType.Queen].Value & Engine.Board.ColorBB[(int)color].Value);
-         ulong us = Engine.Board.ColorBB[(int)color].Value;
-         ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
-         Score score = new();
-         while (!queensBB.IsEmpty())
-         {
-            int square = queensBB.GetLSB();
-            queensBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetQueenAttacks(square, occupied) & ~us).CountBits();
-            score += Evaluation.QueenMobility[attacks];
-            trace.queenMobility[attacks][(int)color]++;
-         }
-         return score;
-      }
+      //private Score Rooks(Color color, Trace trace)
+      //{
+      //   Bitboard rooksBB = new(Engine.Board.PieceBB[(int)PieceType.Rook].Value & Engine.Board.ColorBB[(int)color].Value);
+      //   ulong us = Engine.Board.ColorBB[(int)color].Value;
+      //   ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
+      //   Score score = new();
+      //   while (!rooksBB.IsEmpty())
+      //   {
+      //      int square = rooksBB.GetLSB();
+      //      rooksBB.ClearLSB();
+      //      int attacks = new Bitboard(Attacks.GetRookAttacks(square, occupied) & ~us).CountBits();
+      //      score += Evaluation.RookMobility[attacks];
+      //      trace.rookMobility[attacks][(int)color]++;
+      //   }
+      //   return score;
+      //}
+      //private Score Queens(Color color, Trace trace)
+      //{
+      //   Bitboard queensBB = new(Engine.Board.PieceBB[(int)PieceType.Queen].Value & Engine.Board.ColorBB[(int)color].Value);
+      //   ulong us = Engine.Board.ColorBB[(int)color].Value;
+      //   ulong occupied = Engine.Board.ColorBB[(int)Color.White].Value | Engine.Board.ColorBB[(int)Color.Black].Value;
+      //   Score score = new();
+      //   while (!queensBB.IsEmpty())
+      //   {
+      //      int square = queensBB.GetLSB();
+      //      queensBB.ClearLSB();
+      //      int attacks = new Bitboard(Attacks.GetQueenAttacks(square, occupied) & ~us).CountBits();
+      //      score += Evaluation.QueenMobility[attacks];
+      //      trace.queenMobility[attacks][(int)color]++;
+      //   }
+      //   return score;
+      //}
 
       private List<short> GetCoefficients(Trace trace)
       {
          List<short> coefficients = new();
 
          GetCoefficientsFromArray(ref coefficients, trace.material, 6);
-         GetCoefficientsFromArray(ref coefficients, trace.knightMobility, 9);
-         GetCoefficientsFromArray(ref coefficients, trace.bishopMobility, 14);
-         GetCoefficientsFromArray(ref coefficients, trace.rookMobility, 15);
-         GetCoefficientsFromArray(ref coefficients, trace.queenMobility, 28);
+         GetCoefficientsFromArray(ref coefficients, trace.pst, 384);
+         //GetCoefficientsFromArray(ref coefficients, trace.knightMobility, 9);
+         //GetCoefficientsFromArray(ref coefficients, trace.bishopMobility, 14);
+         //GetCoefficientsFromArray(ref coefficients, trace.rookMobility, 15);
+         //GetCoefficientsFromArray(ref coefficients, trace.queenMobility, 28);
 
          return coefficients;
       }
@@ -523,10 +539,11 @@ namespace Skookum
 
          int index = 0;
          PrintArray("material", ref index, 6, sw);
-         PrintArray("knight mobility", ref index, 9, sw);
-         PrintArray("bishop mobility", ref index, 14, sw);
-         PrintArray("rook mobility", ref index, 15, sw);
-         PrintArray("queen mobility", ref index, 28, sw);
+         PrintArray("pst", ref index, 384, sw);
+         //PrintArray("knight mobility", ref index, 9, sw);
+         //PrintArray("bishop mobility", ref index, 14, sw);
+         //PrintArray("rook mobility", ref index, 15, sw);
+         //PrintArray("queen mobility", ref index, 28, sw);
       }
 
       private void PrintArray(string name, ref int index, int count, StreamWriter writer)

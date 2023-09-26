@@ -229,6 +229,12 @@ namespace Skookum
                   RemovePiece(piece, from);
                   SetPiece(piece, to);
 
+                  // Move rook
+                  int rFrom = 63 - new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
+                  int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
+                  SetPiece(Mailbox[rFrom], rTo);
+                  RemovePiece(Mailbox[rFrom], rFrom);
+
                   // Check the path of the king to make sure it isn't moving from check or moving through check
                   Bitboard kingPath = new(Constants.BetweenBB[from][to] | Constants.SquareBB[to] | Constants.SquareBB[from]);
                   while (!kingPath.IsEmpty())
@@ -241,11 +247,6 @@ namespace Skookum
                      }
                   }
 
-                  // Move rook
-                  int rFrom = 63 - new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
-                  int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
-                  SetPiece(Mailbox[rFrom], rTo);
-                  RemovePiece(Mailbox[rFrom], rFrom);
                   break;
                }
             case MoveFlag.QueenCastle:
@@ -253,6 +254,12 @@ namespace Skookum
                   // Move king
                   RemovePiece(piece, from);
                   SetPiece(piece, to);
+
+                  // Move rook
+                  int rFrom = new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetLSB();
+                  int rTo = SideToMove == Color.White ? (int)Square.D1 : (int)Square.D8;
+                  SetPiece(Mailbox[rFrom], rTo);
+                  RemovePiece(Mailbox[rFrom], rFrom);
 
                   // Check the path of the king to make sure it isn't moving from check or doesn't moving through check
                   Bitboard kingPath = new(Constants.BetweenBB[from][to] | Constants.SquareBB[to] | Constants.SquareBB[from]);
@@ -266,11 +273,6 @@ namespace Skookum
                      }
                   }
 
-                  // Move rook
-                  int rFrom = new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetLSB();
-                  int rTo = SideToMove == Color.White ? (int)Square.D1 : (int)Square.D8;
-                  SetPiece(Mailbox[rFrom], rTo);
-                  RemovePiece(Mailbox[rFrom], rFrom);
                   break;
                }
             case MoveFlag.KnightPromotion:
@@ -359,6 +361,8 @@ namespace Skookum
 
          Debug.Assert(Zobrist.Verify(this));
          Debug.Assert(Phase == VerifyPhase());
+         Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
+         Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
 
          if (IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove))
          {
@@ -402,7 +406,7 @@ namespace Skookum
             else
             {
                RemovePiece(rook, piece.Color == Color.White ? (int)Square.D1 : (int)Square.D8);
-               SetPiece(new Piece(PieceType.Rook, piece.Color), piece.Color == Color.White ? (int)Square.A1 : (int)Square.A8);
+               SetPiece(rook, piece.Color == Color.White ? (int)Square.A1 : (int)Square.A8);
             }
          }
          else
@@ -427,6 +431,8 @@ namespace Skookum
          Zobrist.Hash = previousState.Hash;
          Debug.Assert(Zobrist.Verify(this));
          Debug.Assert(Phase == VerifyPhase());
+         Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
+         Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -438,6 +444,7 @@ namespace Skookum
          Phase += PhaseValues[(int)piece.Type];
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
          MaterialValue[(int)piece.Color] += Evaluation.PieceValues[(int)piece.Type];
+         MaterialValue[(int)piece.Color] += Evaluation.GetPSTScore(piece, square);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -449,6 +456,7 @@ namespace Skookum
          Phase -= PhaseValues[(int)piece.Type];
          Zobrist.Hash ^= Zobrist.Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
          MaterialValue[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];
+         MaterialValue[(int)piece.Color] -= Evaluation.GetPSTScore(piece, square);
       }
 
       public int GetSquareByPiece(PieceType piece, Color color)
