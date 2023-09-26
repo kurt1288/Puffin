@@ -2,9 +2,10 @@
 {
    internal class MoveList
    {
-      public readonly List<Move> Moves = new();
-      private readonly List<int> Scores = new();
-      private readonly Random random = new();
+      public readonly Move[] Moves = new Move[218];
+      private readonly int[] Scores = new int[218];
+      public int MovesIndex { get; private set; } = 0;
+      private int ScoresIndex = 0;
 
       public MoveList(Board board, bool noisyOnly = false)
       {
@@ -22,28 +23,23 @@
 
       public void Add(Move move, Piece? piece, Piece? captured)
       {
-         Moves.Add(move);
+         Moves[MovesIndex++] = move;
          ScoreMove(move, piece, captured);
-      }
-
-      public bool IsEmpty()
-      {
-         return Moves.Count == 0;
       }
 
       private void ScoreMove(Move move, Piece? piece, Piece? captured)
       {
          if (move.GetEncoded() == TranspositionTable.GetHashMove())
          {
-            Scores.Add(1000000);
+            Scores[ScoresIndex++] = 1000000;
          }
          else if (move.HasType(MoveType.Capture))
          {
-            Scores.Add(10000 + (Evaluation.PieceValues[(int)captured!.Value.Type] - Evaluation.PieceValues[(int)piece!.Value.Type]).Mg);
+            Scores[ScoresIndex++] = 10000 + (Evaluation.PieceValues[(int)captured!.Value.Type] - Evaluation.PieceValues[(int)piece!.Value.Type]).Mg;
          }
          else
          {
-            Scores.Add(0);
+            Scores[ScoresIndex++] = 0;
          }
       }
 
@@ -52,7 +48,7 @@
          // Selection sort
          int best = index;
 
-         for (int i = index; i < Moves.Count; i++)
+         for (int i = index; i < MovesIndex; i++)
          {
             if (Scores[i] > Scores[best])
             {

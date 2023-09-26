@@ -103,7 +103,7 @@ namespace Skookum
 
          MoveList moves = new(Board);
 
-         for (int i = 0; i < moves.Moves.Count; i++)
+         for (int i = 0; i < moves.MovesIndex; i++)
          {
             Move move = moves.NextMove(i);
 
@@ -194,7 +194,7 @@ namespace Skookum
 
          MoveList moves = new(Board, true);
 
-         for (int i = 0; i < moves.Moves.Count; i++)
+         for (int i = 0; i < moves.MovesIndex; i++)
          {
             Move move = moves.NextMove(i);
 
