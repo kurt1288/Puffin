@@ -137,8 +137,9 @@ namespace Skookum
             // set en passant
             if (fenParts[3] != "-")
             {
-               int file = "abcdefgh".IndexOf(fenParts[3][0]) - 1;
-               int rank = int.Parse(fenParts[3][1].ToString());
+               var f = fenParts[3][0];
+               int file = "abcdefgh".IndexOf(fenParts[3][0]);
+               int rank = 8 - int.Parse(fenParts[3][1].ToString());
                En_Passant = (Square)(rank * 8 + file);
             }
 
