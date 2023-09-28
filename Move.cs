@@ -12,6 +12,11 @@ namespace Skookum
          Encoded = (ushort)((((int)flag & 0xf) << 12) | ((from & 0x3f) << 6) | (to & 0x3f));
       }
 
+      public Move(ushort move)
+      {
+         Encoded = move;
+      }
+
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetTo()
       {
@@ -47,6 +52,9 @@ namespace Skookum
       {
          return Encoded;
       }
+
+      public static bool operator ==(Move a, int b) => a.Encoded == b;
+      public static bool operator !=(Move a, int b) => a.Encoded != b;
 
       public override string ToString()
       {

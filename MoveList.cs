@@ -1,24 +1,98 @@
 ﻿namespace Skookum
 {
+   enum Stage
+   {
+      HashMove,
+      GenNoisy,
+      Noisy,
+      GenQuiet,
+      Quiet,
+   }
+
    internal class MoveList
    {
       public readonly Move[] Moves = new Move[218];
       private readonly int[] Scores = new int[218];
       public int MovesIndex { get; private set; } = 0;
       private int ScoresIndex = 0;
+      private readonly Board Board;
+      private Stage Stage;
+      private int Index;
+      private readonly bool NoisyOnly = false;
 
       public MoveList(Board board, bool noisyOnly = false)
       {
-         MoveGen gen = new(board);
+         Stage = Stage.HashMove;
+         Board = board;
 
          if (noisyOnly)
          {
-            gen.GenerateNoisy(this);
+            NoisyOnly = true;
+            Stage = Stage.GenNoisy;
          }
-         else
+      }
+
+      public Move Next()
+      {
+         switch (Stage)
          {
-            gen.GenerateAll(this);
+            case Stage.HashMove:
+               {
+                  ushort hashMove = TranspositionTable.GetHashMove();
+                  Stage++;
+
+                  if (hashMove != 0)
+                  {
+                     return new Move(hashMove);
+                  }
+
+                  goto case Stage.GenNoisy;
+               }
+            case Stage.GenNoisy:
+               {
+                  MoveGen.GenerateNoisy(this, Board);
+                  Stage++;
+                  Index = 0;
+                  goto case Stage.Noisy;
+               }
+            case Stage.Noisy:
+               {
+                  NextMove(Index);
+
+                  if (Moves[Index] != 0)
+                  {
+                     return Moves[Index++];
+                  }
+
+                  if (NoisyOnly)
+                  {
+                     break;
+                  }
+
+                  Stage++;
+                  goto case Stage.GenQuiet;
+               }
+            case Stage.GenQuiet:
+               {
+                  MoveGen.GenerateQuiet(this, Board);
+                  Stage++;
+                  Index = 0;
+                  goto case Stage.Quiet;
+               }
+            case Stage.Quiet:
+               {
+                  NextMove(Index);
+
+                  if (Moves[Index] != 0)
+                  {
+                     return Moves[Index++];
+                  }
+
+                  break;
+               }
          }
+
+         return new Move();
       }
 
       public void Add(Move move, Piece? piece, Piece? captured)
@@ -66,7 +140,7 @@
          Scores[index] = Scores[best];
          Scores[best] = t;
 
-         return Moves[index++];
+         return Moves[index];
       }
    }
 }

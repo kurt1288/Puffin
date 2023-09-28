@@ -102,11 +102,10 @@ namespace Skookum
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
          MoveList moves = new(Board);
+         Move move;
 
-         for (int i = 0; i < moves.MovesIndex; i++)
+         while ((move = moves.Next()) != 0)
          {
-            Move move = moves.NextMove(i);
-
             if (!Board.MakeMove(move))
             {
                Board.UndoMove(move);
@@ -193,11 +192,10 @@ namespace Skookum
          }
 
          MoveList moves = new(Board, true);
+         Move move;
 
-         for (int i = 0; i < moves.MovesIndex; i++)
+         while ((move = moves.Next()) != 0)
          {
-            Move move = moves.NextMove(i);
-
             if (!Board.MakeMove(move))
             {
                Board.UndoMove(move);
