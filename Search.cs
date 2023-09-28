@@ -7,12 +7,18 @@ namespace Skookum
       readonly Board Board;
       readonly TimeManager Time;
       readonly SearchInfo Info;
+      readonly Move[][] KillerMoves = new Move[Constants.MAX_PLY][];
 
       public Search(Board board, TimeManager time)
       {
          Board = board;
          Time = time;
          Info = new();
+         
+         for (int i = 0; i < Constants.MAX_PLY; i++)
+         {
+            KillerMoves[i] = new Move[2];
+         }
       }
 
       static string FormatScore(int score)
@@ -101,10 +107,10 @@ namespace Skookum
          int legalMoves = 0;
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
-         MoveList moves = new(Board);
+         MoveList moves = new(Board, KillerMoves);
          Move move;
 
-         while ((move = moves.Next()) != 0)
+         while ((move = moves.Next(ply)) != 0)
          {
             if (!Board.MakeMove(move))
             {
@@ -145,6 +151,13 @@ namespace Skookum
             if (alpha >= beta)
             {
                flag = HashFlag.Beta;
+
+               if (!move.HasType(MoveType.Capture))
+               {
+                  KillerMoves[ply][1] = KillerMoves[ply][0];
+                  KillerMoves[ply][0] = move;
+               }
+
                break;
             }
 
@@ -191,10 +204,10 @@ namespace Skookum
             alpha = bestScore;
          }
 
-         MoveList moves = new(Board, true);
+         MoveList moves = new(Board, KillerMoves, true);
          Move move;
 
-         while ((move = moves.Next()) != 0)
+         while ((move = moves.Next(ply)) != 0)
          {
             if (!Board.MakeMove(move))
             {

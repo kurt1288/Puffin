@@ -5,6 +5,7 @@
       HashMove,
       GenNoisy,
       Noisy,
+      Killers,
       GenQuiet,
       Quiet,
    }
@@ -19,11 +20,13 @@
       private Stage Stage;
       private int Index;
       private readonly bool NoisyOnly = false;
+      private readonly Move[][] KillerMoves;
 
-      public MoveList(Board board, bool noisyOnly = false)
+      public MoveList(Board board, Move[][] killerMoves, bool noisyOnly = false)
       {
          Stage = Stage.HashMove;
          Board = board;
+         KillerMoves = killerMoves;
 
          if (noisyOnly)
          {
@@ -32,7 +35,12 @@
          }
       }
 
-      public Move Next()
+      public MoveList(Board board)
+      {
+         Board = board;
+      }
+
+      public Move Next(int ply)
       {
          switch (Stage)
          {
@@ -70,6 +78,22 @@
                   }
 
                   Stage++;
+                  Index = 0;
+                  goto case Stage.Killers;
+               }
+            case Stage.Killers:
+               {
+                  while (Index <= 1)
+                  {
+                     if (Board.MoveIsValid(KillerMoves[ply][Index]))
+                     {
+                        return KillerMoves[ply][Index++];
+                     }
+
+                     Index++;
+                  }
+
+                  Stage++;
                   goto case Stage.GenQuiet;
                }
             case Stage.GenQuiet:
@@ -85,6 +109,12 @@
 
                   if (Moves[Index] != 0)
                   {
+                     if (Moves[Index].GetEncoded() == KillerMoves[ply][0].GetEncoded() || Moves[Index].GetEncoded() == KillerMoves[ply][1].GetEncoded())
+                     {
+                        Index++;
+                        goto case Stage.Quiet;
+                     }
+
                      return Moves[Index++];
                   }
 

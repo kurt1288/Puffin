@@ -499,6 +499,169 @@ namespace Skookum
          return false;
       }
 
+      public bool MoveIsValid(Move move)
+      {
+         if (move == 0)
+         {
+            return false;
+         }
+
+         Piece piece = Mailbox[move.GetFrom()];
+
+         // there's no piece to move?
+         if (piece.Type == PieceType.Null)
+         {
+            return false;
+         }
+
+         // moving an opponent's piece?
+         if (piece.Color != SideToMove)
+         {
+            return false;
+         }
+
+         // capturing our own piece?
+         if (Mailbox[move.GetTo()].Color == SideToMove)
+         {
+            return false;
+         }
+
+         // sliding piece trying to slide through pieces?
+         if (piece.Type == PieceType.Bishop || piece.Type == PieceType.Rook || piece.Type == PieceType.Queen)
+         {
+            if ((Constants.BetweenBB[move.GetFrom()][move.GetTo()] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
+            {
+               return false;
+            }
+         }
+
+         MoveList moves = MoveGen.GenerateAll(this);
+         foreach (Move moveToFind in moves.Moves)
+         {
+            if (moveToFind.GetEncoded() == move.GetEncoded())
+            {
+               return true;
+            }
+         }
+
+         return false;
+
+         //         Piece piece = Mailbox[move.GetFrom()];
+
+         //         // there's no piece to move?
+         //         if (piece.Type == PieceType.Null)
+         //         {
+         //            return false;
+         //         }
+
+         //         // moving an opponent's piece?
+         //         if (piece.Color != SideToMove)
+         //         {
+         //            return false;
+         //         }
+
+         //         // capturing our own piece?
+         //         if (Mailbox[move.GetTo()].Color == SideToMove)
+         //         {
+         //            return false;
+         //         }
+
+         //         // sliding piece trying to slide through pieces?
+         //         if (piece.Type == PieceType.Bishop || piece.Type == PieceType.Rook || piece.Type == PieceType.Queen)
+         //         {
+         //            if ((Constants.BetweenBB[move.GetFrom()][move.GetTo()] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
+         //            {
+         //               return false;
+         //            }
+         //         }
+
+         //         if (piece.Type == PieceType.Pawn)
+         //         {
+         //            // Pawn trying to capture an empty square? (not ep)
+         //            if (move.HasType(MoveType.Capture) && move.GetFlag() != MoveFlag.EPCapture && Mailbox[move.GetTo()].Type == PieceType.Null)
+         //            {
+         //               return false;
+         //            }
+
+         //            // ep captures
+         //            else if (move.GetFlag() == MoveFlag.EPCapture)
+         //            {
+         //               // not moving to the ep square?
+         //               if (move.GetTo() != (int)En_Passant)
+         //               {
+         //                  return false;
+         //               }
+         //            }
+
+         //            // push to an occupied square?
+         //            else if (Mailbox[move.GetTo()].Type != PieceType.Null)
+         //            {
+         //               return false;
+         //            }
+
+         //            // double push past an occupied square?
+         //            else if (move.GetFlag() == MoveFlag.DoublePawnPush)
+         //            {
+         //               if (Mailbox[(move.GetFrom() + move.GetTo()) / 2].Type != PieceType.Null)
+         //               {
+         //                  return false;
+         //               }
+         //            }
+
+         //            else
+         //            {
+         //               return false;
+         //            }
+         //         }
+         //         else
+         //         {
+         //            ulong occupied = ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value;
+         //            Bitboard attacks = piece.Type switch
+         //            {
+         //               PieceType.Knight => new(Attacks.KnightAttacks[move.GetFrom()]),
+         //               PieceType.Bishop => new(Attacks.GetBishopAttacks(move.GetFrom(), occupied)),
+         //               PieceType.Rook => new(Attacks.GetRookAttacks(move.GetFrom(), occupied)),
+         //               PieceType.Queen => new(Attacks.GetQueenAttacks(move.GetFrom(), occupied)),
+         //               PieceType.King => new(Attacks.KingAttacks[move.GetFrom()]),
+         //               _ => throw new Exception($"Unable to get moves for piece {piece}"),
+         //            };
+
+         //            // move isn't to a valid space
+         //            if ((attacks.Value & Constants.SquareBB[move.GetTo()]) == 0)
+         //            {
+         //               return false;
+         //            }
+
+         //            // capture move to a non-capture square or vice versa
+         //            if (move.HasType(MoveType.Capture) && Mailbox[move.GetTo()].Type == PieceType.Null || !move.HasType(MoveType.Capture) && Mailbox[move.GetTo()].Type != PieceType.Null)
+         //            {
+         //               return false;
+         //            }
+
+         //            if (Math.Abs((move.GetFrom()) >> 3) - (move.GetTo() >> 3) == 2)
+         //            {
+         //               if (piece.Type != PieceType.Pawn && move.GetFlag() == MoveFlag.DoublePawnPush || piece.Type == PieceType.Pawn && move.GetFlag() != MoveFlag.DoublePawnPush)
+         //               {
+         //                  return false;
+         //               }
+         //            }
+         //         }
+
+         //#if DEBUG
+         //         // Debug check to verify the move is correctly marked as legal
+         //         var moves = MoveGen.GenerateAll(this);
+         //         bool found = false;
+         //         foreach (var moveToFind in moves.Moves)
+         //         {
+         //            if (moveToFind.GetEncoded() == move.GetEncoded()) { found = true; break; }
+         //         }
+         //         var flag = move.GetFlag();
+         //         Debug.Assert(found);
+         //#endif
+
+         //         return true;
+      }
+
       private int VerifyPhase()
       {
          int phase = 0;

@@ -2,8 +2,9 @@
 {
    internal sealed class MoveGen
    {
-      public static MoveList GenerateAll(MoveList moveList, Board board)
+      public static MoveList GenerateAll(Board board)
       {
+         MoveList moveList = new(board);
          GenerateQuiet(moveList, board);
          GenerateNoisy(moveList, board);
 
