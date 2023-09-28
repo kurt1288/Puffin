@@ -1,24 +1,33 @@
 ﻿namespace Skookum
 {
-   public static class TranspositionTable
+   public enum HashFlag : byte
    {
-      public enum HashFlag : byte
-      {
-         None,
-         Exact,
-         Alpha,
-         Beta
-      }
+      None,
+      Exact,
+      Alpha,
+      Beta
+   }
 
-      public struct TTEntry
-      {
-         internal ulong Hash;
-         internal byte Depth;
-         internal ushort Move;
-         internal HashFlag Flag;
-         internal int Score;
-      }
+   public readonly struct TTEntry
+   {
+      internal readonly ulong Hash;
+      internal readonly byte Depth;
+      internal readonly ushort Move;
+      internal readonly HashFlag Flag;
+      internal readonly int Score;
 
+      public TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
+      {
+         Hash = hash;
+         Depth = depth;
+         Move = move;
+         Flag = flag;
+         Score = score;
+      }
+   }
+
+   public sealed class TranspositionTable
+   {
       static TTEntry[] Table;
       static int Used = 0;
 
@@ -56,14 +65,7 @@
             Used++;
          }
 
-         Table[hash % (ulong)Table.Length] = new TTEntry
-         {
-            Hash = hash,
-            Depth = depth,
-            Move = move,
-            Score = score,
-            Flag = flag,
-         };
+         Table[hash % (ulong)Table.Length] = new TTEntry(hash, depth, move, flag, score);
       }
 
       public static ushort GetHashMove()
