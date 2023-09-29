@@ -46,6 +46,12 @@
          Used = 0;
       }
 
+      public static void Reset()
+      {
+         Array.Clear(Table);
+         Used = 0;
+      }
+
       public static TTEntry? GetEntry(ulong hash)
       {
          TTEntry entry = Table[hash % (ulong)Table.Length];

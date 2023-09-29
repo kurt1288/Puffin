@@ -4,7 +4,7 @@
    {
       public bool IsRunning { get; private set; } = true;
       public readonly Board Board = new();
-      TimeManager Timer = new();
+      readonly TimeManager Timer = new();
       private readonly Search Search;
 
       public Engine()
@@ -27,6 +27,8 @@
       public void NewGame()
       {
          Board.Reset();
+         TranspositionTable.Reset();
+         Timer.Reset();
       }
 
       public void SetPosition(string fen)
