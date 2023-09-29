@@ -1,4 +1,5 @@
 ﻿using static Skookum.TranspositionTable;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace Skookum
 {
@@ -44,12 +45,46 @@ namespace Skookum
 
          int alpha = -Constants.INFINITY;
          int beta = Constants.INFINITY;
-         Move bestMove = new Move();
+         int score = 0;
+         Move bestMove = new();
 
          // Iterative deepening
          for (int i = 1; i <= target; i++)
          {
-            int score = NegaScout(alpha, beta, i, 0);
+            int margin = 10;
+
+            // Use aspiration windows at higher depths
+            if (i >= 4)
+            {
+               alpha = Math.Max(score - margin, -Constants.INFINITY);
+               beta = Math.Min(score + margin, Constants.INFINITY);
+            }
+
+            while (true)
+            {
+               if (Time.LimitReached())
+               {
+                  break;
+               }
+
+               score = NegaScout(alpha, beta, i, 0);
+
+               if (score <= alpha)
+               {
+                  alpha = Math.Max(score - margin, -Constants.INFINITY);
+                  beta = (alpha + beta) / 2;
+               }
+               else if (score >= beta)
+               {
+                  beta = Math.Min(score + margin, Constants.INFINITY);
+               }
+               else
+               {
+                  break;
+               }
+
+               margin += margin / 2;
+            }
 
             if (Time.LimitReached())
             {
