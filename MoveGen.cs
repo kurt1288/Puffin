@@ -17,7 +17,6 @@
          GenerateCastling(moveList, board);
 
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         ulong empty = ~occupied;
          Bitboard nonPawns = new(board.ColorBB[(int)board.SideToMove].Value & ~board.PieceBB[(int)PieceType.Pawn].Value);
 
          while (!nonPawns.IsEmpty())
@@ -37,7 +36,7 @@
                _ => throw new Exception($"Unable to get moves for piece {piece}"),
             };
 
-            quiets.And(empty);
+            quiets.And(~occupied);
             while (!quiets.IsEmpty())
             {
                int to = quiets.GetLSB();
@@ -54,7 +53,6 @@
          GeneratePawnPromotions(moveList, board);
 
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         ulong opponent = board.ColorBB[(int)board.SideToMove ^ 1].Value;
          Bitboard nonPawns = new(board.ColorBB[(int)board.SideToMove].Value & ~board.PieceBB[(int)PieceType.Pawn].Value);
 
          while (!nonPawns.IsEmpty())
@@ -74,7 +72,7 @@
                _ => throw new Exception($"Unable to get attacks for piece {piece}"),
             };
 
-            attacks.And(opponent);
+            attacks.And(board.ColorBB[(int)board.SideToMove ^ 1].Value);
             while (!attacks.IsEmpty())
             {
                int to = attacks.GetLSB();
@@ -89,17 +87,11 @@
       {
          ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
          ulong empty = ~(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
-         Bitboard targets;
-         Bitboard doubleTargets;
-         int up;
+         Bitboard targets = new((pawns >> 8) & empty & ~Constants.RANK_MASKS[(int)Rank.Rank_8]);
+         Bitboard doubleTargets = new(((targets.Value & Constants.RANK_MASKS[(int)Rank.Rank_3]) >> 8) & empty);
+         int up = -8;
 
-         if (board.SideToMove == Color.White)
-         {
-            targets = new((pawns >> 8) & empty & ~Constants.RANK_MASKS[(int)Rank.Rank_8]);
-            doubleTargets = new(((targets.Value & Constants.RANK_MASKS[(int)Rank.Rank_3]) >> 8) & empty);
-            up = -8;
-         }
-         else
+         if (board.SideToMove == Color.Black)
          {
             targets = new((pawns << 8) & empty & ~Constants.RANK_MASKS[(int)Rank.Rank_1]);
             doubleTargets = new(((targets.Value & Constants.RANK_MASKS[(int)Rank.Rank_6]) << 8) & empty);
@@ -124,19 +116,12 @@
       public static void GeneratePawnAttacks(MoveList moveList, Board board)
       {
          ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
-         Bitboard rightTargets;
-         Bitboard leftTargets;
-         int upRight;
-         int upLeft;
+         Bitboard rightTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.H]) >> 7 & board.ColorBB[(int)board.SideToMove ^ 1].Value);
+         Bitboard leftTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.A]) >> 9 & board.ColorBB[(int)board.SideToMove ^ 1].Value);
+         int upRight = -7;
+         int upLeft = -9;
 
-         if (board.SideToMove == Color.White)
-         {
-            rightTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.H]) >> 7 & board.ColorBB[(int)board.SideToMove ^ 1].Value);
-            leftTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.A]) >> 9 & board.ColorBB[(int)board.SideToMove ^ 1].Value);
-            upRight = -7;
-            upLeft = -9;
-         }
-         else
+         if (board.SideToMove == Color.Black)
          {
             rightTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.A]) << 7 & board.ColorBB[(int)board.SideToMove ^ 1].Value);
             leftTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.H]) << 9 & board.ColorBB[(int)board.SideToMove ^ 1].Value);
@@ -190,15 +175,10 @@
       {
          ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
          ulong empty = ~(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
-         int up;
-         Bitboard targets;
+         Bitboard targets = new((pawns >> 8) & empty & Constants.RANK_MASKS[(int)Rank.Rank_8]);
+         int up = -8;
 
-         if (board.SideToMove == Color.White)
-         {
-            targets = new((pawns >> 8) & empty & Constants.RANK_MASKS[(int)Rank.Rank_8]);
-            up = -8;
-         }
-         else
+         if (board.SideToMove == Color.Black)
          {
             targets = new((pawns << 8) & empty & Constants.RANK_MASKS[(int)Rank.Rank_1]);
             up = 8;
