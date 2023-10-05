@@ -107,10 +107,10 @@ namespace Skookum
          Console.WriteLine($"Initial average error: {avgError}");
 
          double learningRate = 1;
-         double[][] momentum = new double[entries.Count][];
-         double[][] velocity = new double[entries.Count][];
+         double[][] momentum = new double[Parameters.Count][];
+         double[][] velocity = new double[Parameters.Count][];
 
-         for (int i = 0; i < entries.Count; i++)
+         for (int i = 0; i < Parameters.Count; i++)
          {
             momentum[i] = new double[2];
             velocity[i] = new double[2];
@@ -130,7 +130,7 @@ namespace Skookum
             {
                for (int phase = 0; phase < 2; phase++)
                {
-                  double grad = -K * gradients[parameterIndex][phase] / entries.Count;
+                  double grad = -K / 400 * gradients[parameterIndex][phase] / entries.Count;
                   momentum[parameterIndex][phase] = beta1 * momentum[parameterIndex][phase] + (1 - beta1) * grad;
                   velocity[parameterIndex][phase] = beta2 * velocity[parameterIndex][phase] + (1 - beta2) * grad * grad;
                   Parameters[parameterIndex][phase] -= learningRate * momentum[parameterIndex][phase] / (1e-8 + Math.Sqrt(velocity[parameterIndex][phase]));
@@ -154,7 +154,7 @@ namespace Skookum
       {
          double[][] gradients = new double[Parameters.Count][];
 
-         for (int i = 0; i < gradients.Length; i++)
+         for (int i = 0; i < Parameters.Count; i++)
          {
             gradients[i] = new double[2];
          }
@@ -192,7 +192,7 @@ namespace Skookum
          double sig = Sigmoid(K, eval);
          double res = (entry.Result - sig) * sig * (1 - sig);
 
-         double mg_base = res * (Math.Clamp(entry.Phase, 0, 24) / 24);
+         double mg_base = res * (entry.Phase / 24);
          double eg_base = res - mg_base;
 
          foreach (CoefficientEntry coef in entry.Coefficients)
@@ -251,7 +251,7 @@ namespace Skookum
             endgame += coef.Value * Parameters[coef.Index][1];
          }
 
-         score += endgame + Math.Clamp(entry.Phase, 0, 24) / 24 * (midgame - endgame);
+         score += endgame + entry.Phase / 24 * (midgame - endgame);
 
          return score;
       }
@@ -361,12 +361,11 @@ namespace Skookum
             total *= -1;
          }
 
-         int phase = Math.Clamp(Engine.Board.Phase, 0, 24);
-         trace.score = total.Eg + phase / 24 * (total.Mg - total.Eg);
+         trace.score = total.Eg + Engine.Board.Phase / 24 * (total.Mg - total.Eg);
 
          Debug.Assert(trace.score == Evaluation.Evaluate(Engine.Board));
 
-         return (trace, phase);
+         return (trace, Engine.Board.Phase);
       }
 
       private Score Material(Color color, Trace trace)
