@@ -14,6 +14,9 @@ namespace Skookum
 {
    internal class Tuner
    {
+      const double Epsilon = 1e-7;
+      const string PositionsFile = @"./lichess-big3-resolved.book";
+
       private class Trace
       {
          public int[][] material = new int[6][];
@@ -93,7 +96,7 @@ namespace Skookum
          Engine = engine;
       }
 
-      public void Run(int maxEpochs = 1000)
+      public void Run(int maxEpochs = 10000)
       {
          Console.WriteLine($"Number of epochs set to: {maxEpochs}");
 
@@ -104,6 +107,7 @@ namespace Skookum
          Console.WriteLine($"K value: {K}");
 
          double avgError = GetAverageError(entries, K);
+         double bestError = avgError + Epsilon * 2;
          Console.WriteLine($"Initial average error: {avgError}");
 
          double learningRate = 1;
@@ -116,11 +120,15 @@ namespace Skookum
             velocity[i] = new double[2];
          }
 
-         using StreamWriter sw = new(@$"./errors_{DateTime.Now.ToString("yyyy-MM-dd,HHmmss")}.txt", true);
+         int epoch = 0;
+
+         //using StreamWriter sw = new(@$"./errors_{DateTime.Now.ToString("yyyy-MM-dd,HHmmss")}.txt", true);
          Stopwatch timer = new();
          timer.Start();
 
-         for (int epoch = 1; epoch <= maxEpochs; epoch++)
+         //for (int epoch = 1; epoch <= maxEpochs; epoch++)
+         //{
+         while (Math.Abs(bestError - avgError) >= Epsilon && epoch < maxEpochs)
          {
             double[][] gradients = ComputeGradient(entries, K);
             double beta1 = 0.9;
@@ -141,9 +149,12 @@ namespace Skookum
 
             if (epoch % 100 == 0)
             {
-               double error = GetAverageError(entries, K);
-               Console.WriteLine($"Epoch: {epoch}, EPS: {epoch * 1000 / timer.ElapsedMilliseconds}, error: {error}, time: {timer.Elapsed}");
+               bestError = avgError;
+               avgError = GetAverageError(entries, K);
+               Console.WriteLine($"Epoch: {epoch}, EPS: {epoch * 1000 / timer.ElapsedMilliseconds}, error: {bestError}, E: {bestError - avgError}, time: {timer.Elapsed}");
             }
+
+            epoch += 1;
          }
 
          PrintResults();
@@ -162,7 +173,7 @@ namespace Skookum
          Parallel.For(0, entries.Count, () =>
          {
             double[][] localGradients = new double[Parameters.Count][];
-            for (int i = 0; i < localGradients.Length; i++)
+            for (int i = 0; i < Parameters.Count; i++)
             {
                localGradients[i] = new double[2];
             }
@@ -190,7 +201,7 @@ namespace Skookum
       {
          double eval = Evaluate(entry);
          double sig = Sigmoid(K, eval);
-         double res = (entry.Result - sig) * sig * (1 - sig);
+         double res = (entry.Result - sig) * sig * (1.0 - sig);
 
          double mg_base = res * (entry.Phase / 24);
          double eg_base = res - mg_base;
@@ -277,11 +288,9 @@ namespace Skookum
 
       private List<Entry> LoadPositions()
       {
-         string fileName = @"./lichess-big3-resolved.book";
-
          List<Entry> entries = new();
 
-         foreach (string line in System.IO.File.ReadLines(fileName))
+         foreach (string line in System.IO.File.ReadLines(PositionsFile))
          {
             if (string.IsNullOrEmpty(line.Trim())) continue;
 
@@ -319,7 +328,7 @@ namespace Skookum
             
             if (result == "1.0")
             {
-               return 1;
+               return 1.0;
             }
             else if (result == "0.5")
             {
@@ -327,7 +336,7 @@ namespace Skookum
             }
             else if (result == "0.0")
             {
-               return 0;
+               return 0.0;
             }
             else
             {
@@ -344,8 +353,8 @@ namespace Skookum
       {
          Trace trace = new();
 
-         Score white = Material(Color.White, trace);
-         Score black = Material(Color.Black, trace);
+         Score white = Material(Color.White, ref trace);
+         Score black = Material(Color.Black, ref trace);
          //white += Knights(Color.White, trace);
          //black += Knights(Color.Black, trace);
          //white += Bishops(Color.White, trace);
@@ -356,19 +365,14 @@ namespace Skookum
          //black += Queens(Color.Black, trace);
          Score total = white - black;
 
-         if (Engine.Board.SideToMove == Color.Black)
-         {
-            total *= -1;
-         }
-
          trace.score = total.Eg + Engine.Board.Phase / 24 * (total.Mg - total.Eg);
 
-         Debug.Assert(trace.score == Evaluation.Evaluate(Engine.Board));
+         //Debug.Assert(trace.score == Evaluation.Evaluate(Engine.Board));
 
          return (trace, Engine.Board.Phase);
       }
 
-      private Score Material(Color color, Trace trace)
+      private Score Material(Color color, ref Trace trace)
       {
          Bitboard us = new(Engine.Board.ColorBB[(int)color].Value);
          Score score = new();
@@ -507,7 +511,7 @@ namespace Skookum
 
       private double Sigmoid(double factor, double score)
       {
-         return 1 / (1 + Math.Exp(-(factor * score)));
+         return 1.0 / (1.0 + Math.Exp(-(factor * score)));
       }
 
       // From https://stackoverflow.com/a/16893641
