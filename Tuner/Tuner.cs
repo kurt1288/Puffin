@@ -19,24 +19,24 @@ namespace Skookum
 
       private class Trace
       {
-         public int[][] material = new int[6][];
-         public int[][] pst = new int[384][];
+         public double[][] material = new double[6][];
+         public double[][] pst = new double[384][];
          //public int[][] knightMobility = new int[9][];
          //public int[][] bishopMobility = new int[14][];
          //public int[][] rookMobility = new int[15][];
          //public int[][] queenMobility = new int[28][];
-         public int score = 0;
+         public double score = 0;
 
          public Trace()
          {
             for (int i = 0; i < 6; i++)
             {
-               material[i] = new int[2];
+               material[i] = new double[2];
             }
 
             for (int i = 0; i < 384; i++)
             {
-               pst[i] = new int[2];
+               pst[i] = new double[2];
             }
 
             //for (int i = 0; i < 9; i++)
@@ -83,7 +83,7 @@ namespace Skookum
       private class Entry
       {
          public List<CoefficientEntry> Coefficients = new();
-         public int Phase;
+         public double Phase;
          public double EndgameScale;
          public double Result;
       }
@@ -262,7 +262,7 @@ namespace Skookum
             endgame += coef.Value * Parameters[coef.Index][1];
          }
 
-         score += endgame + entry.Phase / 24 * (midgame - endgame);
+         score += ((midgame * entry.Phase) + (endgame * (24 - entry.Phase))) / 24;
 
          return score;
       }
@@ -297,7 +297,7 @@ namespace Skookum
             string fen = line.Split("\"")[0].Trim();
             Engine.SetPosition(fen);
 
-            (Trace trace, int phase) = GetEval();
+            (Trace trace, double phase) = GetEval();
 
             EvalResult result = new()
             {
@@ -349,7 +349,7 @@ namespace Skookum
          }
       }
 
-      private (Trace trace, int phase) GetEval()
+      private (Trace trace, double phase) GetEval()
       {
          Trace trace = new();
 
@@ -365,9 +365,7 @@ namespace Skookum
          //black += Queens(Color.Black, trace);
          Score total = white - black;
 
-         trace.score = total.Eg + Engine.Board.Phase / 24 * (total.Mg - total.Eg);
-
-         //Debug.Assert(trace.score == Evaluation.Evaluate(Engine.Board));
+         trace.score = ((total.Mg * Engine.Board.Phase) + (total.Eg * (24 - Engine.Board.Phase))) / 24;
 
          return (trace, Engine.Board.Phase);
       }
@@ -496,7 +494,7 @@ namespace Skookum
          return entryCoefficients;
       }
 
-      private void GetCoefficientsFromArray(ref List<short> coefficients, int[][] trace, int size)
+      private void GetCoefficientsFromArray(ref List<short> coefficients, double[][] trace, int size)
       {
          for (int i = 0; i < size; i++)
          {
@@ -504,7 +502,7 @@ namespace Skookum
          }
       }
 
-      private void GetCoefficientSingle(ref List<short> coefficients, int[] trace)
+      private void GetCoefficientSingle(ref List<short> coefficients, double[] trace)
       {
          coefficients.Add((short)(trace[0] - trace[1]));
       }
