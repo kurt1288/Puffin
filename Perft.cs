@@ -22,7 +22,7 @@ namespace Skookum
          stopWatch.Start();
 
          ulong totalNodes = 0;
-         MoveList moves = new(Board);
+         MoveList moves = MoveGen.GenerateAll(Board);
 
          for (int i = 0; i < moves.MovesIndex; i++)
          {
@@ -62,7 +62,7 @@ namespace Skookum
             return 1;
          }
 
-         MoveList moves = new(Board);
+         MoveList moves = MoveGen.GenerateAll(Board);
 
          for (int i = 0; i < moves.MovesIndex; i++)
          {
