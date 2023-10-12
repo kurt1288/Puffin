@@ -8,7 +8,8 @@
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
-	<PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<Optimize>True</Optimize>
 		<TieredCompilation>false</TieredCompilation>
 		<Authors>Kurt Peters</Authors>
 		<Version>0.1.0</Version>
