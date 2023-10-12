@@ -21,6 +21,7 @@
       private int Index;
       private readonly bool NoisyOnly = false;
       private readonly Move[][] KillerMoves;
+      private ushort HashMove = 0;
 
       public MoveList(Board board, Move[][] killerMoves, bool noisyOnly = false)
       {
@@ -47,6 +48,7 @@
             case Stage.HashMove:
                {
                   ushort hashMove = TranspositionTable.GetHashMove();
+                  HashMove = hashMove;
                   Stage++;
 
                   if (hashMove != 0)
@@ -133,7 +135,7 @@
 
       private void ScoreMove(Move move, Piece? piece, Piece? captured)
       {
-         if (move.GetEncoded() == TranspositionTable.GetHashMove())
+         if (move.GetEncoded() == HashMove)
          {
             Scores[ScoresIndex++] = 1000000;
          }
