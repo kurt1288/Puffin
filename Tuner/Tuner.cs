@@ -8,6 +8,7 @@
 // *********************************************************************************
 
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Skookum
@@ -540,7 +541,7 @@ namespace Skookum
 
          int index = 0;
          PrintArray("material", ref index, 6, sw);
-         PrintArray("pst", ref index, 384, sw);
+         PrintPSTArray("pst", ref index, sw);
          //PrintArray("knight mobility", ref index, 9, sw);
          //PrintArray("bishop mobility", ref index, 14, sw);
          //PrintArray("rook mobility", ref index, 15, sw);
@@ -558,6 +559,30 @@ namespace Skookum
             writer.WriteLine(values);
          }
          writer.WriteLine("\r\n");
+      }
+
+      private void PrintPSTArray(string name, ref int index, StreamWriter writer)
+      {
+         int offset = index;
+         StringBuilder stringBuilder = new();
+         writer.WriteLine(name);
+
+         for (int piece = 0; piece < 6; ++piece)
+         {
+            for (int square = 0; square < 64; ++square)
+            {
+               index = piece * 64 + square + offset;
+               stringBuilder.Append($"new Score({(int)Parameters[index][0], 3}, {(int)Parameters[index][1], 3}), ");
+
+               if (square % 8 == 7)
+               {
+                  writer.WriteLine(stringBuilder);
+                  stringBuilder.Clear();
+               }
+            }
+
+            writer.WriteLine();
+         }
       }
    }
 }
