@@ -20,10 +20,10 @@
       private Stage Stage;
       private int Index;
       private readonly bool NoisyOnly = false;
-      private readonly Move[][] KillerMoves;
+      private readonly Move[] KillerMoves;
       private ushort HashMove = 0;
 
-      public MoveList(Board board, Move[][] killerMoves, bool noisyOnly = false)
+      public MoveList(Board board, Move[] killerMoves, bool noisyOnly = false)
       {
          Stage = Stage.HashMove;
          Board = board;
@@ -39,6 +39,7 @@
       public MoveList(Board board)
       {
          Board = board;
+         KillerMoves = new Move[2];
       }
 
       public Move Next(int ply)
@@ -47,13 +48,12 @@
          {
             case Stage.HashMove:
                {
-                  ushort hashMove = TranspositionTable.GetHashMove();
-                  HashMove = hashMove;
+                  HashMove = TranspositionTable.GetHashMove();
                   Stage++;
 
-                  if (hashMove != 0)
+                  if (HashMove != 0)
                   {
-                     return new Move(hashMove);
+                     return new Move(HashMove);
                   }
 
                   goto case Stage.GenNoisy;
@@ -87,9 +87,9 @@
                {
                   while (Index <= 1)
                   {
-                     if (Board.MoveIsValid(KillerMoves[ply][Index]))
+                     if (Board.MoveIsValid(KillerMoves[Index]))
                      {
-                        return KillerMoves[ply][Index++];
+                        return KillerMoves[Index++];
                      }
 
                      Index++;
@@ -111,12 +111,6 @@
 
                   if (Moves[Index] != 0)
                   {
-                     if (Moves[Index].GetEncoded() == KillerMoves[ply][0].GetEncoded() || Moves[Index].GetEncoded() == KillerMoves[ply][1].GetEncoded())
-                     {
-                        Index++;
-                        goto case Stage.Quiet;
-                     }
-
                      return Moves[Index++];
                   }
 
@@ -129,15 +123,21 @@
 
       public void Add(Move move, Piece? piece, Piece? captured)
       {
-         Moves[MovesIndex++] = move;
-         ScoreMove(move, piece, captured);
+         if (ScoreMove(move, piece, captured))
+         {
+            Moves[MovesIndex++] = move;
+         }
       }
 
-      private void ScoreMove(Move move, Piece? piece, Piece? captured)
+      private bool ScoreMove(Move move, Piece? piece, Piece? captured)
       {
-         if (move.GetEncoded() == HashMove)
+         if (move == HashMove)
          {
-            Scores[ScoresIndex++] = 1000000;
+            return false;
+         }
+         else if (move == KillerMoves[0] || move == KillerMoves[1])
+         {
+            return false;
          }
          else if (move.HasType(MoveType.Capture))
          {
@@ -147,6 +147,8 @@
          {
             Scores[ScoresIndex++] = 0;
          }
+
+         return true;
       }
 
       public Move NextMove(int index)

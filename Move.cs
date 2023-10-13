@@ -55,6 +55,8 @@ namespace Skookum
 
       public static bool operator ==(Move a, int b) => a.Encoded == b;
       public static bool operator !=(Move a, int b) => a.Encoded != b;
+      public static bool operator ==(Move a, Move b) => a.Encoded == b.Encoded;
+      public static bool operator !=(Move a, Move b) => a.Encoded != b.Encoded;
 
       public override string ToString()
       {
