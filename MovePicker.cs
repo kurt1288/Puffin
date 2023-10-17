@@ -161,7 +161,7 @@
                
                Piece moving = Board.Mailbox[move.GetFrom()];
 
-               moves.SetScore(i, 10000 + (Evaluation.PieceValues[(int)captured.Type] - Evaluation.PieceValues[(int)moving.Type]).Mg);
+               moves.SetScore(i, 150000 + ((50 * Evaluation.PieceValues[(int)captured.Type].Mg) - Evaluation.PieceValues[(int)moving.Type].Mg));
             }
             else
             {
