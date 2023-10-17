@@ -24,9 +24,9 @@ namespace Skookum
          ulong totalNodes = 0;
          MoveList moves = MoveGen.GenerateAll(Board);
 
-         for (int i = 0; i < moves.MovesIndex; i++)
+         for (int i = 0; i < moves.Count; i++)
          {
-            Move move = moves.Moves[i];
+            Move move = moves[i];
 
             if (!Board.MakeMove(move))
             {
@@ -64,9 +64,9 @@ namespace Skookum
 
          MoveList moves = MoveGen.GenerateAll(Board);
 
-         for (int i = 0; i < moves.MovesIndex; i++)
+         for (int i = 0; i < moves.Count; i++)
          {
-            Move move = moves.Moves[i];
+            Move move = moves[i];
 
             if (!Board.MakeMove(move))
             {

@@ -4,7 +4,7 @@
    {
       public static MoveList GenerateAll(Board board)
       {
-         MoveList moveList = new(board);
+         MoveList moveList = new();
          GenerateQuiet(moveList, board);
          GenerateNoisy(moveList, board);
 
@@ -41,7 +41,7 @@
             {
                int to = quiets.GetLSB();
                quiets.ClearLSB();
-               moveList.Add(new Move(from, to, MoveFlag.Quiet), piece, null);
+               moveList.Add(new Move(from, to, MoveFlag.Quiet));
             }
          }
       }
@@ -77,7 +77,7 @@
             {
                int to = attacks.GetLSB();
                attacks.ClearLSB();
-               moveList.Add(new Move(from, to, MoveFlag.Capture), piece, board.Mailbox[to]);
+               moveList.Add(new Move(from, to, MoveFlag.Capture));
             }
          }
       }
@@ -102,14 +102,14 @@
          {
             int square = targets.GetLSB();
             targets.ClearLSB();
-            moveList.Add(new Move(square - up, square, MoveFlag.Quiet), null, null);
+            moveList.Add(new Move(square - up, square, MoveFlag.Quiet));
          }
 
          while (!doubleTargets.IsEmpty())
          {
             int square = doubleTargets.GetLSB();
             doubleTargets.ClearLSB();
-            moveList.Add(new Move(square - (2 * up), square, MoveFlag.DoublePawnPush), null, null);
+            moveList.Add(new Move(square - (2 * up), square, MoveFlag.DoublePawnPush));
          }
       }
 
@@ -138,14 +138,14 @@
             if (to / 8 == (int)Rank.Rank_8 || to / 8 == (int)Rank.Rank_1)
             {
                // Pawn attack to promotion
-               moveList.Add(new Move(from, to, MoveFlag.KnightPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
-               moveList.Add(new Move(from, to, MoveFlag.BishopPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
-               moveList.Add(new Move(from, to, MoveFlag.RookPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
-               moveList.Add(new Move(from, to, MoveFlag.QueenPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
+               moveList.Add(new Move(from, to, MoveFlag.KnightPromotionCapture));
+               moveList.Add(new Move(from, to, MoveFlag.BishopPromotionCapture));
+               moveList.Add(new Move(from, to, MoveFlag.RookPromotionCapture));
+               moveList.Add(new Move(from, to, MoveFlag.QueenPromotionCapture));
             }
             else
             {
-               moveList.Add(new Move(from, to, MoveFlag.Capture), board.Mailbox[from], board.Mailbox[to]);
+               moveList.Add(new Move(from, to, MoveFlag.Capture));
             }
          }
 
@@ -158,14 +158,14 @@
             if (to / 8 == (int)Rank.Rank_8 || to / 8 == (int)Rank.Rank_1)
             {
                // Pawn attack to promotion
-               moveList.Add(new Move(from, to, MoveFlag.KnightPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
-               moveList.Add(new Move(from, to, MoveFlag.BishopPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
-               moveList.Add(new Move(from, to, MoveFlag.RookPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
-               moveList.Add(new Move(from, to, MoveFlag.QueenPromotionCapture), board.Mailbox[from], board.Mailbox[to]);
+               moveList.Add(new Move(from, to, MoveFlag.KnightPromotionCapture));
+               moveList.Add(new Move(from, to, MoveFlag.BishopPromotionCapture));
+               moveList.Add(new Move(from, to, MoveFlag.RookPromotionCapture));
+               moveList.Add(new Move(from, to, MoveFlag.QueenPromotionCapture));
             }
             else
             {
-               moveList.Add(new Move(from, to, MoveFlag.Capture), board.Mailbox[from], board.Mailbox[to]);
+               moveList.Add(new Move(from, to, MoveFlag.Capture));
             }
          }
       }
@@ -188,10 +188,10 @@
          {
             int square = targets.GetLSB();
             targets.ClearLSB();
-            moveList.Add(new Move(square - up, square, MoveFlag.KnightPromotion), null, null);
-            moveList.Add(new Move(square - up, square, MoveFlag.BishopPromotion), null, null);
-            moveList.Add(new Move(square - up, square, MoveFlag.RookPromotion), null, null);
-            moveList.Add(new Move(square - up, square, MoveFlag.QueenPromotion), null, null);
+            moveList.Add(new Move(square - up, square, MoveFlag.KnightPromotion));
+            moveList.Add(new Move(square - up, square, MoveFlag.BishopPromotion));
+            moveList.Add(new Move(square - up, square, MoveFlag.RookPromotion));
+            moveList.Add(new Move(square - up, square, MoveFlag.QueenPromotion));
          }
       }
 
@@ -207,7 +207,7 @@
             {
                int square = attackers.GetLSB();
                attackers.ClearLSB();
-               moveList.Add(new Move(square, (int)board.En_Passant, MoveFlag.EPCapture), board.Mailbox[square], new Piece(PieceType.Pawn, (Color)((int)board.SideToMove ^ 1)));
+               moveList.Add(new Move(square, (int)board.En_Passant, MoveFlag.EPCapture));
             }
          }
       }
@@ -226,11 +226,11 @@
 
                if (kingSquare < square && (Constants.BetweenBB[kingSquare][square] & (board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value)) == 0)
                {
-                  moveList.Add(new Move(kingSquare, (int)Square.G1, MoveFlag.KingCastle), null, null);
+                  moveList.Add(new Move(kingSquare, (int)Square.G1, MoveFlag.KingCastle));
                }
                else if (kingSquare > square && (Constants.BetweenBB[kingSquare][square] & (board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value)) == 0)
                {
-                  moveList.Add(new Move(kingSquare, (int)Square.C1, MoveFlag.QueenCastle), null, null);
+                  moveList.Add(new Move(kingSquare, (int)Square.C1, MoveFlag.QueenCastle));
                }
             }
          }
@@ -246,11 +246,11 @@
 
                if (kingSquare < square && (Constants.BetweenBB[kingSquare][square] & (board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value)) == 0)
                {
-                  moveList.Add(new Move(kingSquare, (int)Square.G8, MoveFlag.KingCastle), null, null);
+                  moveList.Add(new Move(kingSquare, (int)Square.G8, MoveFlag.KingCastle));
                }
                else if (kingSquare > square && (Constants.BetweenBB[kingSquare][square] & (board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value)) == 0)
                {
-                  moveList.Add(new Move(kingSquare, (int)Square.C8, MoveFlag.QueenCastle), null, null);
+                  moveList.Add(new Move(kingSquare, (int)Square.C8, MoveFlag.QueenCastle));
                }
             }
          }

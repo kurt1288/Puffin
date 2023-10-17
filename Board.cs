@@ -536,9 +536,9 @@ namespace Skookum
          }
 
          MoveList moves = MoveGen.GenerateAll(this);
-         foreach (Move moveToFind in moves.Moves)
+         for (int i = 0; i < moves.Count; i++)
          {
-            if (moveToFind.GetEncoded() == move.GetEncoded())
+            if (moves[i] == move)
             {
                return true;
             }

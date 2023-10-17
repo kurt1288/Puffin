@@ -1,180 +1,62 @@
 ﻿namespace Skookum
 {
-   enum Stage
-   {
-      HashMove,
-      GenNoisy,
-      Noisy,
-      Killers,
-      GenQuiet,
-      Quiet,
-   }
-
    internal class MoveList
    {
-      public readonly Move[] Moves = new Move[218];
-      private readonly int[] Scores = new int[218];
-      public int MovesIndex { get; private set; } = 0;
-      private int ScoresIndex = 0;
-      private readonly Board Board;
-      private Stage Stage;
-      private int Index;
-      private readonly bool NoisyOnly = false;
-      private readonly Move[] KillerMoves;
-      private ushort HashMove = 0;
+      private readonly Move[] _moves = new Move[218];
+      private readonly int[] _scores = new int[218];
+      private int _count;
 
-      public MoveList(Board board, Move[] killerMoves, bool noisyOnly = false)
+      public MoveList()
       {
-         Stage = Stage.HashMove;
-         Board = board;
-         KillerMoves = killerMoves;
-
-         if (noisyOnly)
-         {
-            NoisyOnly = true;
-            Stage = Stage.GenNoisy;
-         }
+         _count = 0;
       }
 
-      public MoveList(Board board)
-      {
-         Board = board;
-         KillerMoves = new Move[2];
+      public Move this[int index] {
+         get => _moves[index];
+         set => _moves[index] = value;
       }
 
-      public Move Next(int ply)
+      public int GetScore(int index)
       {
-         switch (Stage)
-         {
-            case Stage.HashMove:
-               {
-                  HashMove = TranspositionTable.GetHashMove();
-                  Stage++;
-
-                  if (HashMove != 0)
-                  {
-                     return new Move(HashMove);
-                  }
-
-                  goto case Stage.GenNoisy;
-               }
-            case Stage.GenNoisy:
-               {
-                  MoveGen.GenerateNoisy(this, Board);
-                  Stage++;
-                  Index = 0;
-                  goto case Stage.Noisy;
-               }
-            case Stage.Noisy:
-               {
-                  NextMove(Index);
-
-                  if (Moves[Index] != 0)
-                  {
-                     return Moves[Index++];
-                  }
-
-                  if (NoisyOnly)
-                  {
-                     break;
-                  }
-
-                  Stage++;
-                  Index = 0;
-                  goto case Stage.Killers;
-               }
-            case Stage.Killers:
-               {
-                  while (Index <= 1)
-                  {
-                     if (Board.MoveIsValid(KillerMoves[Index]))
-                     {
-                        return KillerMoves[Index++];
-                     }
-
-                     Index++;
-                  }
-
-                  Stage++;
-                  goto case Stage.GenQuiet;
-               }
-            case Stage.GenQuiet:
-               {
-                  MoveGen.GenerateQuiet(this, Board);
-                  Stage++;
-                  Index = 0;
-                  goto case Stage.Quiet;
-               }
-            case Stage.Quiet:
-               {
-                  NextMove(Index);
-
-                  if (Moves[Index] != 0)
-                  {
-                     return Moves[Index++];
-                  }
-
-                  break;
-               }
-         }
-
-         return new Move();
+         return _scores[index];
       }
 
-      public void Add(Move move, Piece? piece, Piece? captured)
+      public void SetScore(int index, int score)
       {
-         if (ScoreMove(move, piece, captured))
-         {
-            Moves[MovesIndex++] = move;
-         }
+         _scores[index] = score;
       }
 
-      private bool ScoreMove(Move move, Piece? piece, Piece? captured)
-      {
-         if (move == HashMove)
-         {
-            return false;
-         }
-         else if (move == KillerMoves[0] || move == KillerMoves[1])
-         {
-            return false;
-         }
-         else if (move.HasType(MoveType.Capture))
-         {
-            Scores[ScoresIndex++] = 10000 + (Evaluation.PieceValues[(int)captured!.Value.Type] - Evaluation.PieceValues[(int)piece!.Value.Type]).Mg;
-         }
-         else
-         {
-            Scores[ScoresIndex++] = 0;
-         }
+      public int Count => _count;
 
-         return true;
+      public void Add(Move item)
+      {
+         _moves[_count] = item;
+         _count++;
       }
 
-      public Move NextMove(int index)
+      public void RemoveAt(int index)
       {
-         // Selection sort
-         int best = index;
+         Array.Copy(_moves, index + 1, _moves, index, _moves.Length - index - 1);
+         _count--;
+      }
 
-         for (int i = index; i < MovesIndex; i++)
-         {
-            if (Scores[i] > Scores[best])
-            {
-               best = i;
-            }
-         }
+      public void Clear()
+      {
+         _count = 0;
+      }
 
-         // Swap moves
-         Move temp = Moves[index];
-         Moves[index] = Moves[best];
-         Moves[best] = temp;
+      public void SwapMoves(int index1, int index2)
+      {
+         Move temp = _moves[index1];
+         _moves[index1] = _moves[index2];
+         _moves[index2] = temp;
+      }
 
-         // Swap scores
-         int t = Scores[index];
-         Scores[index] = Scores[best];
-         Scores[best] = t;
-
-         return Moves[index];
+      public void SwapScores(int index1, int index2)
+      {
+         int temp = _scores[index1];
+         _scores[index1] = _scores[index2];
+         _scores[index2] = temp;
       }
    }
 }

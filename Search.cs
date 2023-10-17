@@ -142,10 +142,10 @@ namespace Skookum
          int legalMoves = 0;
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
-         MoveList moves = new(Board, KillerMoves[ply]);
+         MovePicker moves = new(Board, KillerMoves[ply]);
          Move move;
 
-         while ((move = moves.Next(ply)) != 0)
+         while ((move = moves.Next()) != 0)
          {
             if (!Board.MakeMove(move))
             {
@@ -239,10 +239,10 @@ namespace Skookum
             alpha = bestScore;
          }
 
-         MoveList moves = new(Board, KillerMoves[ply], true);
+         MovePicker moves = new(Board, KillerMoves[ply], true);
          Move move;
 
-         while ((move = moves.Next(ply)) != 0)
+         while ((move = moves.Next()) != 0)
          {
             if (!Board.MakeMove(move))
             {
