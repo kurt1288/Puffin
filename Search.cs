@@ -1,5 +1,4 @@
 ﻿using static Skookum.TranspositionTable;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace Skookum
 {
@@ -8,18 +7,12 @@ namespace Skookum
       readonly Board Board;
       readonly TimeManager Time;
       readonly SearchInfo Info;
-      readonly Move[][] KillerMoves = new Move[Constants.MAX_PLY][];
 
       public Search(Board board, TimeManager time)
       {
          Board = board;
          Time = time;
          Info = new();
-         
-         for (int i = 0; i < Constants.MAX_PLY; i++)
-         {
-            KillerMoves[i] = new Move[2];
-         }
       }
 
       static string FormatScore(int score)
@@ -142,7 +135,7 @@ namespace Skookum
          int legalMoves = 0;
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
-         MovePicker moves = new(Board, KillerMoves[ply]);
+         MovePicker moves = new(Board, Info.KillerMoves[ply]);
          Move move;
 
          while ((move = moves.Next()) != 0)
@@ -189,8 +182,8 @@ namespace Skookum
 
                if (!move.HasType(MoveType.Capture))
                {
-                  KillerMoves[ply][1] = KillerMoves[ply][0];
-                  KillerMoves[ply][0] = move;
+                  Info.KillerMoves[ply][1] = Info.KillerMoves[ply][0];
+                  Info.KillerMoves[ply][0] = move;
                }
 
                break;
@@ -239,7 +232,7 @@ namespace Skookum
             alpha = bestScore;
          }
 
-         MovePicker moves = new(Board, KillerMoves[ply], true);
+         MovePicker moves = new(Board, Info.KillerMoves[ply], true);
          Move move;
 
          while ((move = moves.Next()) != 0)

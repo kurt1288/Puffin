@@ -7,6 +7,7 @@ namespace Skookum
       Move[][] Pv;
       int[] PvLength;
       public int Nodes;
+      public readonly Move[][] KillerMoves = new Move[Constants.MAX_PLY][];
 
       public SearchInfo()
       {
@@ -17,6 +18,7 @@ namespace Skookum
          for (int i = 0; i < Constants.MAX_PLY; i++)
          {
             Pv[i] = new Move[Constants.MAX_PLY];
+            KillerMoves[i] = new Move[2];
          }
       }
 
