@@ -8,6 +8,7 @@ namespace Skookum
       int[] PvLength;
       public int Nodes;
       public readonly Move[][] KillerMoves = new Move[Constants.MAX_PLY][];
+      readonly int[] HistoryScores = new int[2 * 64 * 64]; // color * from * to
 
       public SearchInfo()
       {
@@ -24,6 +25,7 @@ namespace Skookum
 
       public void Reset()
       {
+         Array.Clear(HistoryScores, 0, HistoryScores.Length);
          Pv = new Move[Constants.MAX_PLY][];
          PvLength = new int[Constants.MAX_PLY];
          Nodes = 0;
@@ -66,6 +68,18 @@ namespace Skookum
             Pv[ply][i] = Pv[ply + 1][i];
          }
          PvLength[ply] = PvLength[ply + 1];
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdateHistory(Color color, Move move, int value)
+      {
+         HistoryScores[((int)color * 4096) + (move.GetFrom() * 64) + move.GetTo()] += value;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public int GetHistory(Color color, Move move)
+      {
+         return HistoryScores[((int)color * 4096) + (move.GetFrom() * 64) + move.GetTo()];
       }
    }
 }

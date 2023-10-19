@@ -17,14 +17,16 @@
       private Stage Stage;
       private int Index;
       private readonly bool NoisyOnly = false;
-      private readonly Move[] KillerMoves;
+      private readonly SearchInfo SearchInfo;
+      private readonly int Ply;
       private ushort HashMove = 0;
 
-      public MovePicker(Board board, Move[] killerMoves, bool noisyOnly = false)
+      public MovePicker(Board board, SearchInfo info, int ply, bool noisyOnly = false)
       {
          Stage = Stage.HashMove;
          Board = board;
-         KillerMoves = killerMoves;
+         SearchInfo = info;
+         Ply = ply;
 
          if (noisyOnly)
          {
@@ -82,9 +84,9 @@
                {
                   while (Index <= 1)
                   {
-                     if (Board.MoveIsValid(KillerMoves[Index]))
+                     if (Board.MoveIsValid(SearchInfo.KillerMoves[Ply][Index]))
                      {
-                        return KillerMoves[Index++];
+                        return SearchInfo.KillerMoves[Ply][Index++];
                      }
 
                      Index++;
@@ -146,7 +148,7 @@
          {
             Move move = moves[i];
 
-            if (move == HashMove || move == KillerMoves[0] || move == KillerMoves[1])
+            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1])
             {
                moves.RemoveAt(i);
             }
@@ -165,7 +167,7 @@
             }
             else
             {
-               moves.SetScore(i, 0);
+               moves.SetScore(i, SearchInfo.GetHistory(Board.SideToMove, move));
             }
          }
       }
