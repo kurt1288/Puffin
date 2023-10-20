@@ -136,13 +136,12 @@ namespace Skookum
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
          MovePicker moves = new(Board, Info.KillerMoves[ply]);
-         Move move;
 
-         while ((move = moves.Next()) != 0)
+         while (moves.Next())
          {
-            if (!Board.MakeMove(move))
+            if (!Board.MakeMove(moves.Move))
             {
-               Board.UndoMove(move);
+               Board.UndoMove(moves.Move);
                continue;
             }
 
@@ -156,7 +155,7 @@ namespace Skookum
                score = -NegaScout(-beta, -alpha, depth - 1, ply + 1);
             }
 
-            Board.UndoMove(move);
+            Board.UndoMove(moves.Move);
 
             if (Time.LimitReached())
             {
@@ -166,7 +165,7 @@ namespace Skookum
             if (score > bestScore)
             {
                bestScore = score;
-               bestMove = move;
+               bestMove = moves.Move;
             }
 
             if (score > alpha)
@@ -180,10 +179,10 @@ namespace Skookum
             {
                flag = HashFlag.Beta;
 
-               if (!move.HasType(MoveType.Capture))
+               if (!moves.Move.HasType(MoveType.Capture))
                {
                   Info.KillerMoves[ply][1] = Info.KillerMoves[ply][0];
-                  Info.KillerMoves[ply][0] = move;
+                  Info.KillerMoves[ply][0] = moves.Move;
                }
 
                break;
@@ -233,13 +232,12 @@ namespace Skookum
          }
 
          MovePicker moves = new(Board, Info.KillerMoves[ply], true);
-         Move move;
 
-         while ((move = moves.Next()) != 0)
+         while (moves.Next())
          {
-            if (!Board.MakeMove(move))
+            if (!Board.MakeMove(moves.Move))
             {
-               Board.UndoMove(move);
+               Board.UndoMove(moves.Move);
                continue;
             }
 
@@ -247,7 +245,7 @@ namespace Skookum
 
             int score = -Quiescence(-beta, -alpha, ply + 1);
 
-            Board.UndoMove(move);
+            Board.UndoMove(moves.Move);
 
             if (score > bestScore)
             {

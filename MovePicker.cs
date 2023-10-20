@@ -19,6 +19,7 @@
       private readonly bool NoisyOnly = false;
       private readonly Move[] KillerMoves;
       private ushort HashMove = 0;
+      public Move Move;
 
       public MovePicker(Board board, Move[] killerMoves, bool noisyOnly = false)
       {
@@ -33,7 +34,7 @@
          }
       }
 
-      public Move Next()
+      public bool Next()
       {
          switch (Stage)
          {
@@ -44,7 +45,8 @@
 
                   if (HashMove != 0)
                   {
-                     return new Move(HashMove);
+                     Move = new Move(HashMove);
+                     return true;
                   }
 
                   goto case Stage.GenNoisy;
@@ -61,17 +63,13 @@
                {
                   if (Index < _moveList.Count)
                   {
-                     NextMove(_moveList, Index);
-
-                     if (_moveList[Index] != 0)
-                     {
-                        return _moveList[Index++];
-                     }
+                     Move = NextMove(_moveList, Index++);
+                     return true;
                   }
 
                   if (NoisyOnly)
                   {
-                     break;
+                     return false;
                   }
 
                   Stage++;
@@ -80,14 +78,16 @@
                }
             case Stage.Killers:
                {
-                  while (Index <= 1)
+                  if (Index < 2)
                   {
                      if (Board.MoveIsValid(KillerMoves[Index]))
                      {
-                        return KillerMoves[Index++];
+                        Move = KillerMoves[Index++];
+                        return true;
                      }
 
                      Index++;
+                     goto case Stage.Killers;
                   }
 
                   Stage++;
@@ -106,19 +106,15 @@
                {
                   if (Index < _moveList.Count)
                   {
-                     NextMove(_moveList, Index);
+                     Move = NextMove(_moveList, Index++);
+                     return true;
+                  }
 
-                     if (_moveList[Index] != 0)
-                     {
-                        return _moveList[Index++];
-                     }
-                  }                  
-
-                  break;
+                  return false;
                }
          }
 
-         return new Move();
+         return false;
       }
 
       public static Move NextMove(MoveList list, int index)
