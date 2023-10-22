@@ -148,6 +148,24 @@ namespace Skookum
             Info.Nodes += 1;
             legalMoves += 1;
 
+            if (depth > 2 && legalMoves > 3 && !inCheck)
+            {
+               int R = 1 + (depth / 4);
+
+               if (isPVNode)
+               {
+                  R -= 1;
+               }
+
+               R = Math.Max(0, R);
+
+               if (-NegaScout(-alpha - 1, -alpha, depth - 1 - R, ply + 1) <= alpha)
+               {
+                  Board.UndoMove(moves.Move);
+                  continue;
+               }
+            }
+
             int score = -NegaScout(-b, -alpha, depth - 1, ply + 1);
 
             if (score > alpha && score < beta && legalMoves > 1)
