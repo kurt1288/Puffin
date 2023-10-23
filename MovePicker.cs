@@ -14,11 +14,11 @@
    {
       private readonly MoveList _moveList = new();
       private readonly Board Board;
-      private Stage Stage;
       private int Index;
       private readonly bool NoisyOnly = false;
       private readonly Move[] KillerMoves;
       private ushort HashMove = 0;
+      public Stage Stage;
       public Move Move;
 
       public MovePicker(Board board, Move[] killerMoves, bool noisyOnly = false)

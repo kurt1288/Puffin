@@ -148,7 +148,7 @@ namespace Skookum
             Info.Nodes += 1;
             legalMoves += 1;
 
-            if (depth > 2 && legalMoves > 3 && !inCheck)
+            if (depth > 2 && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
             {
                int R = 1 + (depth / 4);
 
