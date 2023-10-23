@@ -40,9 +40,10 @@ namespace Skookum
          int beta = Constants.INFINITY;
          int score = 0;
          Move bestMove = new();
+         bool stop = false;
 
          // Iterative deepening
-         for (int i = 1; i <= target; i++)
+         for (int i = 1; i <= target && !stop; i++)
          {
             int margin = 10;
 
@@ -53,13 +54,8 @@ namespace Skookum
                beta = Math.Min(score + margin, Constants.INFINITY);
             }
 
-            while (true)
+            while ((stop = Time.LimitReached()) != true)
             {
-               if (Time.LimitReached())
-               {
-                  break;
-               }
-
                score = NegaScout(alpha, beta, i, 0);
 
                if (score <= alpha)
@@ -79,14 +75,12 @@ namespace Skookum
                margin += margin / 2;
             }
 
-            if (Time.LimitReached())
+            if (!stop)
             {
-               break;
+               bestMove = Info.GetBestMove();
+
+               Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TranspositionTable.GetUsed()} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
             }
-
-            bestMove = Info.GetBestMove();
-
-            Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TranspositionTable.GetUsed()} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
          }
          
          Time.Stop();
@@ -95,7 +89,7 @@ namespace Skookum
 
       private int NegaScout(int alpha, int beta, int depth, int ply)
       {
-         if (Info.Nodes % 1000 == 0 && Time.LimitReached())
+         if (Info.Nodes % 2048 == 0 && Time.LimitReached())
          {
             return Constants.INFINITY * 10;
          }
@@ -175,7 +169,7 @@ namespace Skookum
 
             Board.UndoMove(moves.Move);
 
-            if (Time.LimitReached())
+            if (Info.Nodes % 2048 == 0 && Time.LimitReached())
             {
                return Constants.INFINITY * 10;
             }
