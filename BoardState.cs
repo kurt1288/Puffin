@@ -23,4 +23,28 @@
          Phase = phase;
       }
    }
+
+   internal class History
+   {
+      public BoardState[] Stack = new BoardState[1000]; // arbitrary max length
+      int _count = 0;
+
+      public int Count
+      {
+         get
+         {
+            return _count;
+         }
+      }
+
+      public void Add(BoardState state)
+      {
+         Stack[_count++] = state;
+      }
+
+      public BoardState Pop()
+      {
+         return Stack[--_count];
+      }
+   }
 }

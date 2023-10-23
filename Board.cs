@@ -15,7 +15,7 @@ namespace Skookum
       public int Fullmoves { get; private set; } = 0;
       public int Phase { get; private set; } = 0;
 
-      Stack<BoardState> PreviousStates = new();
+      public History GameHistory = new();
 
       public int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
       public Score[] MaterialValue = { new Score(0, 0), new Score(0, 0) };
@@ -40,7 +40,7 @@ namespace Skookum
          SideToMove = Color.Null;
          En_Passant = Square.Null;
          CastleSquares = 0;
-         PreviousStates = new();
+         GameHistory = new();
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
@@ -68,7 +68,7 @@ namespace Skookum
          SideToMove = Color.Null;
          En_Passant = Square.Null;
          CastleSquares = 0;
-         PreviousStates = new();
+         GameHistory = new();
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
@@ -174,7 +174,7 @@ namespace Skookum
          int to = move.GetTo();
          Piece piece = Mailbox[from];
 
-         PreviousStates.Push(
+         GameHistory.Add(
             new BoardState(
                SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to],
                Halfmoves, Fullmoves, Zobrist.Hash, Phase)
@@ -374,7 +374,7 @@ namespace Skookum
 
       public void UndoMove(Move move)
       {
-         BoardState previousState = PreviousStates.Pop();
+         BoardState previousState = GameHistory.Pop();
 
          SideToMove = previousState.SideToMove;
          En_Passant = previousState.En_Passant;
