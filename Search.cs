@@ -94,12 +94,17 @@ namespace Skookum
             return Constants.INFINITY * 10;
          }
 
+         Info.InitPvLength(ply);
+
          if (ply >= Constants.MAX_PLY)
          {
             return 0;
          }
 
-         Info.InitPvLength(ply);
+         if (ply > 0 && IsRepeated())
+         {
+            return 0;
+         }
 
          if (depth <= 0)
          {
@@ -276,6 +281,26 @@ namespace Skookum
          }
 
          return bestScore;
+      }
+
+      private bool IsRepeated()
+      {
+         if (Board.Halfmoves < 4 || Board.GameHistory.Count <= 1)
+         {
+            return false;
+         }
+
+         int last = Math.Max(Board.GameHistory.Count - Board.Halfmoves, 0);
+
+         for (int i = Board.GameHistory.Count - 2; i >= last; i -= 2)
+         {
+            if (Board.GameHistory.Stack[i].Hash == Zobrist.Hash)
+            {
+               return true;
+            }
+         }
+
+         return false;
       }
    }
 }
