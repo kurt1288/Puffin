@@ -198,8 +198,11 @@ namespace Skookum
 
                if (!moves.Move.HasType(MoveType.Capture))
                {
-                  Info.KillerMoves[ply][1] = Info.KillerMoves[ply][0];
-                  Info.KillerMoves[ply][0] = moves.Move;
+                  if (moves.Move != Info.KillerMoves[ply][0])
+                  {
+                     Info.KillerMoves[ply][1] = Info.KillerMoves[ply][0];
+                     Info.KillerMoves[ply][0] = moves.Move;
+                  }
                }
 
                break;
