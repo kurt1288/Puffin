@@ -168,6 +168,7 @@
                case "movetime":
                   {
                      Timer.TimeLimit = int.Parse(command[i + 1]);
+                     Timer.HardLimit = int.Parse(command[i + 1]);
                      break;
                   }
                case "depth":

@@ -13,7 +13,7 @@ namespace Skookum
       public bool infititeTime = false;
 
       public double TimeLimit = 0;
-      double HardLimit = 0;
+      public double HardLimit = 0;
       private readonly Stopwatch StopWatch = new();
 
       public void SetTimeLimit(Board board)
