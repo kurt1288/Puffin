@@ -151,6 +151,7 @@ namespace Skookum
 
             Info.Nodes += 1;
             legalMoves += 1;
+            int E = inCheck ? 1 : 0;
 
             if (depth > 2 && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
             {
@@ -163,18 +164,18 @@ namespace Skookum
 
                R = Math.Max(0, R);
 
-               if (-NegaScout(-alpha - 1, -alpha, depth - 1 - R, ply + 1) <= alpha)
+               if (-NegaScout(-alpha - 1, -alpha, depth - 1 - R + E, ply + 1) <= alpha)
                {
                   Board.UndoMove(moves.Move);
                   continue;
                }
             }
 
-            int score = -NegaScout(-b, -alpha, depth - 1, ply + 1);
+            int score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1);
 
             if (score > alpha && score < beta && legalMoves > 1)
             {
-               score = -NegaScout(-beta, -alpha, depth - 1, ply + 1);
+               score = -NegaScout(-beta, -alpha, depth - 1 + E, ply + 1);
             }
 
             Board.UndoMove(moves.Move);
