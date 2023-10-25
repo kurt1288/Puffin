@@ -11,10 +11,9 @@ namespace Skookum
       public int movestogo = 0;
       public int depthLimit = Constants.MAX_PLY;
       public bool infititeTime = false;
-      public bool ForcedStop = false;
 
-      public int TimeLimit = 0;
-
+      public double TimeLimit = 0;
+      double HardLimit = 0;
       private readonly Stopwatch StopWatch = new();
 
       public void SetTimeLimit(Board board)
@@ -34,9 +33,9 @@ namespace Skookum
             TimeLimit = (time + inc) / movestogo;
          }
          // increment time control only
-         else
          {
-            TimeLimit = (time / (board.Halfmoves <= 20 ? (45 - board.Halfmoves) : 25)) + inc;
+            TimeLimit = (time / (board.Fullmoves <= 20 ? (45 - board.Fullmoves) : 25)) + inc;
+            HardLimit = Math.Max(inc + 0.001, time / 2);
          }
       }
 
@@ -59,8 +58,8 @@ namespace Skookum
          movestogo = 0;
          depthLimit = Constants.MAX_PLY;
          infititeTime = false;
-         ForcedStop = false;
          TimeLimit = 0;
+         HardLimit = 0;
          StopWatch.Reset();
       }
 
@@ -69,9 +68,22 @@ namespace Skookum
          return StopWatch.ElapsedMilliseconds;
       }
 
-      public bool LimitReached()
+      public bool LimitReached(bool newIteration)
       {
-         return (StopWatch.ElapsedMilliseconds >= TimeLimit && infititeTime == false) || ForcedStop;
+         if (infititeTime)
+         {
+            return false;
+         }
+         else if (newIteration && StopWatch.ElapsedMilliseconds >= TimeLimit)
+         {
+            return true;
+         }
+         else if (StopWatch.ElapsedMilliseconds >= HardLimit)
+         {
+            return true;
+         }
+
+         return false;
       }
    }
 }
