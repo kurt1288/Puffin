@@ -10,11 +10,11 @@
 
    public readonly struct TTEntry
    {
-      internal readonly ulong Hash;
-      internal readonly byte Depth;
-      internal readonly ushort Move;
-      internal readonly HashFlag Flag;
-      internal readonly int Score;
+      internal readonly ulong Hash; // 8 bytes
+      internal readonly int Score; // 4
+      internal readonly ushort Move; // 2
+      internal readonly byte Depth; // 1
+      internal readonly HashFlag Flag; // 1
 
       public TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
       {
