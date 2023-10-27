@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.X86;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Skookum
 {
@@ -37,25 +37,25 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void ClearLSB()
       {
-         Value = Bmi1.X64.ResetLowestSetBit(Value);
+         Value &= (Value - 1);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetLSB()
       {
-         return (int)Bmi1.X64.TrailingZeroCount(Value);
+         return BitOperations.TrailingZeroCount(Value);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetMSB()
       {
-         return (int)Lzcnt.X64.LeadingZeroCount(Value);
+         return BitOperations.LeadingZeroCount(Value);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int CountBits()
       {
-         return (int)Popcnt.X64.PopCount(Value);
+         return BitOperations.PopCount(Value);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
