@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.X86;
 
 namespace Skookum
 {
@@ -20,19 +19,19 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetTo()
       {
-         return (int)Bmi1.X64.BitFieldExtract(Encoded, 0, 6);
+         return Encoded & 0x3f;
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetFrom()
       {
-         return (int)Bmi1.X64.BitFieldExtract(Encoded, 6, 6);
+         return (Encoded >> 6) & 0x3f;
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public MoveFlag GetFlag()
       {
-         return (MoveFlag)Bmi1.X64.BitFieldExtract(Encoded, 12, 4);
+         return (MoveFlag)((Encoded >> 12) & 0xf);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
