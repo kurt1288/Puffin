@@ -5,14 +5,24 @@ const string Name = "Skookum";
 const string Version = "0.1";
 const string Author = "Kurt Peters";
 
-Console.WriteLine($"{Name} {Version}");
+// These intrinsics aren't required. If they're not supported BitOperations will fall back to whatever is.
+// Fallbacks will likely be slower (depending on what it falls back to) and engine performance wont be maximized.
+if (!Lzcnt.X64.IsSupported || !Popcnt.X64.IsSupported || !Bmi1.X64.IsSupported)
+{
+   Console.WriteLine("Optimal CPU-instruction support not found. Engine will run, but performance may be degraded.");
+   Console.WriteLine($"Lzcnt: {Lzcnt.X64.IsSupported}");
+   Console.WriteLine($"Popcnt: {Popcnt.X64.IsSupported}");
+   Console.WriteLine($"Bmi1: {Bmi1.X64.IsSupported}");
+}
 
-if (!Bmi1.X64.IsSupported || !Bmi2.X64.IsSupported || !Lzcnt.X64.IsSupported || !Popcnt.X64.IsSupported)
+if (!Bmi2.X64.IsSupported)
 {
    Console.WriteLine("Your device hardware is not supported. Press any key to exit.");
    Console.ReadLine();
    Environment.Exit(100);
 }
+
+Console.WriteLine($"{Name} {Version}");
 
 Engine engine = new();
 
