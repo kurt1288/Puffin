@@ -4,39 +4,23 @@ namespace Skookum
 {
    internal class TimeManager
    {
-      public int wtime = 0;
-      public int btime = 0;
-      public int winc = 0;
-      public int binc = 0;
-      public int movestogo = 0;
-      public int depthLimit = Constants.MAX_PLY;
-      public bool infititeTime = false;
+      public int MaxDepth = Constants.MAX_PLY;
 
-      public double TimeLimit = 0;
-      public double HardLimit = 0;
-      private readonly Stopwatch StopWatch = new();
+      bool infititeTime = true;
+      double SoftLimit = 0;
+      double HardLimit = 0;
+      readonly Stopwatch StopWatch = new();
 
-      public void SetTimeLimit(Board board)
+      public void SetTimeLimit(int time, int inc, int movestogo, bool movetime)
       {
-         int time = wtime;
-         int inc = winc;
+         time -= 15; // overhead, arbitrary value
 
-         if (board.SideToMove == Color.Black)
-         {
-            time = btime;
-            inc = binc;
-         }
+         SoftLimit = inc + time / movestogo;
+         HardLimit = movetime ? SoftLimit : 6 * SoftLimit;
+         infititeTime = false;
 
-         // repeating time control
-         if (movestogo != 0)
-         {
-            TimeLimit = (time + inc) / movestogo;
-         }
-         // increment time control only
-         {
-            TimeLimit = (time / (board.Fullmoves <= 20 ? (45 - board.Fullmoves) : 25)) + inc;
-            HardLimit = Math.Max(inc + 0.001, time / 2);
-         }
+         SoftLimit = Math.Min(SoftLimit, time / 8);
+         HardLimit = Math.Min(HardLimit, time / 2);
       }
 
       public void Start()
@@ -51,14 +35,9 @@ namespace Skookum
 
       public void Reset()
       {
-         wtime = 0;
-         btime = 0;
-         winc = 0;
-         binc = 0;
-         movestogo = 0;
-         depthLimit = Constants.MAX_PLY;
-         infititeTime = false;
-         TimeLimit = 0;
+         MaxDepth = Constants.MAX_PLY;
+         infititeTime = true;
+         SoftLimit = 0;
          HardLimit = 0;
          StopWatch.Reset();
       }
@@ -74,7 +53,7 @@ namespace Skookum
          {
             return false;
          }
-         else if (newIteration && StopWatch.ElapsedMilliseconds >= TimeLimit)
+         else if (newIteration && StopWatch.ElapsedMilliseconds >= SoftLimit)
          {
             return true;
          }

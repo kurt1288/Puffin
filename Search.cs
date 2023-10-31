@@ -31,7 +31,7 @@ namespace Skookum
          }
       }
 
-      public void Run(int target)
+      public void Run()
       {
          Info.Reset();
          Time.Start();
@@ -43,7 +43,7 @@ namespace Skookum
          bool stop;
 
          // Iterative deepening
-         for (int i = 1; i <= target && (stop = Time.LimitReached(true)) != true; i++)
+         for (int i = 1; i <= Time.MaxDepth && (stop = Time.LimitReached(true)) != true; i++)
          {
             int margin = 10;
 
@@ -56,7 +56,7 @@ namespace Skookum
 
             while (true)
             {
-               if (Time.LimitReached(false))
+               if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
                {
                   stop = true;
                   break;
@@ -236,7 +236,7 @@ namespace Skookum
 
       private int Quiescence(int alpha, int beta, int ply)
       {
-         if (Info.Nodes % 1000 == 0 && Time.LimitReached(false))
+         if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
          {
             return Constants.INFINITY * 10;
          }
@@ -272,6 +272,11 @@ namespace Skookum
             int score = -Quiescence(-beta, -alpha, ply + 1);
 
             Board.UndoMove(moves.Move);
+
+            if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
+            {
+               return Constants.INFINITY * 10;
+            }
 
             if (score > bestScore)
             {

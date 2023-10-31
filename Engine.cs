@@ -1,4 +1,6 @@
-﻿namespace Skookum
+﻿using System.Diagnostics;
+
+namespace Skookum
 {
    internal class Engine
    {
@@ -133,8 +135,14 @@
       public void UCIParseGo(string[] command)
       {
          Timer.Reset();
+         int wtime = 0;
+         int btime = 0;
+         int winc = 0;
+         int binc = 0;
+         int movestogo = 40;
+         bool movetime = false;
 
-         for (int i = 0; i < command.Length; i++)
+         for (int i = 0; i < command.Length; i += 2)
          {
             string type = command[i];
 
@@ -142,51 +150,48 @@
             {
                case "wtime":
                   {
-                     Timer.wtime = int.Parse(command[i + 1]);
+                     wtime = int.Parse(command[i + 1]);
                      break;
                   }
                case "btime":
                   {
-                     Timer.btime = int.Parse(command[i + 1]);
+                     btime = int.Parse(command[i + 1]);
                      break;
                   }
                case "winc":
                   {
-                     Timer.winc = int.Parse(command[i + 1]);
+                     winc = int.Parse(command[i + 1]);
                      break;
                   }
                case "binc":
                   {
-                     Timer.binc = int.Parse(command[i + 1]);
+                     binc = int.Parse(command[i + 1]);
                      break;
                   }
                case "movestogo":
                   {
-                     Timer.movestogo = int.Parse(command[i + 1]);
+                     movestogo = int.Parse(command[i + 1]);
                      break;
                   }
                case "movetime":
                   {
-                     Timer.TimeLimit = int.Parse(command[i + 1]);
-                     Timer.HardLimit = int.Parse(command[i + 1]);
+                     Timer.SetTimeLimit(int.Parse(command[i + 1]), 0, 1, movetime = true);
                      break;
                   }
                case "depth":
                   {
-                     int depth = Math.Min(int.Parse(command[1]), Constants.MAX_PLY);
-                     Timer.depthLimit = depth;
-                     Timer.infititeTime = true;
+                     Timer.MaxDepth = Math.Min(int.Parse(command[1]), Constants.MAX_PLY);
                      break;
                   }
             }
-
-            if (Timer.TimeLimit == 0)
-            {
-               Timer.SetTimeLimit(Board);
-            }
          }
 
-         Search.Run(Timer.depthLimit);
+         if (!movetime && Timer.MaxDepth == Constants.MAX_PLY)
+         {
+            Timer.SetTimeLimit(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, false);
+         }
+
+         Search.Run();
       }
 
       public void SetOption(string[] option)
