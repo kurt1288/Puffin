@@ -1,11 +1,11 @@
 ﻿namespace Skookum
 {
-   internal struct Magic
+   internal struct Slider
    {
       public List<ulong> Attacks = new();
       public Bitboard Mask;
 
-      public Magic(Bitboard mask)
+      public Slider(Bitboard mask)
       {
          Mask = mask;
       }

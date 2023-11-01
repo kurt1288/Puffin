@@ -15,12 +15,14 @@ if (!Lzcnt.X64.IsSupported || !Popcnt.X64.IsSupported || !Bmi1.X64.IsSupported)
    Console.WriteLine($"Bmi1: {Bmi1.X64.IsSupported}");
 }
 
+#if Pext
 if (!Bmi2.X64.IsSupported)
 {
    Console.WriteLine("Your device hardware is not supported. Press any key to exit.");
    Console.ReadLine();
    Environment.Exit(100);
 }
+#endif
 
 Console.WriteLine($"{Name} {Version}");
 
