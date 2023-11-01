@@ -13,14 +13,23 @@ namespace Skookum
 
       public void SetTimeLimit(int time, int inc, int movestogo, bool movetime)
       {
-         time -= 15; // overhead, arbitrary value
-
-         SoftLimit = inc + time / movestogo;
-         HardLimit = movetime ? SoftLimit : 6 * SoftLimit;
          infititeTime = false;
 
-         SoftLimit = Math.Min(SoftLimit, time / 8);
-         HardLimit = Math.Min(HardLimit, time / 2);
+         if (movetime)
+         {
+            SoftLimit = time;
+            HardLimit = time;
+         }
+         else
+         {
+            time -= 15; // overhead, arbitrary value
+
+            SoftLimit = inc + time / movestogo;
+            HardLimit = movetime ? SoftLimit : 6 * SoftLimit;
+
+            SoftLimit = Math.Min(SoftLimit, time / 8);
+            HardLimit = Math.Min(HardLimit, time / 2);
+         }
       }
 
       public void Start()
