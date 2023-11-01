@@ -1,4 +1,6 @@
-﻿namespace Skookum
+﻿using static System.Formats.Asn1.AsnWriter;
+
+namespace Skookum
 {
    public enum HashFlag : byte
    {
@@ -8,10 +10,10 @@
       Beta
    }
 
-   public readonly struct TTEntry
+   public struct TTEntry
    {
       internal readonly ulong Hash; // 8 bytes
-      internal readonly int Score; // 4
+      internal int Score; // 4
       internal readonly ushort Move; // 2
       internal readonly byte Depth; // 1
       internal readonly HashFlag Flag; // 1
@@ -52,7 +54,7 @@
          Used = 0;
       }
 
-      public static TTEntry? GetEntry(ulong hash)
+      public static TTEntry? GetEntry(ulong hash, int ply)
       {
          TTEntry entry = Table[hash % (ulong)Table.Length];
 
@@ -61,14 +63,34 @@
             return null;
          }
 
+         // Mate score adjustments
+         if (entry.Score > Constants.MATE - Constants.MAX_PLY)
+         {
+            entry.Score -= ply;
+         }
+         else if (entry.Score < -(Constants.MATE - Constants.MAX_PLY))
+         {
+            entry.Score += ply;
+         }
+
          return entry;
       }
 
-      public static void SaveEntry(ulong hash, byte depth, ushort move, int score, HashFlag flag)
+      public static void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
       {
          if (Table[hash % (ulong)Table.Length].Hash == 0)
          {
             Used++;
+         }
+
+         // Mate score adjustments
+         if (score > Constants.MATE - Constants.MAX_PLY)
+         {
+            score += ply;
+         }
+         else if (score < -(Constants.MATE - Constants.MAX_PLY))
+         {
+            score -= ply;
          }
 
          Table[hash % (ulong)Table.Length] = new TTEntry(hash, depth, move, flag, score);

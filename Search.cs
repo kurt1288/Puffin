@@ -118,9 +118,9 @@ namespace Skookum
 
          bool isPVNode = beta != alpha + 1;
 
-         if (!isPVNode)
+         if (!isPVNode && ply > 0)
          {
-            TTEntry? entry = GetEntry(Zobrist.Hash);
+            TTEntry? entry = GetEntry(Zobrist.Hash, ply);
 
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
@@ -229,7 +229,7 @@ namespace Skookum
             }
          }
 
-         SaveEntry(Zobrist.Hash, (byte)depth, bestMove.GetEncoded(), bestScore, flag);
+         SaveEntry(Zobrist.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
 
          return bestScore;
       }
