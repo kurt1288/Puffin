@@ -132,6 +132,11 @@ namespace Skookum
          perft.Run(depth);
       }
 
+      public int Evaluate()
+      {
+         return Evaluation.Evaluate(Board);
+      }
+
       public void UCIParseGo(string[] command)
       {
          Timer.Reset();

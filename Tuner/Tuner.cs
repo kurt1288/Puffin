@@ -26,6 +26,8 @@ namespace Skookum
          public double[][] bishopMobility = new double[14][];
          public double[][] rookMobility = new double[15][];
          public double[][] queenMobility = new double[28][];
+         public double[][] kingAttackWeights = new double[5][];
+         public double[][] pawnShield = new double[4][];
          public double score = 0;
 
          public Trace()
@@ -58,6 +60,16 @@ namespace Skookum
             for (int i = 0; i < 28; i++)
             {
                queenMobility[i] = new double[2];
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+               kingAttackWeights[i] = new double[2];
+            }
+
+            for (int i = 0; i < 4; i++)
+            {
+               pawnShield[i] = new double[2];
             }
          }
       }
@@ -95,6 +107,41 @@ namespace Skookum
       public Tuner(Engine engine)
       {
          Engine = engine;
+
+         for (int i = 0; i < 384; i++)
+         {
+            Evaluation.PST[i] = new Score();
+         }
+
+         for (int i = 0; i < 9; i++)
+         {
+            Evaluation.KnightMobility[i] = new Score();
+         }
+
+         for (int i = 0; i < 14; i++)
+         {
+            Evaluation.BishopMobility[i] = new Score();
+         }
+
+         for (int i = 0; i < 15; i++)
+         {
+            Evaluation.RookMobility[i] = new Score();
+         }
+
+         for (int i = 0; i < 28; i++)
+         {
+            Evaluation.QueenMobility[i] = new Score();
+         }
+
+         for (int i = 0; i < 5; i++)
+         {
+            Evaluation.KingAttackWeights[i] = new Score();
+         }
+
+         for (int i = 0; i < 4; i++)
+         {
+            Evaluation.PawnShield[i] = new Score();
+         }
       }
 
       public void Run(int maxEpochs = 10000)
@@ -104,7 +151,8 @@ namespace Skookum
          LoadParameters();
          List<Entry> entries = LoadPositions();
 
-         double K = FindK(entries);
+         //double K = FindK(entries);
+         double K = 2.5;
          Console.WriteLine($"K value: {K}");
 
          double avgError = GetAverageError(entries, K);
@@ -277,6 +325,8 @@ namespace Skookum
          AddParameters(Evaluation.BishopMobility);
          AddParameters(Evaluation.RookMobility);
          AddParameters(Evaluation.QueenMobility);
+         AddParameters(Evaluation.KingAttackWeights);
+         AddParameters(Evaluation.PawnShield);
       }
 
       private void AddParameters(Score[] values)
@@ -355,16 +405,26 @@ namespace Skookum
       {
          Trace trace = new();
 
+         ulong whiteKingZone = Attacks.KingAttacks[Engine.Board.GetSquareByPiece(PieceType.King, Color.White)];
+         ulong blackKingZone = Attacks.KingAttacks[Engine.Board.GetSquareByPiece(PieceType.King, Color.Black)];
+
+         Score[] kingAttacks = { new(), new() };
+         int[] kingAttacksCount = { 0, 0 };
+         Score[] kingAttacksWeights = { new(), new() };
+
          Score white = Material(Color.White, ref trace);
          Score black = Material(Color.Black, ref trace);
-         white += Knights(Color.White, trace);
-         black += Knights(Color.Black, trace);
-         white += Bishops(Color.White, trace);
-         black += Bishops(Color.Black, trace);
-         white += Rooks(Color.White, trace);
-         black += Rooks(Color.Black, trace);
-         white += Queens(Color.White, trace);
-         black += Queens(Color.Black, trace);
+         white += Knights(Color.White, trace, blackKingZone, ref kingAttacks, ref kingAttacksCount);
+         black += Knights(Color.Black, trace, whiteKingZone, ref kingAttacks, ref kingAttacksCount);
+         white += Bishops(Color.White, trace, blackKingZone, ref kingAttacks, ref kingAttacksCount);
+         black += Bishops(Color.Black, trace, whiteKingZone, ref kingAttacks, ref kingAttacksCount);
+         white += Rooks(Color.White, trace, blackKingZone, ref kingAttacks, ref kingAttacksCount);
+         black += Rooks(Color.Black, trace, whiteKingZone, ref kingAttacks, ref kingAttacksCount);
+         white += Queens(Color.White, trace, blackKingZone, ref kingAttacks, ref kingAttacksCount);
+         black += Queens(Color.Black, trace, whiteKingZone, ref kingAttacks, ref kingAttacksCount);
+         white += Kings(trace, Color.White, ref kingAttacks, ref kingAttacksCount);
+         black += Kings(trace, Color.Black, ref kingAttacks, ref kingAttacksCount);
+
          Score total = white - black;
 
          trace.score = ((total.Mg * Engine.Board.Phase) + (total.Eg * (24 - Engine.Board.Phase))) / 24;
@@ -398,7 +458,7 @@ namespace Skookum
          return score;
       }
 
-      private Score Knights(Color color, Trace trace)
+      private Score Knights(Color color, Trace trace, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount)
       {
          Bitboard knightsBB = new(Engine.Board.PieceBB[(int)PieceType.Knight].Value & Engine.Board.ColorBB[(int)color].Value);
          ulong us = Engine.Board.ColorBB[(int)color].Value;
@@ -410,11 +470,18 @@ namespace Skookum
             int attacks = new Bitboard(Attacks.KnightAttacks[square] & ~us).CountBits();
             score += Evaluation.KnightMobility[attacks];
             trace.knightMobility[attacks][(int)color]++;
+
+            if ((Attacks.KnightAttacks[square] & kingZone) != 0)
+            {
+               kingAttacksCount[(int)color]++;
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * new Bitboard(Attacks.KnightAttacks[square] & kingZone).CountBits();
+               trace.kingAttackWeights[(int)PieceType.Knight][(int)color] += new Bitboard(Attacks.KnightAttacks[square] & kingZone).CountBits();
+            }
          }
          return score;
       }
 
-      private Score Bishops(Color color, Trace trace)
+      private Score Bishops(Color color, Trace trace, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount)
       {
          Bitboard bishopBB = new(Engine.Board.PieceBB[(int)PieceType.Bishop].Value & Engine.Board.ColorBB[(int)color].Value);
          ulong us = Engine.Board.ColorBB[(int)color].Value;
@@ -424,14 +491,22 @@ namespace Skookum
          {
             int square = bishopBB.GetLSB();
             bishopBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetBishopAttacks(square, occupied) & ~us).CountBits();
+            ulong moves = Attacks.GetBishopAttacks(square, occupied);
+            int attacks = new Bitboard(moves & ~us).CountBits();
             score += Evaluation.BishopMobility[attacks];
             trace.bishopMobility[attacks][(int)color]++;
+
+            if ((moves & kingZone) != 0)
+            {
+               kingAttacksCount[(int)color]++;
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & kingZone).CountBits();
+               trace.kingAttackWeights[(int)PieceType.Bishop][(int)color] += new Bitboard(moves & kingZone).CountBits();
+            }
          }
          return score;
       }
 
-      private Score Rooks(Color color, Trace trace)
+      private Score Rooks(Color color, Trace trace, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount)
       {
          Bitboard rooksBB = new(Engine.Board.PieceBB[(int)PieceType.Rook].Value & Engine.Board.ColorBB[(int)color].Value);
          ulong us = Engine.Board.ColorBB[(int)color].Value;
@@ -441,13 +516,21 @@ namespace Skookum
          {
             int square = rooksBB.GetLSB();
             rooksBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetRookAttacks(square, occupied) & ~us).CountBits();
+            ulong moves = Attacks.GetRookAttacks(square, occupied);
+            int attacks = new Bitboard(moves & ~us).CountBits();
             score += Evaluation.RookMobility[attacks];
             trace.rookMobility[attacks][(int)color]++;
+
+            if ((moves & kingZone) != 0)
+            {
+               kingAttacksCount[(int)color]++;
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Rook] * new Bitboard(moves & kingZone).CountBits();
+               trace.kingAttackWeights[(int)PieceType.Rook][(int)color] += new Bitboard(moves & kingZone).CountBits();
+            }
          }
          return score;
       }
-      private Score Queens(Color color, Trace trace)
+      private Score Queens(Color color, Trace trace, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount)
       {
          Bitboard queensBB = new(Engine.Board.PieceBB[(int)PieceType.Queen].Value & Engine.Board.ColorBB[(int)color].Value);
          ulong us = Engine.Board.ColorBB[(int)color].Value;
@@ -457,10 +540,42 @@ namespace Skookum
          {
             int square = queensBB.GetLSB();
             queensBB.ClearLSB();
-            int attacks = new Bitboard(Attacks.GetQueenAttacks(square, occupied) & ~us).CountBits();
+            ulong moves = Attacks.GetQueenAttacks(square, occupied);
+            int attacks = new Bitboard(moves & ~us).CountBits();
             score += Evaluation.QueenMobility[attacks];
             trace.queenMobility[attacks][(int)color]++;
+
+            if ((moves & kingZone) != 0)
+            {
+               kingAttacksCount[(int)color]++;
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Queen] * new Bitboard(moves & kingZone).CountBits();
+               trace.kingAttackWeights[(int)PieceType.Queen][(int)color] += new Bitboard(moves & kingZone).CountBits();
+            }
          }
+         return score;
+      }
+
+      private Score Kings(Trace trace, Color color, ref Score[] kingAttacks, ref int[] kingAttacksCount)
+      {
+         Score score = new();
+         Bitboard kingBB = new(Engine.Board.PieceBB[(int)PieceType.King].Value & Engine.Board.ColorBB[(int)color].Value);
+         int kingSq = kingBB.GetLSB();
+         ulong kingSquares = color == Color.White ? 0xD7C3000000000000 : 0xC3D7;
+
+         if ((kingSquares & Constants.SquareBB[kingSq]) != 0)
+         {
+            ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x007000000000000 : 0x000E0000000000000) : (ulong)(kingSq % 8 < 3 ? 0x700 : 0xE000);
+
+            Bitboard pawns = new(Engine.Board.PieceBB[(int)PieceType.Pawn].Value & Engine.Board.ColorBB[(int)color].Value & pawnSquares);
+            score += Evaluation.PawnShield[Math.Min(pawns.CountBits(), 3)];
+            trace.pawnShield[Math.Min(pawns.CountBits(), 3)][(int)color]++;
+         }
+
+         if (kingAttacksCount[(int)color ^ 1] >= 2)
+         {
+            score -= kingAttacks[(int)color ^ 1];
+         }
+
          return score;
       }
 
@@ -474,6 +589,8 @@ namespace Skookum
          GetCoefficientsFromArray(ref coefficients, trace.bishopMobility, 14);
          GetCoefficientsFromArray(ref coefficients, trace.rookMobility, 15);
          GetCoefficientsFromArray(ref coefficients, trace.queenMobility, 28);
+         GetCoefficientsFromArray(ref coefficients, trace.kingAttackWeights, 5);
+         GetCoefficientsFromArray(ref coefficients, trace.pawnShield, 4);
 
          return coefficients;
       }
@@ -547,6 +664,8 @@ namespace Skookum
          PrintArray("bishop mobility", ref index, 14, sw);
          PrintArray("rook mobility", ref index, 15, sw);
          PrintArray("queen mobility", ref index, 28, sw);
+         PrintArray("king attack weights", ref index, 5, sw);
+         PrintArray("pawn shield", ref index, 4, sw);
       }
 
       private void PrintArray(string name, ref int index, int count, StreamWriter writer)

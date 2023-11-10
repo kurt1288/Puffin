@@ -127,6 +127,11 @@ while (engine.IsRunning)
             engine.Perft(int.Parse(tokens[1]));
             break;
          }
+      case "evaluate":
+         {
+            Console.WriteLine(engine.Evaluate());
+            break;
+         }
       default:
          {
             Console.WriteLine($"Unrecognized UCI command: {input}");

@@ -21,9 +21,13 @@
       public static Score operator +(Score a, Score b) => new(a._Score + b._Score);
 
       public static Score operator -(Score a, Score b) => new(a._Score - b._Score);
-
+      public static Score operator *(Score a, Score b) => new(a._Score * b._Score);
       public static Score operator *(Score a, int b) => new(a._Score * b);
-      
+      public static Score operator *(Score a, double b) => new((int)(a._Score * b));
+      public static Score operator *(double a, Score b) => new((int)(a * b._Score));
+      public static Score operator +(Score a, int b) => new(a._Score + b);
+      public static Score operator /(Score a, int b) => new(a._Score / b);
+
       public static bool operator ==(Score a, Score b) => a._Score == b._Score;
       public static bool operator !=(Score a, Score b) => a._Score != b._Score;
    }
