@@ -96,10 +96,10 @@ namespace Skookum
          Table[hash % (ulong)Table.Length] = new TTEntry(hash, depth, move, flag, score);
       }
 
-      public static ushort GetHashMove()
+      public static ushort GetHashMove(ulong hash)
       {
-         TTEntry entry = Table[Zobrist.Hash % (ulong)Table.Length];
-         if (entry.Hash == Zobrist.Hash)
+         TTEntry entry = Table[hash % (ulong)Table.Length];
+         if (entry.Hash == hash)
          {
             return entry.Move;
          }

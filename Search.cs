@@ -120,7 +120,7 @@ namespace Skookum
 
          if (!isPVNode && ply > 0)
          {
-            TTEntry? entry = GetEntry(Zobrist.Hash, ply);
+            TTEntry? entry = GetEntry(Board.Hash.Value, ply);
 
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
@@ -229,7 +229,7 @@ namespace Skookum
             }
          }
 
-         SaveEntry(Zobrist.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
+         SaveEntry(Board.Hash.Value, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
 
          return bestScore;
       }
@@ -308,7 +308,7 @@ namespace Skookum
 
          for (int i = Board.GameHistory.Count - 2; i >= last; i -= 2)
          {
-            if (Board.GameHistory.Stack[i].Hash == Zobrist.Hash)
+            if (Board.GameHistory.Stack[i].Hash == Board.Hash.Value)
             {
                return true;
             }

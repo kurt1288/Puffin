@@ -1,19 +1,32 @@
-﻿using System.Diagnostics;
+﻿using System.Runtime.CompilerServices;
 
 namespace Skookum
 {
-   internal static class Zobrist
+   internal struct Hash
    {
-      static ulong RandomSeed = 14674941981828548931;
+      ulong _hash;
 
-      public static readonly ulong[][] Pieces = new ulong[13][];
-      public static readonly ulong[] EnPassant = new ulong[64];
-      public static readonly ulong[] Castle = new ulong[4];
-      public static readonly ulong SideToMove;
+      public Hash()
+      {
+         _hash = 0;
+      }
 
-      public static ulong Hash = 0;
+      public ulong Value { readonly get => _hash; set { _hash = value; } }
+   }
 
-      static Zobrist()
+   internal sealed class Zobrist
+   {
+      ulong RandomSeed = 14674941981828548931;
+
+      readonly ulong[][] Pieces = new ulong[13][];
+      readonly ulong[] EnPassant = new ulong[64];
+      readonly ulong[] Castle = new ulong[4];
+      readonly ulong SideToMove;
+      Hash _hash = new();
+
+      public ulong Value { get => _hash.Value; set { _hash.Value = value; } }
+
+      public Zobrist()
       {
          // foreach piece on each square...
          for (int i = 0; i <= 12; i++)
@@ -39,9 +52,9 @@ namespace Skookum
          SideToMove = Random();
       }
 
-      public static ulong GenerateHash(Board board)
+      public void GenerateHash(Board board)
       {
-         ulong Hash = 0;
+         _hash = new();
 
          Bitboard pieces = new(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
 
@@ -51,40 +64,53 @@ namespace Skookum
             pieces.ClearLSB();
             Piece piece = board.Mailbox[square];
 
-            Hash ^= Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
+            _hash.Value ^= Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
          }
 
          if (board.En_Passant != Square.Null)
          {
-            Hash ^= EnPassant[(int)board.En_Passant];
+            _hash.Value ^= EnPassant[(int)board.En_Passant];
          }
 
-         Hash ^= UpdateCastle(board.CastleSquares);
+         UpdateCastle(board.CastleSquares);
 
          if (board.SideToMove == Color.Black)
          {
-            Hash ^= SideToMove;
+            _hash.Value ^= SideToMove;
          }
-
-         return Hash;
       }
 
-      public static ulong UpdateCastle(ulong castlingSquares)
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdateEnPassant(Square epSquare)
       {
-         ulong Hash = 0;
+         _hash.Value ^= EnPassant[(int)epSquare];
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdateSideToMove()
+      {
+         _hash.Value ^= SideToMove;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdatePieces(Piece piece, int square)
+      {
+         _hash.Value ^= Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
+      }
+
+      public void UpdateCastle(ulong castlingSquares)
+      {
          Bitboard castle = new(castlingSquares);
          while (!castle.IsEmpty())
          {
             int square = castle.GetLSB();
             castle.ClearLSB();
 
-            Hash ^= GetCastleKey(square);
+            _hash.Value ^= GetCastleKey(square);
          }
-
-         return Hash;
       }
 
-      private static ulong GetCastleKey(int square)
+      private ulong GetCastleKey(int square)
       {
          if (square == 0)
          {
@@ -106,13 +132,14 @@ namespace Skookum
          return 0;
       }
 
-      public static bool Verify(Board board)
+      public bool Verify(Board board)
       {
-         var key = GenerateHash(board);
-         return key == Hash;
+         Zobrist key = new();
+         key.GenerateHash(board);
+         return key.Value == _hash.Value;
       }
 
-      private static ulong Random()
+      private ulong Random()
       {
          ulong s = RandomSeed;
 

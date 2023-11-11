@@ -40,7 +40,7 @@
          {
             case Stage.HashMove:
                {
-                  HashMove = TranspositionTable.GetHashMove();
+                  HashMove = TranspositionTable.GetHashMove(Board.Hash.Value);
                   Stage++;
 
                   if (HashMove != 0)
