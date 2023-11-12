@@ -57,14 +57,14 @@ namespace Skookum
             Mailbox[i] = new Piece();
          }
 
-         foreach (Bitboard board in ColorBB)
+         for (int i = 0; i < ColorBB.Length; i++)
          {
-            board.Reset();
+            ColorBB[i].Reset();
          }
 
-         foreach (Bitboard board in PieceBB)
+         for (int i = 0; i < PieceBB.Length; i++)
          {
-            board.Reset();
+            PieceBB[i].Reset();
          }
 
          SideToMove = Color.Null;

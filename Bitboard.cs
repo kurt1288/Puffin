@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Skookum
 {
-   internal class Bitboard
+   internal struct Bitboard
    {
       public ulong Value { get; private set; }
 
