@@ -19,7 +19,7 @@ namespace Skookum
 
       public int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
       public Score[] MaterialValue = { new Score(0, 0), new Score(0, 0) };
-      public Zobrist Hash = new();
+      public ulong Hash = 0;
 
       public Board()
       {
@@ -161,7 +161,7 @@ namespace Skookum
                Fullmoves = fullMoves;
             }
 
-            Hash.GenerateHash(this);
+            Hash = Zobrist.GenerateHash(this);
          }
          catch
          {
@@ -180,12 +180,12 @@ namespace Skookum
          GameHistory.Add(
             new BoardState(
                SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to],
-               Halfmoves, Fullmoves, Hash.Value, Phase)
+               Halfmoves, Fullmoves, Hash, Phase)
          );
 
          if (En_Passant != Square.Null)
          {
-            Hash.UpdateEnPassant(En_Passant);
+            Zobrist.UpdateEnPassant(ref Hash, En_Passant);
          }
 
          En_Passant = Square.Null;
@@ -209,7 +209,7 @@ namespace Skookum
                   RemovePiece(piece, from);
                   SetPiece(piece, to);
                   En_Passant = (Square)((to + from) / 2);
-                  Hash.UpdateEnPassant(En_Passant);
+                  Zobrist.UpdateEnPassant(ref Hash, En_Passant);
                   break;
                }
             case MoveFlag.Capture:
@@ -340,7 +340,7 @@ namespace Skookum
          if (piece.Type == PieceType.King)
          {
             // If the king moves, remove the castle squares from the home rank
-            Hash.UpdateCastle(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
             CastleSquares &= ~Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
          }
 
@@ -348,21 +348,21 @@ namespace Skookum
          // on that side are gone.
          if ((Constants.SquareBB[move.GetFrom()] & CastleSquares) != 0)
          {
-            Hash.UpdateCastle(CastleSquares & Constants.SquareBB[move.GetFrom()]);
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.GetFrom()]);
             CastleSquares &= ~Constants.SquareBB[move.GetFrom()];
          }
          if ((Constants.SquareBB[move.GetTo()] & CastleSquares) != 0)
          {
-            Hash.UpdateCastle(CastleSquares & Constants.SquareBB[move.GetTo()]);
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.GetTo()]);
             CastleSquares &= ~Constants.SquareBB[move.GetTo()];
          }
 
          SideToMove = (Color)((int)SideToMove ^ 1);
          Fullmoves += 1;
 
-         Hash.UpdateSideToMove();
+         Zobrist.UpdateSideToMove(ref Hash);
 
-         Debug.Assert(Hash.Verify(this));
+         Debug.Assert(Zobrist.Verify(Hash, this));
          Debug.Assert(Phase == VerifyPhase());
          Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
          Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
@@ -431,8 +431,8 @@ namespace Skookum
          }
 
          Phase = previousState.Phase;
-         Hash.Value = previousState.Hash;
-         Debug.Assert(Hash.Verify(this));
+         Hash = previousState.Hash;
+         Debug.Assert(Zobrist.Verify(Hash, this));
          Debug.Assert(Phase == VerifyPhase());
          Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
          Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
@@ -445,7 +445,7 @@ namespace Skookum
          PieceBB[(int)piece.Type].SetBit(square);
          Mailbox[square] = piece;
          Phase += PhaseValues[(int)piece.Type];
-         Hash.UpdatePieces(piece, square);
+         Zobrist.UpdatePieces(ref Hash, piece, square);
          MaterialValue[(int)piece.Color] += Evaluation.PieceValues[(int)piece.Type];
          MaterialValue[(int)piece.Color] += Evaluation.GetPSTScore(piece, square);
       }
@@ -457,7 +457,7 @@ namespace Skookum
          PieceBB[(int)piece.Type].ResetBit(square);
          Mailbox[square] = new Piece();
          Phase -= PhaseValues[(int)piece.Type];
-         Hash.UpdatePieces(piece, square);
+         Zobrist.UpdatePieces(ref Hash, piece, square);
          MaterialValue[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];
          MaterialValue[(int)piece.Color] -= Evaluation.GetPSTScore(piece, square);
       }
