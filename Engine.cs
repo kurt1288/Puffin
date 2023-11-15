@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Skookum
+﻿namespace Skookum
 {
    internal class Engine
    {
@@ -8,6 +6,7 @@ namespace Skookum
       public readonly Board Board = new();
       readonly TimeManager Timer = new();
       private readonly Search Search;
+      readonly TranspositionTable TTable = new();
 
       public Engine()
       {
@@ -17,19 +16,16 @@ namespace Skookum
          // Initializes the Constants static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Constants).TypeHandle);
 
-         // Initializes the Transposition table static class
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(TranspositionTable).TypeHandle);
-
          // Initializes the Zobirst table static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
 
-         Search = new Search(Board, Timer);
+         Search = new Search(Board, Timer, TTable);
       }
 
       public void NewGame()
       {
          Board.Reset();
-         TranspositionTable.Reset();
+         TTable.Reset();
          Timer.Reset();
       }
 
@@ -207,7 +203,7 @@ namespace Skookum
                {
                   _ = int.TryParse(option[2], out int value);
                   value = Math.Clamp(value, 1, 512);
-                  TranspositionTable.Resize(value);
+                  TTable.Resize(value);
                   break;
                }
             default:

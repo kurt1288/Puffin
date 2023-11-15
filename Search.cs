@@ -1,18 +1,18 @@
-﻿using static Skookum.TranspositionTable;
-
-namespace Skookum
+﻿namespace Skookum
 {
    internal class Search
    {
       readonly Board Board;
       readonly TimeManager Time;
       readonly SearchInfo Info;
+      readonly TranspositionTable TTable;
 
-      public Search(Board board, TimeManager time)
+      public Search(Board board, TimeManager time, TranspositionTable tTable)
       {
          Board = board;
          Time = time;
          Info = new();
+         TTable = tTable;
       }
 
       static string FormatScore(int score)
@@ -84,7 +84,7 @@ namespace Skookum
             if (!stop)
             {
                bestMove = Info.GetBestMove();
-               Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TranspositionTable.GetUsed()} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
+               Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
             }
          }
          
@@ -120,7 +120,7 @@ namespace Skookum
 
          if (!isPVNode && ply > 0)
          {
-            TTEntry? entry = GetEntry(Board.Hash, ply);
+            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
 
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
@@ -139,7 +139,7 @@ namespace Skookum
          int legalMoves = 0;
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
-         MovePicker moves = new(Board, Info.KillerMoves[ply]);
+         MovePicker moves = new(Board, Info.KillerMoves[ply], TTable);
 
          while (moves.Next())
          {
@@ -229,7 +229,7 @@ namespace Skookum
             }
          }
 
-         SaveEntry(Board.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
+         TTable.SaveEntry(Board.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
 
          return bestScore;
       }
@@ -257,7 +257,7 @@ namespace Skookum
             alpha = bestScore;
          }
 
-         MovePicker moves = new(Board, Info.KillerMoves[ply], true);
+         MovePicker moves = new(Board, Info.KillerMoves[ply], TTable, true);
 
          while (moves.Next())
          {
