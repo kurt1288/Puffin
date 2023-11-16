@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Skookum
 {
-   internal sealed class Board
+   internal sealed class Board : ICloneable
    {
       public Piece[] Mailbox { get; private set; } = new Piece[64];
       public Bitboard[] ColorBB { get; private set; } = new Bitboard[2];
@@ -48,6 +48,27 @@ namespace Skookum
          MaterialValue[(int)Color.White] = new Score(0, 0);
          MaterialValue[(int)Color.Black] = new Score(0, 0);
          Hash = new();
+      }
+
+      public Board(Board other)
+      {
+         SideToMove = other.SideToMove;
+         En_Passant = other.En_Passant;
+         CastleSquares = other.CastleSquares;
+         Halfmoves = other.Halfmoves;
+         Fullmoves = other.Fullmoves;
+         Phase = other.Phase;
+         Hash = other.Hash;
+         GameHistory = (History)GameHistory.Clone();
+         Array.Copy(other.Mailbox, Mailbox, Mailbox.Length);
+         Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
+         Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);
+         Array.Copy(other.MaterialValue, MaterialValue, MaterialValue.Length);
+      }
+
+      public object Clone()
+      {
+         return new Board(this);
       }
 
       public void Reset()

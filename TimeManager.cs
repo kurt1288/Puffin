@@ -2,14 +2,31 @@
 
 namespace Skookum
 {
-   internal class TimeManager
+   internal class TimeManager : ICloneable
    {
       public int MaxDepth = Constants.MAX_PLY;
 
+      bool stopped = false;
       bool infititeTime = true;
       double SoftLimit = 0;
       double HardLimit = 0;
       readonly Stopwatch StopWatch = new();
+
+      public TimeManager() { }
+
+      public TimeManager(TimeManager other)
+      {
+         stopped = other.stopped;
+         infititeTime = other.infititeTime;
+         SoftLimit = other.SoftLimit;
+         HardLimit = other.HardLimit;
+         StopWatch = new();
+      }
+
+      public object Clone()
+      {
+         return new TimeManager(this);
+      }
 
       public void SetTimeLimit(int time, int inc, int movestogo, bool movetime)
       {
@@ -35,11 +52,13 @@ namespace Skookum
       public void Start()
       {
          StopWatch.Start();
+         stopped = false;
       }
 
       public void Stop()
       {
          StopWatch.Stop();
+         stopped = true;
       }
 
       public void Reset()
@@ -62,12 +81,18 @@ namespace Skookum
          {
             return false;
          }
+         else if (stopped)
+         {
+            return true;
+         }
          else if (newIteration && StopWatch.ElapsedMilliseconds >= SoftLimit)
          {
+            Stop();
             return true;
          }
          else if (StopWatch.ElapsedMilliseconds >= HardLimit)
          {
+            Stop();
             return true;
          }
 
