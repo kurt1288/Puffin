@@ -24,10 +24,23 @@
       }
    }
 
-   internal class History
+   internal class History : ICloneable
    {
       public BoardState[] Stack = new BoardState[1000]; // arbitrary max length
       int _count = 0;
+
+      public History() { }
+
+      public History(History other)
+      {
+         Array.Copy(other.Stack, Stack, Stack.Length);
+         _count = other._count;
+      }
+
+      public object Clone()
+      {
+         return new History(this);
+      }
 
       public int Count
       {

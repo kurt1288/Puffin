@@ -18,14 +18,16 @@
       private readonly bool NoisyOnly = false;
       private readonly Move[] KillerMoves;
       private ushort HashMove = 0;
+      TranspositionTable TTable;
       public Stage Stage;
       public Move Move;
 
-      public MovePicker(Board board, Move[] killerMoves, bool noisyOnly = false)
+      public MovePicker(Board board, Move[] killerMoves, TranspositionTable tTable, bool noisyOnly = false)
       {
          Stage = Stage.HashMove;
          Board = board;
          KillerMoves = killerMoves;
+         TTable = tTable;
 
          if (noisyOnly)
          {
@@ -40,7 +42,7 @@
          {
             case Stage.HashMove:
                {
-                  HashMove = TranspositionTable.GetHashMove(Board.Hash);
+                  HashMove = TTable.GetHashMove(Board.Hash);
                   Stage++;
 
                   if (HashMove != 0)

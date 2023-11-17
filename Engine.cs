@@ -1,13 +1,12 @@
-﻿using System.Diagnostics;
-
-namespace Skookum
+﻿namespace Skookum
 {
    internal class Engine
    {
       public bool IsRunning { get; private set; } = true;
       public readonly Board Board = new();
       readonly TimeManager Timer = new();
-      private readonly Search Search;
+      readonly TranspositionTable TTable = new();
+      int Threads = 1;
 
       public Engine()
       {
@@ -17,19 +16,14 @@ namespace Skookum
          // Initializes the Constants static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Constants).TypeHandle);
 
-         // Initializes the Transposition table static class
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(TranspositionTable).TypeHandle);
-
          // Initializes the Zobirst table static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
-
-         Search = new Search(Board, Timer);
       }
 
       public void NewGame()
       {
          Board.Reset();
-         TranspositionTable.Reset();
+         TTable.Reset();
          Timer.Reset();
       }
 
@@ -196,7 +190,7 @@ namespace Skookum
             Timer.SetTimeLimit(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, false);
          }
 
-         Search.Run();
+         Search.StartSearch(Timer, Threads, Board, TTable);
       }
 
       public void SetOption(string[] option)
@@ -207,9 +201,15 @@ namespace Skookum
                {
                   _ = int.TryParse(option[2], out int value);
                   value = Math.Clamp(value, 1, 512);
-                  TranspositionTable.Resize(value);
+                  TTable.Resize(value);
                   break;
                }
+            //case "threads":
+            //   {
+            //      _ = int.TryParse(option[2], out int value);
+            //      Threads = value;
+            //      break;
+            //   }
             default:
                {
                   Console.WriteLine($"Unknown or unsupported option: {option[0]}");

@@ -1,6 +1,4 @@
-﻿using static System.Formats.Asn1.AsnWriter;
-
-namespace Skookum
+﻿namespace Skookum
 {
    public enum HashFlag : byte
    {
@@ -30,16 +28,13 @@ namespace Skookum
 
    public sealed class TranspositionTable
    {
-      static TTEntry[] Table;
-      static int Used = 0;
+      TTEntry[] Table = new TTEntry[(32 * 1024 * 1024) / 16]; // Default to 32MB table size
+      int Used = 0;
 
-      static TranspositionTable()
-      {
-         Table = new TTEntry[(32 * 1024 * 1024) / 16]; // Default to 32MB table size
-      }
+      public TranspositionTable() { }
 
       // Size in MB
-      public static void Resize(int size)
+      public void Resize(int size)
       {
          // Note that the Array.Resize method doesn't actually resize. It creates a copy of the original with the new size,
          // and then updates the memory pointer.
@@ -48,13 +43,13 @@ namespace Skookum
          Used = 0;
       }
 
-      public static void Reset()
+      public void Reset()
       {
          Array.Clear(Table);
          Used = 0;
       }
 
-      public static TTEntry? GetEntry(ulong hash, int ply)
+      public TTEntry? GetEntry(ulong hash, int ply)
       {
          TTEntry entry = Table[hash % (ulong)Table.Length];
 
@@ -76,13 +71,8 @@ namespace Skookum
          return entry;
       }
 
-      public static void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
+      public void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
       {
-         if (Table[hash % (ulong)Table.Length].Hash == 0)
-         {
-            Used++;
-         }
-
          // Mate score adjustments
          if (score > Constants.MATE - Constants.MAX_PLY)
          {
@@ -93,10 +83,16 @@ namespace Skookum
             score -= ply;
          }
 
-         Table[hash % (ulong)Table.Length] = new TTEntry(hash, depth, move, flag, score);
+         ref TTEntry entry = ref Table[hash % (ulong)Table.Length];
+         if (entry.Hash == 0)
+         {
+            Used++;
+         }
+
+         entry = new TTEntry(hash, depth, move, flag, score);
       }
 
-      public static ushort GetHashMove(ulong hash)
+      public ushort GetHashMove(ulong hash)
       {
          TTEntry entry = Table[hash % (ulong)Table.Length];
          if (entry.Hash == hash)
@@ -107,7 +103,7 @@ namespace Skookum
          return 0;
       }
 
-      public static int GetUsed()
+      public int GetUsed()
       {
          return 1000 * Used / Table.Length;
       }

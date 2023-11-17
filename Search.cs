@@ -1,18 +1,46 @@
-﻿using static Skookum.TranspositionTable;
-
-namespace Skookum
+﻿namespace Skookum
 {
    internal class Search
    {
       readonly Board Board;
       readonly TimeManager Time;
-      readonly SearchInfo Info;
+      readonly SearchInfo ThreadInfo;
+      readonly TranspositionTable TTable;
+      static SearchInfo[] infos;
+      static CountdownEvent countdown;
 
-      public Search(Board board, TimeManager time)
+      public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
          Board = board;
          Time = time;
-         Info = new();
+         TTable = tTable;
+         ThreadInfo = info;
+      }
+
+      public static void StartSearch(TimeManager time, int threadCount, Board board, TranspositionTable tTable)
+      {
+         time.Start();
+
+         Thread[] threads = new Thread[threadCount];
+         infos = new SearchInfo[threadCount];
+         countdown = new CountdownEvent(threadCount);
+
+         for (int i = 1; i < threadCount; i++)
+         {
+            infos[i] = new SearchInfo();
+            (threads[i] = new Thread(new Search((Board)board.Clone(), time, tTable, infos[i]).Run)
+            {
+               IsBackground = true,
+               Name = $"Thread {i}",
+            }).Start();
+         }
+
+         Thread.CurrentThread.Name = "Main";
+         infos[0] = new SearchInfo();
+         new Search(board, time, tTable, infos[0]).Run();
+
+         // Wait for all threads to finish.
+         countdown.Wait();
       }
 
       static string FormatScore(int score)
@@ -31,15 +59,24 @@ namespace Skookum
          }
       }
 
+      static int GetNodesInfo()
+      {
+         int nodes = 0;
+         for (int i = 0; i < infos.Length; i++)
+         {
+            nodes += infos[i].Nodes;
+         }
+
+         return nodes;
+      }
+
       public void Run()
       {
-         Info.Reset();
-         Time.Start();
+         ThreadInfo.Reset();
 
          int alpha = -Constants.INFINITY;
          int beta = Constants.INFINITY;
          int score = 0;
-         Move bestMove = new();
          bool stop;
 
          // Iterative deepening
@@ -56,7 +93,7 @@ namespace Skookum
 
             while (true)
             {
-               if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
+               if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
                {
                   stop = true;
                   break;
@@ -83,23 +120,29 @@ namespace Skookum
 
             if (!stop)
             {
-               bestMove = Info.GetBestMove();
-               Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {Info.Nodes} nps {Math.Round((double)((long)Info.Nodes * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TranspositionTable.GetUsed()} time {Time.GetElapsedMs()} pv {Info.GetPv()}");
+               if (Thread.CurrentThread.Name == "Main")
+               {
+                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {GetNodesInfo()} nps {Math.Round((double)((long)GetNodesInfo() * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {Time.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
+               }
             }
          }
-         
-         Time.Stop();
-         Console.WriteLine($"bestmove {bestMove}");
+
+         if (Thread.CurrentThread.Name == "Main")
+         {
+            Console.WriteLine($"bestmove {ThreadInfo.GetBestMove()}");
+         }
+
+         countdown.Signal();
       }
 
       private int NegaScout(int alpha, int beta, int depth, int ply)
       {
-         if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
          {
             return Constants.INFINITY * 10;
          }
 
-         Info.InitPvLength(ply);
+         ThreadInfo.InitPvLength(ply);
 
          if (ply >= Constants.MAX_PLY)
          {
@@ -120,7 +163,7 @@ namespace Skookum
 
          if (!isPVNode && ply > 0)
          {
-            TTEntry? entry = GetEntry(Board.Hash, ply);
+            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
 
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
@@ -139,7 +182,7 @@ namespace Skookum
          int legalMoves = 0;
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
 
-         MovePicker moves = new(Board, Info.KillerMoves[ply]);
+         MovePicker moves = new(Board, ThreadInfo.KillerMoves[ply], TTable);
 
          while (moves.Next())
          {
@@ -149,7 +192,7 @@ namespace Skookum
                continue;
             }
 
-            Info.Nodes += 1;
+            ThreadInfo.Nodes += 1;
             legalMoves += 1;
             int E = inCheck ? 1 : 0;
 
@@ -180,7 +223,7 @@ namespace Skookum
 
             Board.UndoMove(moves.Move);
 
-            if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
+            if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
             {
                return Constants.INFINITY * 10;
             }
@@ -195,7 +238,7 @@ namespace Skookum
             {
                alpha = score;
                flag = HashFlag.Exact;
-               Info.UpdatePV(bestMove, ply);
+               ThreadInfo.UpdatePV(bestMove, ply);
             }
 
             if (alpha >= beta)
@@ -204,10 +247,10 @@ namespace Skookum
 
                if (!moves.Move.HasType(MoveType.Capture))
                {
-                  if (moves.Move != Info.KillerMoves[ply][0])
+                  if (moves.Move != ThreadInfo.KillerMoves[ply][0])
                   {
-                     Info.KillerMoves[ply][1] = Info.KillerMoves[ply][0];
-                     Info.KillerMoves[ply][0] = moves.Move;
+                     ThreadInfo.KillerMoves[ply][1] = ThreadInfo.KillerMoves[ply][0];
+                     ThreadInfo.KillerMoves[ply][0] = moves.Move;
                   }
                }
 
@@ -229,14 +272,14 @@ namespace Skookum
             }
          }
 
-         SaveEntry(Board.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
+         TTable.SaveEntry(Board.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);
 
          return bestScore;
       }
 
       private int Quiescence(int alpha, int beta, int ply)
       {
-         if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
          {
             return Constants.INFINITY * 10;
          }
@@ -257,7 +300,7 @@ namespace Skookum
             alpha = bestScore;
          }
 
-         MovePicker moves = new(Board, Info.KillerMoves[ply], true);
+         MovePicker moves = new(Board, ThreadInfo.KillerMoves[ply], TTable, true);
 
          while (moves.Next())
          {
@@ -267,13 +310,13 @@ namespace Skookum
                continue;
             }
 
-            Info.Nodes += 1;
+            ThreadInfo.Nodes += 1;
 
             int score = -Quiescence(-beta, -alpha, ply + 1);
 
             Board.UndoMove(moves.Move);
 
-            if (Info.Nodes % 2048 == 0 && Time.LimitReached(false))
+            if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
             {
                return Constants.INFINITY * 10;
             }
