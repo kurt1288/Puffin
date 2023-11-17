@@ -175,12 +175,24 @@
             }
          }
 
+         bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
+         int staticEval = Evaluation.Evaluate(Board);
+
+         if (!isPVNode && !inCheck)
+         {
+            // Reverse futility pruning
+            if (staticEval - 70 * depth >= beta)
+            {
+               return staticEval - 70 * depth;
+            }
+         }
+
          int bestScore = -Constants.INFINITY;
          Move bestMove = new();
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
-         bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
+         
 
          MovePicker moves = new(Board, ThreadInfo.KillerMoves[ply], TTable);
 
