@@ -396,6 +396,30 @@ namespace Skookum
          return true;
       }
 
+      public void MakeNullMove()
+      {
+         GameHistory.Add(
+            new BoardState(
+               SideToMove, En_Passant, CastleSquares, new Piece(), Halfmoves, Fullmoves, Hash, Phase
+            )
+         );
+
+         if (En_Passant != Square.Null)
+         {
+            Zobrist.UpdateEnPassant(ref Hash, En_Passant);
+         }
+
+         En_Passant = Square.Null;
+         Halfmoves = 0;
+         Fullmoves += 1;
+         SideToMove = (Color)((int)SideToMove ^ 1);
+
+         Zobrist.UpdateSideToMove(ref Hash);
+
+         Debug.Assert(Zobrist.Verify(Hash, this));
+         Debug.Assert(Phase == VerifyPhase());
+      }
+
       public void UndoMove(Move move)
       {
          BoardState previousState = GameHistory.Pop();
@@ -457,6 +481,22 @@ namespace Skookum
          Debug.Assert(Phase == VerifyPhase());
          Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
          Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
+      }
+
+      public void UnmakeNullMove()
+      {
+         BoardState previousState = GameHistory.Pop();
+
+         SideToMove = previousState.SideToMove;
+         En_Passant = previousState.En_Passant;
+         CastleSquares = previousState.CastleSquares;
+         Halfmoves = previousState.Halfmoves;
+         Fullmoves = previousState.Fullmoves;
+         Phase = previousState.Phase;
+         Hash = previousState.Hash;
+
+         Debug.Assert(Zobrist.Verify(Hash, this));
+         Debug.Assert(Phase == VerifyPhase());
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]

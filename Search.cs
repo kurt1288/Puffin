@@ -9,6 +9,8 @@
       static SearchInfo[] infos;
       static CountdownEvent countdown;
 
+      const int NMP_Depth = 3;
+
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
          Board = board;
@@ -99,7 +101,7 @@
                   break;
                }
 
-               score = NegaScout(alpha, beta, i, 0);
+               score = NegaScout(alpha, beta, i, 0, false);
 
                if (score <= alpha)
                {
@@ -135,7 +137,7 @@
          countdown.Signal();
       }
 
-      private int NegaScout(int alpha, int beta, int depth, int ply)
+      private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull = true)
       {
          if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
          {
@@ -184,6 +186,22 @@
             if (staticEval - 70 * depth >= beta)
             {
                return staticEval - 70 * depth;
+            }
+
+            // Null move pruning
+            // The last condition prevents NMP if the STM only has a king and pawns left
+            if (doNull && depth >= NMP_Depth && staticEval >= beta)
+            {
+               int R = 2 + depth / 4;
+
+               Board.MakeNullMove();
+               int score = -NegaScout(-beta, -beta + 1, depth - 1 - R, ply++, false);
+               Board.UnmakeNullMove();
+
+               if (score >= beta)
+               {
+                  return beta;
+               }
             }
          }
 
