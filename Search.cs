@@ -101,7 +101,15 @@
                   break;
                }
 
-               score = NegaScout(alpha, beta, i, 0, false);
+               try
+               {
+                  score = NegaScout(alpha, beta, i, 0, false);
+               }
+               catch (TimeoutException)
+               {
+                  stop = true;
+                  break;
+               }
 
                if (score <= alpha)
                {
@@ -141,7 +149,7 @@
       {
          if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
          {
-            return Constants.INFINITY * 10;
+            throw new TimeoutException();
          }
 
          ThreadInfo.InitPvLength(ply);
@@ -183,24 +191,27 @@
          if (!isPVNode && !inCheck)
          {
             // Reverse futility pruning
-            if (staticEval - 70 * depth >= beta)
+            if (depth <= 10 && staticEval - 70 * depth >= beta)
             {
-               return staticEval - 70 * depth;
+               return staticEval;
             }
 
             // Null move pruning
             // The last condition prevents NMP if the STM only has a king and pawns left
-            if (doNull && depth >= NMP_Depth && staticEval >= beta)
+            if (doNull && depth >= NMP_Depth && staticEval >= beta
+               && (Board.ColorBB[(int)Board.SideToMove].Value
+               & (Board.PieceBB[(int)PieceType.Knight].Value | Board.PieceBB[(int)PieceType.Bishop].Value
+               | Board.PieceBB[(int)PieceType.Rook].Value | Board.PieceBB[(int)PieceType.Queen].Value)) != 0)
             {
-               int R = 2 + depth / 4;
+               int R = 3 + depth / 6;
 
                Board.MakeNullMove();
-               int score = -NegaScout(-beta, -beta + 1, depth - 1 - R, ply++, false);
+               int score = -NegaScout(-beta, -beta + 1, depth - 1 - R, ply + 1, false);
                Board.UnmakeNullMove();
 
                if (score >= beta)
                {
-                  return beta;
+                  return score;
                }
             }
          }
@@ -255,7 +266,7 @@
 
             if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
             {
-               return Constants.INFINITY * 10;
+               throw new TimeoutException();
             }
 
             if (score > bestScore)
@@ -311,7 +322,7 @@
       {
          if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
          {
-            return Constants.INFINITY * 10;
+            throw new TimeoutException();
          }
 
          if (ply >= Constants.MAX_PLY)
@@ -348,7 +359,7 @@
 
             if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
             {
-               return Constants.INFINITY * 10;
+               throw new TimeoutException();
             }
 
             if (score > bestScore)
