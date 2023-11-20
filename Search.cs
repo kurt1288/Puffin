@@ -10,6 +10,7 @@
       static CountdownEvent countdown;
 
       const int NMP_Depth = 3;
+      const int RFP_Depth = 10;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
@@ -191,7 +192,7 @@
          if (!isPVNode && !inCheck)
          {
             // Reverse futility pruning
-            if (depth <= 10 && staticEval - 70 * depth >= beta)
+            if (depth <= RFP_Depth && staticEval - 70 * depth >= beta)
             {
                return staticEval;
             }
