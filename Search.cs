@@ -9,8 +9,12 @@
       static SearchInfo[] infos;
       static CountdownEvent countdown;
 
+      const int ASP_Depth = 4;
+      const int ASP_Margin = 10;
       const int NMP_Depth = 3;
       const int RFP_Depth = 10;
+      const int RFP_Margin = 70;
+      const int LMR_Depth = 2;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
@@ -85,10 +89,10 @@
          // Iterative deepening
          for (int i = 1; i <= Time.MaxDepth && (stop = Time.LimitReached(true)) != true; i++)
          {
-            int margin = 10;
+            int margin = ASP_Margin;
 
             // Use aspiration windows at higher depths
-            if (i >= 4)
+            if (i >= ASP_Depth)
             {
                alpha = Math.Max(score - margin, -Constants.INFINITY);
                beta = Math.Min(score + margin, Constants.INFINITY);
@@ -192,7 +196,7 @@
          if (!isPVNode && !inCheck)
          {
             // Reverse futility pruning
-            if (depth <= RFP_Depth && staticEval - 70 * depth >= beta)
+            if (depth <= RFP_Depth && staticEval - RFP_Margin * depth >= beta)
             {
                return staticEval;
             }
@@ -204,10 +208,8 @@
                & (Board.PieceBB[(int)PieceType.Knight].Value | Board.PieceBB[(int)PieceType.Bishop].Value
                | Board.PieceBB[(int)PieceType.Rook].Value | Board.PieceBB[(int)PieceType.Queen].Value)) != 0)
             {
-               int R = 3 + depth / 6;
-
                Board.MakeNullMove();
-               int score = -NegaScout(-beta, -beta + 1, depth - 1 - R, ply + 1, false);
+               int score = -NegaScout(-beta, -beta + 1, depth - 1 - (3 + depth / 6), ply + 1, false);
                Board.UnmakeNullMove();
 
                if (score >= beta)
@@ -222,7 +224,6 @@
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
-         
 
          MovePicker moves = new(Board, ThreadInfo.KillerMoves[ply], TTable);
 
@@ -238,7 +239,7 @@
             legalMoves += 1;
             int E = inCheck ? 1 : 0;
 
-            if (depth > 2 && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
+            if (depth > LMR_Depth && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
             {
                int R = 1 + (depth / 4);
 
@@ -247,9 +248,7 @@
                   R -= 1;
                }
 
-               R = Math.Max(0, R);
-
-               if (-NegaScout(-alpha - 1, -alpha, depth - 1 - R + E, ply + 1) <= alpha)
+               if (-NegaScout(-alpha - 1, -alpha, depth - 1 - Math.Max(0, R) + E, ply + 1) <= alpha)
                {
                   Board.UndoMove(moves.Move);
                   continue;
