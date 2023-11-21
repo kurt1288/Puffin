@@ -225,7 +225,7 @@
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
 
-         MovePicker moves = new(Board, ThreadInfo.KillerMoves[ply], TTable);
+         MovePicker moves = new(Board, ThreadInfo, ply, TTable);
 
          while (moves.Next())
          {
@@ -293,6 +293,8 @@
                      ThreadInfo.KillerMoves[ply][1] = ThreadInfo.KillerMoves[ply][0];
                      ThreadInfo.KillerMoves[ply][0] = moves.Move;
                   }
+
+                  ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, depth * depth);
                }
 
                break;
@@ -341,7 +343,7 @@
             alpha = bestScore;
          }
 
-         MovePicker moves = new(Board, ThreadInfo.KillerMoves[ply], TTable, true);
+         MovePicker moves = new(Board, ThreadInfo, ply, TTable, true);
 
          while (moves.Next())
          {

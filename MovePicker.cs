@@ -16,17 +16,19 @@
       private readonly Board Board;
       private int Index;
       private readonly bool NoisyOnly = false;
-      private readonly Move[] KillerMoves;
+      public readonly SearchInfo SearchInfo;
+      public readonly int Ply;
       private ushort HashMove = 0;
       TranspositionTable TTable;
       public Stage Stage;
       public Move Move;
 
-      public MovePicker(Board board, Move[] killerMoves, TranspositionTable tTable, bool noisyOnly = false)
+      public MovePicker(Board board, SearchInfo info, int ply, TranspositionTable tTable, bool noisyOnly = false)
       {
          Stage = Stage.HashMove;
          Board = board;
-         KillerMoves = killerMoves;
+         SearchInfo = info;
+         Ply = ply;
          TTable = tTable;
 
          if (noisyOnly)
@@ -82,9 +84,9 @@
                {
                   if (Index < 2)
                   {
-                     if (Board.MoveIsValid(KillerMoves[Index]))
+                     if (Board.MoveIsValid(SearchInfo.KillerMoves[Ply][Index]))
                      {
-                        Move = KillerMoves[Index++];
+                        Move = SearchInfo.KillerMoves[Ply][Index++];
                         return true;
                      }
 
@@ -144,7 +146,7 @@
          {
             Move move = moves[i];
 
-            if (move == HashMove || move == KillerMoves[0] || move == KillerMoves[1])
+            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1])
             {
                moves.RemoveAt(i);
             }
@@ -163,7 +165,7 @@
             }
             else
             {
-               moves.SetScore(i, 0);
+               moves.SetScore(i, SearchInfo.GetHistory(Board.Mailbox[move.GetFrom()].Color, move));
             }
          }
       }
