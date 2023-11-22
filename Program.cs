@@ -43,9 +43,9 @@ if (args.Length != 0)
    }
 }
 
-while (engine.IsRunning)
+while (true)
 {
-   string input = await Task.Run(Console.ReadLine);
+   string? input = await Task.Run(Console.ReadLine);
 
    if (string.IsNullOrWhiteSpace(input))
    {
@@ -117,6 +117,11 @@ while (engine.IsRunning)
             engine.UCIParseGo(tokens[1..]);
             break;
          }
+      case "stop":
+         {
+            engine.StopSearch();
+            break;
+         }
       case "setoption":
          {
             engine.SetOption(tokens[1..]);
@@ -140,7 +145,3 @@ while (engine.IsRunning)
          }
    }
 }
-
-// This should never be hit
-Console.WriteLine("The engine stopped running for an unknown reason.");
-Environment.Exit(100);

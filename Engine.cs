@@ -2,7 +2,6 @@
 {
    internal class Engine
    {
-      public bool IsRunning { get; private set; } = true;
       public readonly Board Board = new();
       readonly TimeManager Timer = new();
       readonly TranspositionTable TTable = new();
@@ -191,6 +190,11 @@
          }
 
          Search.StartSearch(Timer, Threads, Board, TTable);
+      }
+
+      public void StopSearch()
+      {
+         Timer.Stop();
       }
 
       public void SetOption(string[] option)

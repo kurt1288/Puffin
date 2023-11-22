@@ -34,7 +34,7 @@
          infos = new SearchInfo[threadCount];
          countdown = new CountdownEvent(threadCount);
 
-         for (int i = 1; i < threadCount; i++)
+         for (int i = 0; i < threadCount; i++)
          {
             infos[i] = new SearchInfo();
             (threads[i] = new Thread(new Search((Board)board.Clone(), time, tTable, infos[i]).Run)
@@ -44,12 +44,8 @@
             }).Start();
          }
 
-         Thread.CurrentThread.Name = "Main";
-         infos[0] = new SearchInfo();
-         new Search(board, time, tTable, infos[0]).Run();
-
          // Wait for all threads to finish.
-         countdown.Wait();
+         //countdown.Wait();
       }
 
       static string FormatScore(int score)
@@ -137,14 +133,14 @@
 
             if (!stop)
             {
-               if (Thread.CurrentThread.Name == "Main")
+               if (Thread.CurrentThread.Name == "Thread 0")
                {
                   Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {GetNodesInfo()} nps {Math.Round((double)((long)GetNodesInfo() * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {Time.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
                }
             }
          }
 
-         if (Thread.CurrentThread.Name == "Main")
+         if (Thread.CurrentThread.Name == "Thread 0")
          {
             Console.WriteLine($"bestmove {ThreadInfo.GetBestMove()}");
          }
