@@ -234,7 +234,7 @@
             if (!isPVNode && !inCheck && !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion))
             {
                // Futility pruning
-               if (FP_Depth <= 7 && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
+               if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
                   continue;
                }
