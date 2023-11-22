@@ -15,6 +15,8 @@
       const int RFP_Depth = 10;
       const int RFP_Margin = 70;
       const int LMR_Depth = 2;
+      const int FP_Depth = 7;
+      const int FP_Margin = 80;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
@@ -229,6 +231,15 @@
 
          while (moves.Next())
          {
+            if (!isPVNode && !inCheck && !moves.Move.HasType(MoveType.Capture))
+            {
+               // Futility pruning
+               if (FP_Depth <= 7 && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
+               {
+                  continue;
+               }
+            }
+
             if (!Board.MakeMove(moves.Move))
             {
                Board.UndoMove(moves.Move);
