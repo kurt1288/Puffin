@@ -231,7 +231,7 @@
 
          while (moves.Next())
          {
-            if (!isPVNode && !inCheck && !moves.Move.HasType(MoveType.Capture))
+            if (!isPVNode && !inCheck && !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion))
             {
                // Futility pruning
                if (FP_Depth <= 7 && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
