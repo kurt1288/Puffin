@@ -49,7 +49,7 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetMSB()
       {
-         return BitOperations.LeadingZeroCount(Value);
+         return 63 - BitOperations.LeadingZeroCount(Value);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,21 +59,13 @@ namespace Skookum
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public void And(ulong value)
-      {
-         Value &= value;
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public void Or(ulong value)
-      {
-         Value |= value;
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public bool IsEmpty()
       {
          return Value == 0UL;
       }
+
+      public static Bitboard operator &(Bitboard a, ulong b) => new(a.Value & b);
+      public static Bitboard operator &(Bitboard a, Bitboard b) => new(a.Value & b.Value);
+      public static Bitboard operator |(Bitboard a, Bitboard b) => new(a.Value | b.Value);
    }
 }

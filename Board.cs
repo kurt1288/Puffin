@@ -254,7 +254,7 @@ namespace Skookum
                   SetPiece(piece, to);
 
                   // Move rook
-                  int rFrom = 63 - new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
+                  int rFrom = new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
                   int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
                   SetPiece(Mailbox[rFrom], rTo);
                   RemovePiece(Mailbox[rFrom], rFrom);

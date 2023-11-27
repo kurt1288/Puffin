@@ -329,8 +329,7 @@ namespace Skookum
       public static ulong GetBishopAttacks(int square, ulong occupied)
       {
 #if Pext
-         ulong index = Bmi2.X64.ParallelBitExtract(occupied, Bishops[square].Mask.Value);
-         return Bishops[square].Attacks[(int)index];
+         return Bishops[square].Attacks[(int)Bmi2.X64.ParallelBitExtract(occupied, Bishops[square].Mask.Value)];
 #elif Legacy
          return dSubset[square][(((occupied & dMask[square]) * FileB2B7) >> 58)] + aSubset[square][(((occupied & aMask[square]) * FileB2B7) >> 58)];
 #endif
@@ -340,8 +339,7 @@ namespace Skookum
       public static ulong GetRookAttacks(int square, ulong occupied)
       {
 #if Pext
-         ulong index = Bmi2.X64.ParallelBitExtract(occupied, Rooks[square].Mask.Value);
-         return Rooks[square].Attacks[(int)index];
+         return Rooks[square].Attacks[(int)Bmi2.X64.ParallelBitExtract(occupied, Rooks[square].Mask.Value)];
 #elif Legacy
          return hSubset[square][(occupied >> HorizontalShiftTable[square]) & 63] + vSubset[square][((((occupied >> (square & 7)) & FileA2A7) * DiagC2H7) >> 58)];
 #endif
