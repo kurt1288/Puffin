@@ -1,10 +1,10 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal struct Score
    {
       readonly int _Score;
       public readonly short Mg { get => (short)_Score; }
-      public readonly short Eg { get => (short)((_Score + 0x8000) >> 16); }
+      public readonly short Eg { get => (short)(_Score + 0x8000 >> 16); }
 
       public Score() { }
 

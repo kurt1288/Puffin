@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Skookum
+namespace Puffin
 {
    internal class SearchInfo
    {
@@ -73,12 +73,12 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void UpdateHistory(Color color, Move move, int value)
       {
-         HistoryScores[((int)color * 4096) + (move.GetFrom() * 64) + move.GetTo()] += value;
+         HistoryScores[(int)color * 4096 + move.GetFrom() * 64 + move.GetTo()] += value;
       }
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetHistory(Color color, Move move)
       {
-         return HistoryScores[((int)color * 4096) + (move.GetFrom() * 64) + move.GetTo()];
+         return HistoryScores[(int)color * 4096 + move.GetFrom() * 64 + move.GetTo()];
       }
    }
 }

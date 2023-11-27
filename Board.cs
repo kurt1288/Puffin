@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace Skookum
+namespace Puffin
 {
    internal sealed class Board : ICloneable
    {
@@ -200,7 +200,7 @@ namespace Skookum
 
          GameHistory.Add(
             new BoardState(
-               SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? (piece.Color == Color.White ? to + 8 : to - 8) : to],
+               SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to],
                Halfmoves, Fullmoves, Hash, Phase)
          );
 

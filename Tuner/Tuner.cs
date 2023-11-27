@@ -1,7 +1,7 @@
 ﻿// *********************************************************************************
 // 
 // This tuner is, for the most part, a C# rewrite of 
-// the Gedas tuner (with some adaptations for use with Skookum).
+// the Gedas tuner (with some adaptations for use with Puffin).
 // The original source code can be found here:
 // https://github.com/GediminasMasaitis/texel-tuner
 //
@@ -11,7 +11,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Skookum
+namespace Puffin.Tuner
 {
    internal class Tuner
    {
@@ -312,7 +312,7 @@ namespace Skookum
             endgame += coef.Value * Parameters[coef.Index][1];
          }
 
-         score += ((midgame * entry.Phase) + (endgame * (24 - entry.Phase))) / 24;
+         score += (midgame * entry.Phase + endgame * (24 - entry.Phase)) / 24;
 
          return score;
       }
@@ -373,11 +373,11 @@ namespace Skookum
       private double GetEntryResult(string fen)
       {
          Match match = Regex.Match(fen, "\\[([^]]+)\\]");
-         
+
          if (match.Success)
          {
             string result = match.Groups[1].Value;
-            
+
             if (result == "1.0")
             {
                return 1.0;
@@ -427,7 +427,7 @@ namespace Skookum
 
          Score total = white - black;
 
-         trace.score = ((total.Mg * Engine.Board.Phase) + (total.Eg * (24 - Engine.Board.Phase))) / 24;
+         trace.score = (total.Mg * Engine.Board.Phase + total.Eg * (24 - Engine.Board.Phase)) / 24;
 
          return (trace, Engine.Board.Phase);
       }
@@ -451,8 +451,8 @@ namespace Skookum
                square ^= 56;
             }
 
-            score += Evaluation.PST[((int)piece.Type * 64) + square];
-            trace.pst[((int)piece.Type * 64) + square][(int)piece.Color]++;
+            score += Evaluation.PST[(int)piece.Type * 64 + square];
+            trace.pst[(int)piece.Type * 64 + square][(int)piece.Color]++;
          }
 
          return score;
@@ -692,7 +692,7 @@ namespace Skookum
             for (int square = 0; square < 64; ++square)
             {
                int i = piece * 64 + square + offset;
-               stringBuilder.Append($"new Score({(int)Parameters[i][0], 3}, {(int)Parameters[i][1], 3}), ");
+               stringBuilder.Append($"new Score({(int)Parameters[i][0],3}, {(int)Parameters[i][1],3}), ");
                index += 1;
 
                if (square % 8 == 7)

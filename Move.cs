@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Skookum
+namespace Puffin
 {
    internal readonly struct Move
    {
@@ -8,7 +8,7 @@ namespace Skookum
 
       public Move(int from, int to, MoveFlag flag)
       {
-         Encoded = (ushort)((((int)flag & 0xf) << 12) | ((from & 0x3f) << 6) | (to & 0x3f));
+         Encoded = (ushort)(((int)flag & 0xf) << 12 | (from & 0x3f) << 6 | to & 0x3f);
       }
 
       public Move(ushort move)
@@ -25,19 +25,19 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetFrom()
       {
-         return (Encoded >> 6) & 0x3f;
+         return Encoded >> 6 & 0x3f;
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public MoveFlag GetFlag()
       {
-         return (MoveFlag)((Encoded >> 12) & 0xf);
+         return (MoveFlag)(Encoded >> 12 & 0xf);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public bool HasType(MoveType type)
       {
-         return ((Encoded >> 12) & (int)type) != 0;
+         return (Encoded >> 12 & (int)type) != 0;
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]

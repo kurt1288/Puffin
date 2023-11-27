@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Skookum
+namespace Puffin
 {
    public static class Constants
    {
@@ -53,13 +53,13 @@ namespace Skookum
 
             for (int j = 0; j < 64; j++)
             {
-               between = ((long)m1 << i) ^ ((long)m1 << j);
+               between = (long)m1 << i ^ (long)m1 << j;
                file = ((long)j & 7) - ((long)i & 7);
-               rank = (((long)j | 7) - (long)i) >> 3;
-               line = ((file & 7) - 1) & a2a7;
-               line += 2 * (((rank & 7) - 1) >> 58);
-               line += (((rank - file) & 15) - 1) & b2g7;
-               line += (((rank + file) & 15) - 1) & h1b7;
+               rank = ((long)j | 7) - i >> 3;
+               line = (file & 7) - 1 & a2a7;
+               line += 2 * ((rank & 7) - 1 >> 58);
+               line += (rank - file & 15) - 1 & b2g7;
+               line += (rank + file & 15) - 1 & h1b7;
                line *= between & -between;
 
                BetweenBB[i][j] = (ulong)(line & between);

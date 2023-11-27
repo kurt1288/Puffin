@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 
-namespace Skookum
+namespace Puffin
 {
    internal struct Bitboard
    {
@@ -37,7 +37,7 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void ClearLSB()
       {
-         Value &= (Value - 1);
+         Value &= Value - 1;
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]

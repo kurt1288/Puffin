@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Skookum
+namespace Puffin
 {
    internal class TimeManager : ICloneable
    {

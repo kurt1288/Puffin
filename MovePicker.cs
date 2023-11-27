@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    enum Stage
    {
@@ -158,10 +158,10 @@
                {
                   captured = new Piece(PieceType.Pawn, Color.White); // color doesn't matter here
                }
-               
+
                Piece moving = Board.Mailbox[move.GetFrom()];
 
-               moves.SetScore(i, 150000 + ((50 * Evaluation.PieceValues[(int)captured.Type].Mg) - Evaluation.PieceValues[(int)moving.Type].Mg));
+               moves.SetScore(i, 150000 + (50 * Evaluation.PieceValues[(int)captured.Type].Mg - Evaluation.PieceValues[(int)moving.Type].Mg));
             }
             else
             {

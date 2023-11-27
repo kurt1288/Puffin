@@ -1,7 +1,8 @@
-﻿using Skookum;
+﻿using Puffin;
+using Puffin.Tuner;
 using System.Runtime.Intrinsics.X86;
 
-const string Name = "Skookum";
+const string Name = "Puffin";
 const string Version = "0.1";
 const string Author = "Kurt Peters";
 

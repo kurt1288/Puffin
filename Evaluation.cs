@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Skookum
+namespace Puffin
 {
    internal static class Evaluation
    {
@@ -197,7 +197,7 @@ namespace Skookum
             total *= -1;
          }
 
-         return ((total.Mg * board.Phase) + (total.Eg * (24 - board.Phase))) / 24;
+         return (total.Mg * board.Phase + total.Eg * (24 - board.Phase)) / 24;
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -208,7 +208,7 @@ namespace Skookum
             square ^= 56;
          }
 
-         return PST[((int)piece.Type * 64) + square];
+         return PST[(int)piece.Type * 64 + square];
       }
 
       // Used for debugging and verification of lazy eval during board updates

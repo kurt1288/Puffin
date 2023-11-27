@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal class Search
    {
@@ -180,8 +180,8 @@
 
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
-               || (entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta)
-               || (entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha)
+               || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
+               || entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha
                ))
             {
                return entry.Value.Score;
@@ -248,7 +248,7 @@
 
             if (depth > LMR_Depth && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
             {
-               int R = 1 + (depth / 4);
+               int R = 1 + depth / 4;
 
                if (isPVNode)
                {

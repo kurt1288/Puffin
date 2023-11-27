@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal sealed class MoveGen
    {
@@ -92,7 +92,7 @@
             targets.ClearLSB();
             moveList.Add(new Move(square - up, square, MoveFlag.Quiet));
 
-            if ((square - up) >> 3 == startRank && (Constants.SquareBB[square + up] & empty) != 0)
+            if (square - up >> 3 == startRank && (Constants.SquareBB[square + up] & empty) != 0)
             {
                moveList.Add(new Move(square - up, square + up, MoveFlag.DoublePawnPush));
             }
@@ -104,7 +104,7 @@
          ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
          Bitboard rightTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.H]) >> 7);
          Bitboard leftTargets = new((pawns & ~Constants.FILE_MASKS[(int)File.A]) >> 9);
-         int upRight = board.SideToMove == Color.White ? - 7 : 7;
+         int upRight = board.SideToMove == Color.White ? -7 : 7;
          int upLeft = board.SideToMove == Color.White ? -9 : 9;
 
          if (board.SideToMove == Color.Black)
@@ -162,12 +162,12 @@
       {
          ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
          ulong empty = ~(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
-         Bitboard targets = new((pawns >> 8) & Constants.RANK_MASKS[(int)Rank.Rank_8]);
+         Bitboard targets = new(pawns >> 8 & Constants.RANK_MASKS[(int)Rank.Rank_8]);
          int up = board.SideToMove == Color.White ? -8 : 8;
 
          if (board.SideToMove == Color.Black)
          {
-            targets = new((pawns << 8) & Constants.RANK_MASKS[(int)Rank.Rank_1]);
+            targets = new(pawns << 8 & Constants.RANK_MASKS[(int)Rank.Rank_1]);
          }
 
          targets &= empty;

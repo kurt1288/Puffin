@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal readonly struct BoardState
    {

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Skookum
+namespace Puffin
 {
    internal static class Zobrist
    {
@@ -49,7 +49,7 @@ namespace Skookum
             pieces.ClearLSB();
             Piece piece = board.Mailbox[square];
 
-            hash ^= Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
+            hash ^= Pieces[(int)piece.Type + 6 * (int)piece.Color][square];
          }
 
          if (board.En_Passant != Square.Null)
@@ -82,7 +82,7 @@ namespace Skookum
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public static void UpdatePieces(ref ulong hash, Piece piece, int square)
       {
-         hash ^= Pieces[(int)piece.Type + (6 * (int)piece.Color)][square];
+         hash ^= Pieces[(int)piece.Type + 6 * (int)piece.Color][square];
       }
 
       public static void UpdateCastle(ref ulong hash, ulong castlingSquares)

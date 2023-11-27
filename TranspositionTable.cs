@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    public enum HashFlag : byte
    {
@@ -28,7 +28,7 @@
 
    public sealed class TranspositionTable
    {
-      TTEntry[] Table = new TTEntry[(32 * 1024 * 1024) / 16]; // Default to 32MB table size
+      TTEntry[] Table = new TTEntry[32 * 1024 * 1024 / 16]; // Default to 32MB table size
       int Used = 0;
 
       public TranspositionTable() { }
@@ -38,7 +38,7 @@
       {
          // Note that the Array.Resize method doesn't actually resize. It creates a copy of the original with the new size,
          // and then updates the memory pointer.
-         Array.Resize(ref Table, (size * 1024 * 1024) / 16);
+         Array.Resize(ref Table, size * 1024 * 1024 / 16);
          Array.Clear(Table);
          Used = 0;
       }

@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
 
-namespace Skookum
+namespace Puffin
 {
    internal static class Attacks
    {
@@ -57,31 +57,31 @@ namespace Skookum
          for (int square = 0; square < 64; square++)
          {
             ulong bitboard = 1ul << square;
-            
-            PawnAttacks[(int)Color.White][square] = ((bitboard >> 7) & notFileA) | (bitboard >> 9 & notFileH);
-            PawnAttacks[(int)Color.Black][square] = ((bitboard << 7) & notFileH) | (bitboard << 9 & notFileA);
+
+            PawnAttacks[(int)Color.White][square] = bitboard >> 7 & notFileA | bitboard >> 9 & notFileH;
+            PawnAttacks[(int)Color.Black][square] = bitboard << 7 & notFileH | bitboard << 9 & notFileA;
 
             bitboard = 1ul << square;
 
-            KingAttacks[square] = (bitboard >> 8) |
-                                    ((bitboard >> 9) & notFileH) |
-                                    ((bitboard >> 7) & notFileA) |
-                                    ((bitboard >> 1) & notFileH) |
-                                    (bitboard << 8) |
-                                    ((bitboard << 9) & notFileA) |
-                                    ((bitboard << 7) & notFileH) |
-                                    ((bitboard << 1) & notFileA);
+            KingAttacks[square] = bitboard >> 8 |
+                                    bitboard >> 9 & notFileH |
+                                    bitboard >> 7 & notFileA |
+                                    bitboard >> 1 & notFileH |
+                                    bitboard << 8 |
+                                    bitboard << 9 & notFileA |
+                                    bitboard << 7 & notFileH |
+                                    bitboard << 1 & notFileA;
 
             bitboard = 1ul << square;
 
-            KnightAttacks[square] = (bitboard >> 17) & notFileH |
-                                     (bitboard >> 15) & notFileA |
-                                     (bitboard >> 10) & notFilesGH |
-                                     (bitboard >> 6) & notFilesAB |
-                                     (bitboard << 17) & notFileA |
-                                     (bitboard << 15) & notFileH |
-                                     (bitboard << 10) & notFilesAB |
-                                     (bitboard << 6) & notFilesGH;
+            KnightAttacks[square] = bitboard >> 17 & notFileH |
+                                     bitboard >> 15 & notFileA |
+                                     bitboard >> 10 & notFilesGH |
+                                     bitboard >> 6 & notFilesAB |
+                                     bitboard << 17 & notFileA |
+                                     bitboard << 15 & notFileH |
+                                     bitboard << 10 & notFilesAB |
+                                     bitboard << 6 & notFilesGH;
 
 #if Pext
             int count = Rooks[square].Mask.CountBits();

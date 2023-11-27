@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal struct Piece
    {
@@ -17,13 +17,13 @@
          Color = color;
       }
 
-      public Piece (char piece)
+      public Piece(char piece)
       {
          Type = FromChar(piece);
          Color = char.IsUpper(piece) ? Color.White : Color.Black;
       }
 
-      static PieceType FromChar (char piece)
+      static PieceType FromChar(char piece)
       {
          return char.ToLower(piece) switch
          {

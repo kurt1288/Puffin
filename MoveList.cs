@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal class MoveList
    {
@@ -11,7 +11,8 @@
          _count = 0;
       }
 
-      public Move this[int index] {
+      public Move this[int index]
+      {
          get => _moves[index];
          set => _moves[index] = value;
       }

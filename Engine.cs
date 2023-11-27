@@ -1,4 +1,4 @@
-﻿namespace Skookum
+﻿namespace Puffin
 {
    internal class Engine
    {
@@ -49,12 +49,12 @@
             {
                flag = MoveFlag.Capture;
             }
-            
+
             if (to == (int)Board.En_Passant && piece.Type == PieceType.Pawn)
             {
                flag = MoveFlag.EPCapture;
             }
-            
+
             if (piece.Type == PieceType.King)
             {
                if (move == "e1g1" || move == "e8g8")
@@ -66,7 +66,7 @@
                   flag = MoveFlag.QueenCastle;
                }
             }
-            
+
             if (move.Length == 5)
             {
                if (move[4] == 'n')
