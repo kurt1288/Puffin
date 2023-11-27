@@ -4,7 +4,7 @@ Puffin is a UCI-compatible chess engine written in C#.
 
 ## Installation
 
-Download the latest version [here](https://github.com/kurt1288/Skookum/releases/latest). Only use the legacy executable
+Download the latest version [here](https://github.com/kurt1288/Puffin/releases/latest). Only use the legacy executable
 if your CPU does not support PEXT instructions.
 
 ## Usage
