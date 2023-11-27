@@ -1,5 +1,9 @@
 # Puffin
 
+<div align="center">
+	<img src="puffin_logo.jpg" width="300" />
+</div>
+
 Puffin is a UCI-compatible chess engine written in C#.
 
 ## Installation
