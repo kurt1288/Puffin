@@ -29,7 +29,7 @@
    public sealed class TranspositionTable
    {
       TTEntry[] Table = new TTEntry[32 * 1024 * 1024 / 16]; // Default to 32MB table size
-      int Used = 0;
+      ulong Used = 0;
 
       public TranspositionTable() { }
 
@@ -103,9 +103,9 @@
          return 0;
       }
 
-      public int GetUsed()
+      public ulong GetUsed()
       {
-         return 1000 * Used / Table.Length;
+         return 1000 * Used / (ulong)Table.Length;
       }
    }
 }
