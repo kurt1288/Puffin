@@ -7,7 +7,6 @@
       readonly SearchInfo ThreadInfo;
       readonly TranspositionTable TTable;
       static SearchInfo[] infos;
-      static CountdownEvent countdown;
 
       const int ASP_Depth = 4;
       const int ASP_Margin = 10;
@@ -32,20 +31,22 @@
 
          Thread[] threads = new Thread[threadCount];
          infos = new SearchInfo[threadCount];
-         countdown = new CountdownEvent(threadCount);
 
+         // Initialize search info for each thread
          for (int i = 0; i < threadCount; i++)
          {
             infos[i] = new SearchInfo();
+         }
+
+         // Start each thread
+         for (int i = 0; i < threadCount; i++)
+         {
             (threads[i] = new Thread(new Search((Board)board.Clone(), time, tTable, infos[i]).Run)
             {
                IsBackground = true,
                Name = $"Thread {i}",
             }).Start();
          }
-
-         // Wait for all threads to finish.
-         //countdown.Wait();
       }
 
       static string FormatScore(int score)
@@ -144,8 +145,6 @@
          {
             Console.WriteLine($"bestmove {ThreadInfo.GetBestMove()}");
          }
-
-         countdown.Signal();
       }
 
       private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull = true)

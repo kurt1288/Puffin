@@ -62,7 +62,7 @@ while (true)
             Console.WriteLine($"id name {Name} {Version}");
             Console.WriteLine($"id author {Author}");
             Console.WriteLine($"option name Hash type spin default 32 min 1 max 512");
-            // Console.WriteLine($"option name Threads type spin default 1 min 1 max 256");
+            Console.WriteLine($"option name Threads type spin default 1 min 1 max 256");
             Console.WriteLine("uciok");
             break;
          }

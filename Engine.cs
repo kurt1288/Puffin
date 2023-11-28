@@ -208,12 +208,12 @@
                   TTable.Resize(value);
                   break;
                }
-            //case "threads":
-            //   {
-            //      _ = int.TryParse(option[2], out int value);
-            //      Threads = value;
-            //      break;
-            //   }
+            case "threads":
+               {
+                  _ = int.TryParse(option[3], out int value);
+                  Threads = value;
+                  break;
+               }
             default:
                {
                   Console.WriteLine($"Unknown or unsupported option: {option[1]}");
