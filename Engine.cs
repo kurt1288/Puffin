@@ -199,11 +199,11 @@
 
       public void SetOption(string[] option)
       {
-         switch (option[0].ToLower())
+         switch (option[1].ToLower())
          {
             case "hash":
                {
-                  _ = int.TryParse(option[2], out int value);
+                  _ = int.TryParse(option[3], out int value);
                   value = Math.Clamp(value, 1, 512);
                   TTable.Resize(value);
                   break;
@@ -216,7 +216,7 @@
             //   }
             default:
                {
-                  Console.WriteLine($"Unknown or unsupported option: {option[0]}");
+                  Console.WriteLine($"Unknown or unsupported option: {option[1]}");
                   break;
                }
          }
