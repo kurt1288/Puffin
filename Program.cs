@@ -41,6 +41,13 @@ if (args.Length != 0)
          tuner.Run(epochs);
          break;
       }
+      else if (arg == "datagen")
+      {
+         Datagen datagen = new();
+         Datagen.Run(int.Parse(args[i + 1]));
+         Environment.Exit(100);
+         break;
+      }
    }
 }
 

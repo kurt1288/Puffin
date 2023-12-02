@@ -88,6 +88,13 @@
          // Iterative deepening
          for (int i = 1; i <= Time.MaxDepth && (stop = Time.LimitReached(true)) != true; i++)
          {
+            if (Time.NodeLimit > 0 && ThreadInfo.Nodes >= Time.NodeLimit)
+            {
+               stop = true;
+               Time.Stop();
+               break;
+            }
+
             int margin = ASP_Margin;
 
             // Use aspiration windows at higher depths
@@ -99,7 +106,7 @@
 
             while (true)
             {
-               if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+               if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
                {
                   stop = true;
                   break;
@@ -107,7 +114,7 @@
 
                try
                {
-                  score = NegaScout(alpha, beta, i, 0, false);
+                  score = ThreadInfo.Score = NegaScout(alpha, beta, i, 0, false);
                }
                catch (TimeoutException)
                {
@@ -149,7 +156,7 @@
 
       private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull = true)
       {
-         if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
          {
             throw new TimeoutException();
          }
@@ -270,7 +277,7 @@
 
             Board.UndoMove(moves.Move);
 
-            if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+            if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
             {
                throw new TimeoutException();
             }
@@ -328,7 +335,7 @@
 
       private int Quiescence(int alpha, int beta, int ply)
       {
-         if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
          {
             throw new TimeoutException();
          }
@@ -365,7 +372,7 @@
 
             Board.UndoMove(moves.Move);
 
-            if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+            if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
             {
                throw new TimeoutException();
             }
@@ -389,7 +396,7 @@
          return bestScore;
       }
 
-      private bool IsRepeated()
+      public bool IsRepeated()
       {
          if (Board.Halfmoves < 4 || Board.GameHistory.Count <= 1)
          {

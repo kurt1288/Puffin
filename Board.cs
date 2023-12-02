@@ -563,6 +563,39 @@ namespace Puffin
          return false;
       }
 
+      public bool IsDrawn()
+      {
+         // Only kings
+         if (ColorBB[(int)Color.White].Value == PieceBB[(int)PieceType.King].Value && ColorBB[(int)Color.Black].Value == PieceBB[(int)PieceType.King].Value)
+         {
+            return true;
+         }
+
+         // One side has only a king left
+         if (ColorBB[(int)Color.White].Value == PieceBB[(int)PieceType.King].Value)
+         {
+            Bitboard minorPieces = PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop];
+            
+            // Other side only has a king and 1 minor piece
+            if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value & minorPieces.Value) && minorPieces.CountBits() == 1)
+            {
+               return true;
+            }
+         }
+         else if (ColorBB[(int)Color.Black].Value == PieceBB[(int)PieceType.King].Value)
+         {
+            Bitboard minorPieces = PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop];
+
+            // Other side only has a king and 1 minor piece
+            if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value & minorPieces.Value) && minorPieces.CountBits() == 1)
+            {
+               return true;
+            }
+         }
+
+         return false;
+      }
+
       public bool MoveIsValid(Move move)
       {
          if (move == 0)
