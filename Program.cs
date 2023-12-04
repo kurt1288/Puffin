@@ -29,30 +29,27 @@ Console.WriteLine($"{Name} {Version}");
 
 Engine engine = new();
 
-Tuner tuner = new();
-tuner.Run(3000);
-
-//if (args.Length != 0)
-//{
-//   for (int i = 0; i < args.Length; i++)
-//   {
-//      var arg = args[i];
-//      if (arg == "tune")
-//      {
-//         int epochs = int.Parse(args[i + 1]);
-//         Tuner tuner = new();
-//         tuner.Run(epochs);
-//         break;
-//      }
-//      else if (arg == "datagen")
-//      {
-//         Datagen datagen = new();
-//         Datagen.Run(int.Parse(args[i + 1]));
-//         Environment.Exit(100);
-//         break;
-//      }
-//   }
-//}
+if (args.Length != 0)
+{
+   for (int i = 0; i < args.Length; i++)
+   {
+      var arg = args[i];
+      if (arg == "tune")
+      {
+         int epochs = int.Parse(args[i + 1]);
+         Tuner tuner = new();
+         tuner.Run(epochs);
+         break;
+      }
+      else if (arg == "datagen")
+      {
+         Datagen datagen = new();
+         Datagen.Run(int.Parse(args[i + 1]));
+         Environment.Exit(100);
+         break;
+      }
+   }
+}
 
 while (true)
 {
