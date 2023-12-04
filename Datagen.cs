@@ -9,14 +9,14 @@ namespace Puffin
       const int MAX_NODES = 5000;
       static readonly Random random = new();
 
-      public static void Run(int maxGames = 10000)
+      public static void Run(int targetFens)
       {
          ConcurrentDictionary<string, double> positions = new();
          Stopwatch sw = Stopwatch.StartNew();
-         int iterationsCompleted = 0;
+         int gamesCompleted = 0;
 
-         Parallel.For(0, maxGames, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 },
-            (i) =>
+         var result = Parallel.For(0, 10000000, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 },
+            (i, state) =>
             {
                Position position = GenerateData();
 
@@ -25,21 +25,28 @@ namespace Puffin
                   positions.TryAdd(fen, position.WDL);
                }
 
-               Interlocked.Increment(ref iterationsCompleted);
-               if (iterationsCompleted % 10 == 0)
+               Interlocked.Increment(ref gamesCompleted);
+
+               if (positions.Count >= targetFens)
                {
-                  Console.WriteLine($"Games: {iterationsCompleted}. FENs: {positions.Count}. F/s: {1000 * (long)positions.Count / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed}. Estimate time remaining: {TimeSpan.FromMilliseconds((maxGames - iterationsCompleted) * (sw.ElapsedMilliseconds / iterationsCompleted))}");
+                  state.Stop();
+               }
+
+               if (state.IsStopped)
+               {
+                  return;
+               }
+
+               if (gamesCompleted % 10 == 0)
+               {
+                  Console.WriteLine($"Games: {gamesCompleted}. FENs: {positions.Count}. F/s: {1000 * (long)positions.Count / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed}. Estimate time remaining: {TimeSpan.FromMilliseconds((targetFens - positions.Count) * (sw.ElapsedMilliseconds / positions.Count))}");
                }
             });
 
          sw.Stop();
-         Console.WriteLine("Writing to file...");
+         Console.WriteLine($"Writing {positions.Count} fens to file...");
 
          string path = @$"./DataGen_Results_{DateTime.Now:yyyy-MM-dd,HHmmss}.epd";
-         if (!System.IO.File.Exists(path))
-         {
-            System.IO.File.Create(path);
-         }
 
          using StreamWriter writer = new(path, true);
          foreach (var position in positions)
