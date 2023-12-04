@@ -37,7 +37,7 @@ if (args.Length != 0)
       if (arg == "tune")
       {
          int epochs = int.Parse(args[i + 1]);
-         Tuner tuner = new(engine);
+         Tuner tuner = new();
          tuner.Run(epochs);
          break;
       }
