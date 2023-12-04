@@ -18,7 +18,7 @@ namespace Puffin.Tuner
    internal partial class Tuner
    {
       const double Epsilon = 1e-7;
-      const string PositionsFile = @"./lichess-big3-resolved.book";
+      const string PositionsFile = @"./datagen.epd";
 
       private class Trace
       {
