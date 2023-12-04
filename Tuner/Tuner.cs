@@ -88,6 +88,8 @@ namespace Puffin.Tuner
             Mg = mg;
             Eg = eg;
          }
+
+         public static ParameterWeight operator +(ParameterWeight a, ParameterWeight b) => new(a.Mg + b.Mg, a.Eg + b.Eg);
       }
 
       private readonly struct CoefficientEntry
@@ -193,7 +195,9 @@ namespace Puffin.Tuner
          // optional condition: Math.Abs(bestError - avgError) >= Epsilon && 
          while (epoch < maxEpochs)
          {
-            ParameterWeight[] gradients = ComputeGradient(entries, K);
+            ParameterWeight[] gradients = new ParameterWeight[Parameters.Length];
+            ComputeGradient(ref gradients, entries, K);
+
             double beta1 = 0.9;
             double beta2 = 0.999;
 
@@ -225,18 +229,40 @@ namespace Puffin.Tuner
          Environment.Exit(100);
       }
 
-      private ParameterWeight[] ComputeGradient(Entry[] entries, double K)
+      private void ComputeGradient(ref ParameterWeight[] gradients, Entry[] entries, double K)
       {
-         ConcurrentBag<ParameterWeight[]> gradients = new();
+         ConcurrentBag<ParameterWeight[]> newGradients = new();
 
          Parallel.For(0, entries.Length, () => new ParameterWeight[Parameters.Length],
             (j, loop, localGradients) =>
             {
                UpdateSingleGradient(entries[j], K, ref localGradients);
                return localGradients;
-            }, gradients.Add);
+            }, newGradients.Add);
 
-         return gradients.SelectMany(g => g).ToArray();
+         foreach (var grad in newGradients)
+         {
+            for (int n = 0; n < grad.Length; n++)
+            {
+               gradients[n] += grad[n];
+            }
+         }
+      }
+
+      private void UpdateSingleGradientTest(Entry entry, double K, ref double[][] gradient)
+      {
+         double eval = Evaluate(entry);
+         double sig = Sigmoid(K, eval);
+         double res = (entry.Result - sig) * sig * (1.0 - sig);
+
+         double mg_base = res * (entry.Phase / 24);
+         double eg_base = res - mg_base;
+
+         foreach (CoefficientEntry coef in entry.Coefficients)
+         {
+            gradient[coef.Index][0] += mg_base * coef.Value;
+            gradient[coef.Index][1] += eg_base * coef.Value;
+         }
       }
 
       private void UpdateSingleGradient(Entry entry, double K, ref ParameterWeight[] gradient)
@@ -573,28 +599,30 @@ namespace Puffin.Tuner
 
       private List<CoefficientEntry> GetCoefficients(Trace trace)
       {
-         List<CoefficientEntry> coefficients = new();
+         List<CoefficientEntry> entryCoefficients = new();
+         int currentIndex = 0;
 
-         GetCoefficientsFromArray(ref coefficients, trace.material, 6);
-         GetCoefficientsFromArray(ref coefficients, trace.pst, 384);
-         GetCoefficientsFromArray(ref coefficients, trace.knightMobility, 9);
-         GetCoefficientsFromArray(ref coefficients, trace.bishopMobility, 14);
-         GetCoefficientsFromArray(ref coefficients, trace.rookMobility, 15);
-         GetCoefficientsFromArray(ref coefficients, trace.queenMobility, 28);
-         GetCoefficientsFromArray(ref coefficients, trace.kingAttackWeights, 5);
-         GetCoefficientsFromArray(ref coefficients, trace.pawnShield, 4);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.material, 6, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.pst, 384, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.knightMobility, 9, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4, ref currentIndex);
 
-         return coefficients;
+         return entryCoefficients;
       }
 
-      private void GetCoefficientsFromArray(ref List<CoefficientEntry> coefficients, double[][] trace, int size)
+      private void AddCoefficientsAndEntries(ref List<CoefficientEntry> entryCoefficients, double[][] trace, int size, ref int currentIndex)
       {
          for (int i = 0; i < size; i++)
          {
-            if (trace[i][0] - trace[i][1] != 0)
+            if ((short)(trace[i][0] - trace[i][1]) != 0)
             {
-               coefficients.Add(new((short)(trace[i][0] - trace[i][1]), i));
+               entryCoefficients.Add(new CoefficientEntry((short)(trace[i][0] - trace[i][1]), currentIndex));
             }
+            currentIndex++;
          }
       }
 
