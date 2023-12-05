@@ -1,4 +1,4 @@
-﻿// *********************************************************************************
+// *********************************************************************************
 // 
 // This tuner is, for the most part, a C# rewrite of 
 // the Gedas tuner (with some adaptations for use with Puffin).
@@ -174,13 +174,13 @@ namespace Puffin.Tuner
          Entry[] entries = LoadPositions();
 
          Console.WriteLine($"\r\nCalculating K value...");
-         //double K = FindK(entries);
-         double K = 2.5;
+         double K = FindK(entries);
+         // double K = 2.5;
          Console.WriteLine($"K value: {K}");
 
-         // double avgError = GetAverageError(entries, K);
-         // double bestError = avgError + Epsilon * 2;
-         // Console.WriteLine($"Initial average error: {avgError}");
+         double avgError = GetAverageError(entries, K);
+         double bestError = avgError + Epsilon * 2;
+         Console.WriteLine($"Initial average error: {avgError}");
 
          double learningRate = 1;
          ParameterWeight[] momentum = new ParameterWeight[Parameters.Length];
@@ -193,7 +193,7 @@ namespace Puffin.Tuner
          timer.Start();
 
          // optional condition: Math.Abs(bestError - avgError) >= Epsilon && 
-         while (epoch < maxEpochs)
+         while (Math.Abs(bestError - avgError) >= Epsilon && epoch < maxEpochs)
          {
             ParameterWeight[] gradients = new ParameterWeight[Parameters.Length];
             ComputeGradient(ref gradients, entries, K);
@@ -204,21 +204,21 @@ namespace Puffin.Tuner
             for (int parameterIndex = 0; parameterIndex < Parameters.Length; parameterIndex++)
             {
                double grad = -K / 400 * gradients[parameterIndex].Mg / entries.Length;
-               momentum[parameterIndex].Mg = beta1 * momentum[parameterIndex].Mg + (1 - beta1) * grad;
-               velocity[parameterIndex].Mg = beta2 * velocity[parameterIndex].Mg + (1 - beta2) * grad * grad;
+               momentum[parameterIndex].Mg = beta1 * momentum[parameterIndex].Mg + (1.0 - beta1) * grad;
+               velocity[parameterIndex].Mg = beta2 * velocity[parameterIndex].Mg + (1.0 - beta2) * grad * grad;
                Parameters[parameterIndex].Mg -= learningRate * momentum[parameterIndex].Mg / (1e-8 + Math.Sqrt(velocity[parameterIndex].Mg));
 
                grad = -K / 400 * gradients[parameterIndex].Eg / entries.Length;
-               momentum[parameterIndex].Eg = beta1 * momentum[parameterIndex].Eg + (1 - beta1) * grad;
-               velocity[parameterIndex].Eg = beta2 * velocity[parameterIndex].Eg + (1 - beta2) * grad * grad;
+               momentum[parameterIndex].Eg = beta1 * momentum[parameterIndex].Eg + (1.0 - beta1) * grad;
+               velocity[parameterIndex].Eg = beta2 * velocity[parameterIndex].Eg + (1.0 - beta2) * grad * grad;
                Parameters[parameterIndex].Eg -= learningRate * momentum[parameterIndex].Eg / (1e-8 + Math.Sqrt(velocity[parameterIndex].Eg));
             }
 
             if (epoch % 100 == 0)
             {
-               // bestError = avgError;
-               // avgError = GetAverageError(entries, K);
-               Console.WriteLine($"Epoch: {epoch}, EPS: {1000 * (long)epoch / timer.ElapsedMilliseconds}, Time: {timer.Elapsed:hh\\:mm\\:ss}. Remaining: {TimeSpan.FromMilliseconds((maxEpochs - epoch) * (timer.ElapsedMilliseconds / epoch)):hh\\:mm\\:ss}");
+               bestError = avgError;
+               avgError = GetAverageError(entries, K);
+               Console.WriteLine($"Epoch: {epoch}, EPS: {1000 * (long)epoch / timer.ElapsedMilliseconds}, error: {bestError}, E: {bestError - avgError}, Time: {timer.Elapsed:hh\\:mm\\:ss}. Remaining: {TimeSpan.FromMilliseconds((maxEpochs - epoch) * (timer.ElapsedMilliseconds / epoch)):hh\\:mm\\:ss}");
             }
 
             epoch += 1;
@@ -251,8 +251,7 @@ namespace Puffin.Tuner
 
       private void UpdateSingleGradientTest(Entry entry, double K, ref double[][] gradient)
       {
-         double eval = Evaluate(entry);
-         double sig = Sigmoid(K, eval);
+         double sig = Sigmoid(K, Evaluate(entry));
          double res = (entry.Result - sig) * sig * (1.0 - sig);
 
          double mg_base = res * (entry.Phase / 24);
@@ -280,7 +279,7 @@ namespace Puffin.Tuner
          }
       }
 
-      private double FindK(List<Entry> entries)
+      private double FindK(Entry[] entries)
       {
          double rate = 10;
          double delta = 1e-5;
@@ -299,11 +298,11 @@ namespace Puffin.Tuner
          return K;
       }
 
-      private double GetAverageError(List<Entry> entries, double K)
+      private double GetAverageError(Entry[] entries, double K)
       {
          double sum = 0;
 
-         Parallel.For(0, entries.Count, () => 0.0,
+         Parallel.For(0, entries.Length, () => 0.0,
             (j, loop, subtotal) =>
             {
                subtotal += Math.Pow(entries[j].Result - Sigmoid(K, Evaluate(entries[j])), 2);
@@ -311,14 +310,13 @@ namespace Puffin.Tuner
             },
             subtotal => Add(ref sum, subtotal));
 
-         return sum / entries.Count;
+         return sum / entries.Length;
       }
 
       private double Evaluate(Entry entry)
       {
          double midgame = 0;
          double endgame = 0;
-         double score = 0;
 
          foreach (CoefficientEntry coef in entry.Coefficients)
          {
@@ -326,9 +324,7 @@ namespace Puffin.Tuner
             endgame += coef.Value * Parameters[coef.Index].Eg;
          }
 
-         score += (midgame * entry.Phase + endgame * (24 - entry.Phase)) / 24;
-
-         return score;
+         return (midgame * entry.Phase + endgame * (24 - entry.Phase)) / 24;
       }
 
       public void LoadParameters()
@@ -628,7 +624,7 @@ namespace Puffin.Tuner
 
       private double Sigmoid(double factor, double score)
       {
-         return 1.0 / (1.0 + Math.Exp(-(factor * score)));
+         return 1.0 / (1.0 + Math.Exp(-(factor * score / 400)));
       }
 
       // From https://stackoverflow.com/a/16893641
