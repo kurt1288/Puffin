@@ -1,35 +1,36 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Puffin
 {
    internal class Datagen
    {
+      static readonly string[] pieces = [ "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k" ];
       const int MAX_DEPTH = 5;
       const int MAX_NODES = 5000;
       static readonly Random random = new();
 
       public static void Run(int targetFens)
       {
-         ConcurrentDictionary<string, double> positions = new();
+         ConcurrentBag<Position> positions = [];
          Stopwatch sw = Stopwatch.StartNew();
          int gamesCompleted = 0;
+         int fenCount = 0;
 
-         var result = Parallel.For(0, 10000000, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 },
+         Parallel.For(0, 10000000, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 },
             (i, state) =>
             {
                Position position = GenerateData();
+               positions.Add(position);
 
-               foreach (string fen in position.FENS)
-               {
-                  positions.TryAdd(fen, position.WDL);
-               }
-
+               Interlocked.Add(ref fenCount, position.FENS.Count);
                Interlocked.Increment(ref gamesCompleted);
 
-               if (positions.Count >= targetFens)
+               if (fenCount >= targetFens)
                {
+                  Console.WriteLine($"Games: {gamesCompleted}. FENs: {fenCount}. F/s: {1000 * (long)fenCount / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed:hh\\:mm\\:ss}. Estimated time remaining: {TimeSpan.FromMilliseconds((targetFens - fenCount) * (sw.ElapsedMilliseconds / fenCount)):hh\\:mm\\:ss}");
                   state.Stop();
+                  return;
                }
 
                if (state.IsStopped)
@@ -39,19 +40,22 @@ namespace Puffin
 
                if (gamesCompleted % 10 == 0)
                {
-                  Console.WriteLine($"Games: {gamesCompleted}. FENs: {positions.Count}. F/s: {1000 * (long)positions.Count / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed}. Estimate time remaining: {TimeSpan.FromMilliseconds((targetFens - positions.Count) * (sw.ElapsedMilliseconds / positions.Count))}");
+                  Console.WriteLine($"Games: {gamesCompleted}. FENs: {fenCount}. F/s: {1000 * (long)fenCount / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed:hh\\:mm\\:ss}. Estimated time remaining: {TimeSpan.FromMilliseconds((targetFens - fenCount) * (sw.ElapsedMilliseconds / fenCount)):hh\\:mm\\:ss}");
                }
             });
 
          sw.Stop();
-         Console.WriteLine($"Writing {positions.Count} fens to file...");
+         Console.WriteLine($"Writing {fenCount} fens to file...");
 
-         string path = @$"./DataGen_Results_{DateTime.Now:yyyy-MM-dd,HHmmss}.epd";
+         string path = @$"./DataGen_Results_{DateTime.Now:yyyy-MM-dd, HH.mm.sss}.epd";
 
          using StreamWriter writer = new(path, true);
-         foreach (var position in positions)
+         foreach (Position position in positions)
          {
-            writer.WriteLine($"{position.Key} [{position.Value:N1}]");
+            foreach (string fen in position.FENS)
+            {
+               writer.WriteLine($"{fen} [{position.WDL:N1}]");
+            }
          }
 
          Console.WriteLine($"Finished");
@@ -90,7 +94,7 @@ namespace Puffin
 
          timeManager.MaxDepth = Constants.MAX_PLY;
          timeManager.SetNodeLimit(MAX_NODES);
-         List<string> positions = new();
+         Position positions = new();
          double result = 0.5;
 
          while (true)
@@ -111,7 +115,7 @@ namespace Puffin
 
             // Don't save the position if the best move is a capture or a checking move
             if (!bestMove.HasType(MoveType.Capture) && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)) {
-               positions.Add(ToFEN(board));
+               positions.AddFEN(ToFEN(board));
             }
 
             // If the game has ended via checkmate or stalemate
@@ -131,7 +135,9 @@ namespace Puffin
             }
          }
 
-         return new Position(positions, result);
+         positions.WDL = result;
+
+         return positions;
       }
 
       private static void GetRandomPosition(ref Board board)
@@ -172,7 +178,6 @@ namespace Puffin
       // This is not a complete FEN for the position. It excludes some values (like castling) that aren't needed for datagen
       private static string ToFEN(Board board)
       {
-         string[] pieces = { "P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k" };
          string fen = string.Empty;
 
          for (int rank = 0; rank < 8; rank++)
@@ -234,15 +239,14 @@ namespace Puffin
       }
    }
 
-   internal class Position
+   internal sealed class Position
    {
-      public List<string> FENS;
+      public List<string> FENS = [];
       public double WDL;
 
-      public Position(List<string> positions, double result)
+      public void AddFEN(string fen)
       {
-         FENS = positions;
-         WDL = result;
+         FENS.Add(fen);
       }
    }
 }
