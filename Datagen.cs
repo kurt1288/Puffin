@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace Puffin
@@ -8,55 +7,82 @@ namespace Puffin
       const int MAX_DEPTH = 5;
       const int MAX_NODES = 5000;
       static readonly Random random = new();
+      static int gamesCompleted = 0;
+      static int maxPositions = 0;
+      static int totalPositions = 0;
+      static string folderPath = string.Empty;
+      static Stopwatch sw;
 
       public static void Run(int targetFens)
       {
-         string path = @$"./DataGen_Results_{DateTime.Now:yyyy-MM-dd, HH.mm.sss}.epd";
-         ConcurrentBag<Position> positions = [];
-         Stopwatch sw = Stopwatch.StartNew();
-         int gamesCompleted = 0;
-         int fenCount = 0;
+         maxPositions = targetFens;
+         string path = @$"./DataGen_Results_{DateTime.Now:yyyy-MM-dd, HH.mm.sss}";
 
-         while (fenCount < targetFens)
+         Thread[] threads = new Thread[Environment.ProcessorCount - 2];
+         DirectoryInfo di = Directory.CreateDirectory(path);
+         folderPath = di.FullName;
+
+         sw = Stopwatch.StartNew();
+         for (int i = 0; i < threads.Length; i++)
          {
-            Parallel.For(0, 1000, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount - 2 },
-            (i, state) =>
+            Thread thread = new(Generate)
             {
-               Position position = GenerateData();
-               positions.Add(position);
+               Name = $"Thread_{i}",
+               IsBackground = true,
+            };
+            threads[i] = thread;
+            thread.Start();
+         }
 
-               Interlocked.Add(ref fenCount, position.FENS.Count);
-               Interlocked.Increment(ref gamesCompleted);
+         foreach (Thread thread in threads)
+         {
+            thread.Join();
+         }
 
-               if (gamesCompleted % 10 == 0)
-               {
-                  Console.WriteLine($"Games: {gamesCompleted}. FENs: {fenCount}. F/s: {1000 * (long)fenCount / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed:hh\\:mm\\:ss}. Estimated time remaining: {TimeSpan.FromMilliseconds((targetFens - fenCount) * (sw.ElapsedMilliseconds / fenCount)):hh\\:mm\\:ss}");
-               }
-            });
-
-            Console.WriteLine("Writing to file...");
-            using (StreamWriter writer = new(path, true))
+         // Combine all the individual thread files into one
+         foreach (Thread thread in threads)
+         {
+            using StreamWriter writer = new(Path.Combine(folderPath, "datagen.epd"), true);
+            using StreamReader sr = System.IO.File.OpenText(Path.Combine(folderPath, $"{thread.Name}.epd"));
+            string s;
+            while ((s = sr.ReadLine()) != null)
             {
-               foreach (Position position in positions)
-               {
-                  foreach (string fen in position.FENS)
-                  {
-                     writer.WriteLine($"{fen} [{position.WDL:N1}]");
-                  }
-               }
+               writer.WriteLine(s);
             }
-
-            positions.Clear();
-            GC.Collect();
          }
 
          sw.Stop();
-         Console.WriteLine($"Finished. Saved {fenCount} fens to file");
+         Console.WriteLine($"Finished. Saved {totalPositions} fens to file");
       }
 
-      private static Position GenerateData()
+      private static void Generate()
       {
-         CancellationTokenSource cts = new(TimeSpan.FromMinutes(2));
+         string path = Path.Combine(folderPath, @$"./{Thread.CurrentThread.Name}.epd");
+         StreamWriter writer = new(path, true);
+
+         while (totalPositions < maxPositions)
+         {
+            Position position = GeneratePositions();
+            Interlocked.Add(ref totalPositions, position.FENS.Count);
+            Interlocked.Increment(ref gamesCompleted);
+
+            foreach (string fen in position.FENS)
+            {
+               writer.WriteLine($"{fen} [{position.WDL:N1}]");
+            }
+
+            if (gamesCompleted % 10 == 0)
+            {
+               Console.WriteLine($"Games: {gamesCompleted}. FENs: {totalPositions}. F/s: {1000 * (long)totalPositions / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed:hh\\:mm\\:ss}. Estimated time remaining: {TimeSpan.FromMilliseconds((maxPositions - totalPositions) * (sw.ElapsedMilliseconds / totalPositions)):hh\\:mm\\:ss}");
+            }
+         }
+
+         writer.Close();
+      }
+
+      private static Position GeneratePositions()
+      {
+         CancellationTokenSource cts = new(TimeSpan.FromMinutes(4));
          Board board = new();
          TimeManager timeManager = new()
          {
@@ -71,7 +97,7 @@ namespace Puffin
          {
             if (cts.IsCancellationRequested)
             {
-               Console.WriteLine("Too many loops generating a random position");
+               Console.WriteLine($"Too many loops generating a random position: {Thread.CurrentThread.Name}");
                Environment.Exit(100);
             }
 
@@ -85,7 +111,7 @@ namespace Puffin
             timeManager.Stop();
 
             // Get a new position if this one is too lopsided
-            if (Math.Abs(info.Score) > 400)
+            if (Math.Abs(info.Score) > 1000)
             {
                continue;
             }
@@ -107,14 +133,15 @@ namespace Puffin
             board.MakeMove(bestMove);
 
             // Adjudicate large scores
-            if (Math.Abs(info.Score) > 1000)
+            if (Math.Abs(info.Score) > 1000 || board.IsWon())
             {
                positions.WDL = info.Score > 0 ? (double)board.SideToMove : (int)board.SideToMove ^ 1;
                break;
             }
 
             // Don't save the position if the best move is a capture or a checking move
-            if (!bestMove.HasType(MoveType.Capture) && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)) {
+            if (!bestMove.HasType(MoveType.Capture) && !bestMove.HasType(MoveType.Promotion)
+               && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)) {
                positions.AddFEN(ToFEN(board));
             }
 
@@ -131,12 +158,13 @@ namespace Puffin
             
             if (board.Halfmoves >= 100 || search.IsRepeated() || board.IsDrawn())
             {
+               positions.WDL = 0.5;
                break;
             }
 
             if (cts.IsCancellationRequested)
             {
-               Console.WriteLine("Too many loops making moves");
+               Console.WriteLine($"Too many loops making moves: {Thread.CurrentThread.Name}");
                Environment.Exit(100);
             }
          }
@@ -158,7 +186,7 @@ namespace Puffin
             {
                if (cts.IsCancellationRequested)
                {
-                  Console.WriteLine("Too many loops in GetRandomPosition");
+                  Console.WriteLine($"Too many loops in GetRandomPosition: {Thread.CurrentThread.Name}");
                   Environment.Exit(100);
                }
 
@@ -253,7 +281,7 @@ namespace Puffin
    internal sealed class Position
    {
       public List<string> FENS = [];
-      public double WDL;
+      public double WDL = 0.5;
 
       public void AddFEN(string fen)
       {

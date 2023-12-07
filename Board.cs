@@ -566,30 +566,106 @@ namespace Puffin
       public bool IsDrawn()
       {
          // Only kings
-         if (ColorBB[(int)Color.White].Value == PieceBB[(int)PieceType.King].Value && ColorBB[(int)Color.Black].Value == PieceBB[(int)PieceType.King].Value)
+         if (PieceBB[(int)PieceType.King].Value == (ColorBB[(int)Color.White].Value | PieceBB[(int)PieceType.King].Value))
          {
             return true;
          }
 
          // One side has only a king left
-         if (ColorBB[(int)Color.White].Value == PieceBB[(int)PieceType.King].Value)
+         if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.White].Value))
          {
-            Bitboard minorPieces = PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop];
-            
+            Bitboard minorPieces = (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)Color.Black].Value;
+
             // Other side only has a king and 1 minor piece
-            if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value & minorPieces.Value) && minorPieces.CountBits() == 1)
+            if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value | minorPieces.Value) && minorPieces.CountBits() == 1)
             {
                return true;
             }
          }
-         else if (ColorBB[(int)Color.Black].Value == PieceBB[(int)PieceType.King].Value)
+         else if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.Black].Value))
          {
-            Bitboard minorPieces = PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop];
+            Bitboard minorPieces = (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)Color.White].Value;
 
             // Other side only has a king and 1 minor piece
-            if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value & minorPieces.Value) && minorPieces.CountBits() == 1)
+            if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value | minorPieces.Value) && minorPieces.CountBits() == 1)
             {
                return true;
+            }
+         }
+
+         // Both sides have a king and a bishop, and both bishops are on the same color square
+         if ((ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value) == (PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value))
+         {
+            int whiteBishop = (ColorBB[(int)Color.White] & PieceBB[(int)PieceType.Bishop]).GetLSB();
+            int blackBishop = (ColorBB[(int)Color.Black] & PieceBB[(int)PieceType.Bishop]).GetLSB();
+
+            // returns true if squares are the same color
+            return ((9 * (whiteBishop ^ blackBishop)) & 8) == 0;
+         }
+
+         return false;
+      }
+
+      public bool IsWon()
+      {
+         // One side has only a king left
+         if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.White].Value))
+         {
+            // Other side only has a king and either a rook or queen
+            if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Queen].Value) & ColorBB[(int)Color.Black].Value))
+            {
+               return true;
+            }
+            else if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Rook].Value) & ColorBB[(int)Color.Black].Value))
+            {
+               return true;
+            }
+            // 2 bishops, on different color squares?
+            else if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value) & ColorBB[(int)Color.Black].Value)
+               && PieceBB[(int)PieceType.Bishop].CountBits() == 2)
+            {
+               int sq1 = PieceBB[(int)PieceType.Bishop].GetLSB();
+               int sq2 = PieceBB[(int)PieceType.Bishop].GetMSB();
+
+               return ((9 * (sq1 ^ sq2)) & 8) != 0;
+            }
+            // bishop + knight
+            else if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Knight].Value) & ColorBB[(int)Color.Black].Value))
+            {               
+               if (PieceBB[(int)PieceType.Knight].CountBits() == 1 && PieceBB[(int)PieceType.Bishop].CountBits() == 1)
+               {
+                  return true;
+               }
+
+               return false;
+            }
+         }
+         else if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.Black].Value))
+         {
+            if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Queen].Value) & ColorBB[(int)Color.White].Value))
+            {
+               return true;
+            }
+            else if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Rook].Value) & ColorBB[(int)Color.White].Value))
+            {
+               return true;
+            }
+            else if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value) & ColorBB[(int)Color.White].Value)
+               && PieceBB[(int)PieceType.Bishop].CountBits() == 2)
+            {
+               int sq1 = PieceBB[(int)PieceType.Bishop].GetLSB();
+               int sq2 = PieceBB[(int)PieceType.Bishop].GetMSB();
+
+               return ((9 * (sq1 ^ sq2)) & 8) != 0;
+            }
+            else if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Knight].Value) & ColorBB[(int)Color.White].Value))
+            {
+               if (PieceBB[(int)PieceType.Knight].CountBits() == 1 && PieceBB[(int)PieceType.Bishop].CountBits() == 1)
+               {
+                  return true;
+               }
+
+               return false;
             }
          }
 
