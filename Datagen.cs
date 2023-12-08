@@ -88,8 +88,6 @@ namespace Puffin
          {
             MaxDepth = 8,
          };
-         //timeManager.SetTimeLimit(5000, 0, 1, true);
-
          SearchInfo info = new();
          Search search = new(board, timeManager, new(), info);
 
@@ -130,19 +128,24 @@ namespace Puffin
             timeManager.Stop();
             Move bestMove = info.GetBestMove();
 
-            board.MakeMove(bestMove);
-
-            // Adjudicate large scores
+            // Adjudicate large scores or easy winnable positions
             if (Math.Abs(info.Score) > 1000 || board.IsWon())
             {
-               positions.WDL = info.Score > 0 ? (double)board.SideToMove : (int)board.SideToMove ^ 1;
+               positions.WDL = info.Score > 0 ? (int)board.SideToMove ^ 1 : (int)board.SideToMove;
                break;
             }
 
-            // Don't save the position if the best move is a capture or a checking move
+            // Don't save the position if the best move is a capture or a checking move, or the score value is a mate
             if (!bestMove.HasType(MoveType.Capture) && !bestMove.HasType(MoveType.Promotion)
-               && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)) {
+               && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)
+               && Math.Abs(info.Score) < Constants.MATE - Constants.MAX_PLY) {
                positions.AddFEN(ToFEN(board));
+            }
+
+            if (bestMove == 0 || !board.MakeMove(bestMove))
+            {
+               Console.WriteLine("No valid bestmove");
+               break;
             }
 
             // If the game has ended via checkmate or stalemate
@@ -152,11 +155,16 @@ namespace Puffin
                {
                   positions.WDL = (int)board.SideToMove ^ 1;
                }
+               else
+               {
+                  positions.WDL = 0.5;
+               }
 
                break;
             }
             
-            if (board.Halfmoves >= 100 || search.IsRepeated() || board.IsDrawn())
+            // Adjudicate draws
+            if ((board.Fullmoves > 40 && board.Halfmoves > 5 && (info.Score is >= -20 and <= 20)) || board.Halfmoves >= 100 || search.IsRepeated() || board.IsDrawn())
             {
                positions.WDL = 0.5;
                break;
@@ -281,7 +289,7 @@ namespace Puffin
    internal sealed class Position
    {
       public List<string> FENS = [];
-      public double WDL = 0.5;
+      public double WDL = -1;
 
       public void AddFEN(string fen)
       {
