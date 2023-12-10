@@ -17,6 +17,12 @@
          set => _moves[index] = value;
       }
 
+      public void Shuffle()
+      {
+         Random rnd = new();
+         rnd.Shuffle(_moves);
+      }
+
       public int GetScore(int index)
       {
          return _scores[index];

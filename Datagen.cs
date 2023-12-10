@@ -39,20 +39,90 @@ namespace Puffin
             thread.Join();
          }
 
-         // Combine all the individual thread files into one
+         int whitePositions = 0;
+         int blackPositions = 0;
+         int whiteWins = 0;
+         int whiteDraws = 0;
+         int whiteLosses = 0;
+         int blackWins = 0;
+         int blackDraws = 0;
+         int blackLosses = 0;
+
+         HashSet<string> positions = [];
+
+         Console.WriteLine("Combining separate files...");
          foreach (Thread thread in threads)
          {
-            using StreamWriter writer = new(Path.Combine(folderPath, "datagen.epd"), true);
             using StreamReader sr = System.IO.File.OpenText(Path.Combine(folderPath, $"{thread.Name}.epd"));
             string s;
             while ((s = sr.ReadLine()) != null)
             {
-               writer.WriteLine(s);
+               positions.Add(s);
             }
          }
 
+         Console.WriteLine("Shuffling...");
+         string[] positionsArray = positions.ToArray();
+         // random.Shuffle(positionsArray); 
+         int total = positionsArray.Length; // (int)(positionsArray.Length * 0.2);
+
+         Console.WriteLine("Writing to datagen.epd...");
+         for (int i = 0; i < total; i++)
+         {
+            using StreamWriter writer = new(Path.Combine(folderPath, "datagen.epd"), true);
+            writer.WriteLine(positionsArray[i]);
+
+            string[] parts = positionsArray[i].Split(" ");
+
+            if (parts[1] == "w")
+            {
+               whitePositions++;
+
+               if (parts.Last() == "[0.0]")
+               {
+                  whiteLosses++;
+               }
+               else if (parts.Last() == "[1.0]")
+               {
+                  whiteWins++;
+               }
+               else
+               {
+                  whiteDraws++;
+               }
+            }
+            else
+            {
+               blackPositions++;
+
+               if (parts.Last() == "[0.0]")
+               {
+                  blackLosses++;
+               }
+               else if (parts.Last() == "[1.0]")
+               {
+                  blackWins++;
+               }
+               else
+               {
+                  blackDraws++;
+               }
+            }
+         }
+
+         Console.WriteLine("Stats:");
+         Console.WriteLine($"Total Positions: {total}");
+         Console.WriteLine($"White Positions: {whitePositions} ({100 * whitePositions / total}%)");
+         Console.WriteLine($"White 1.0: {whiteWins} ({100 * whiteWins / total}%)");
+         Console.WriteLine($"White 0.5: {whiteDraws} ({100 * whiteDraws / total}%)");
+         Console.WriteLine($"White 0.0: {whiteLosses} ({100 * whiteLosses / total}%)");
+         Console.WriteLine($"Black Positions: {blackPositions} ({100 * blackPositions / total}%)");
+         Console.WriteLine($"Black 1.0: {blackWins} ({100 * blackWins / total}%)");
+         Console.WriteLine($"Black 0.5: {blackDraws} ({100 * blackDraws / total}%)");
+         Console.WriteLine($"Black 0.0: {blackLosses} ({100 * blackLosses / total}%)");
+
          sw.Stop();
-         Console.WriteLine($"Finished. Saved {totalPositions} fens to file");
+         Console.WriteLine($"Finished.");
       }
 
       private static void Generate()
@@ -99,9 +169,14 @@ namespace Puffin
                Environment.Exit(100);
             }
 
-            board.Reset();
-            board.SetPosition(Constants.START_POS);
-            GetRandomPosition(ref board, cts);
+            while (true)
+            {
+               board.SetPosition(Constants.START_POS);
+               if (GetRandomPosition(ref board, cts))
+               {
+                  break;
+               }
+            }
 
             // Do a quick search of the position, and if the score is too large (for either side), discard the position entirely
             timeManager.Restart();
@@ -135,10 +210,16 @@ namespace Puffin
                break;
             }
 
-            // Don't save the position if the best move is a capture or a checking move, or the score value is a mate
+            // Conditions under which the positions should NOT be saved:
+            // 1. Best move is a capture
+            // 2. Best move is a promotion
+            // 3. Side to move is in check
+            // 4. Evaluation score value is a mate value
+            // 5. There are 4 or less non-pawn pieces on the board
             if (!bestMove.HasType(MoveType.Capture) && !bestMove.HasType(MoveType.Promotion)
                && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)
-               && Math.Abs(info.Score) < Constants.MATE - Constants.MAX_PLY) {
+               && Math.Abs(info.Score) < Constants.MATE - Constants.MAX_PLY
+               && (board.PieceBB[(int)PieceType.Knight] | board.PieceBB[(int)PieceType.Bishop] | board.PieceBB[(int)PieceType.Rook] | board.PieceBB[(int)PieceType.Queen]).CountBits() > 4) {
                positions.AddFEN(ToFEN(board));
             }
 
@@ -180,45 +261,52 @@ namespace Puffin
          return positions;
       }
 
-      private static void GetRandomPosition(ref Board board, CancellationTokenSource cts)
+      private static bool GetRandomPosition(ref Board board, CancellationTokenSource cts)
       {
-         int total = random.Next(0, 2);
+         int total = 8 + (random.Next(0, 2) % 2);
+         bool foundMove = false;
 
          // Play 8 or 9 random moves
-         for (int i = 0; i < 8 + (total % 2); i++)
+         for (int i = 0; i < total; i++)
          {
+            foundMove = false;
             MoveList moves = MoveGen.GenerateAll(board);
+            moves.Shuffle();
 
             // Make sure the random move to play is legal
-            while (moves.Count > 0)
+            if (cts.IsCancellationRequested)
             {
-               if (cts.IsCancellationRequested)
-               {
-                  Console.WriteLine($"Too many loops in GetRandomPosition: {Thread.CurrentThread.Name}");
-                  Environment.Exit(100);
-               }
+               Console.WriteLine($"Too many loops in GetRandomPosition: {Thread.CurrentThread.Name}");
+               Environment.Exit(100);
+            }
 
-               int index = random.Next(moves.Count);
-               Move move = moves[index];
+            for (int j = 0; j < 218; j++) // 218 is the max length for the moves array
+            {
+               Move move = moves[j];
+
+               // because the moves array is intiailized with default move values (0), after shuffling some of those null moves might be at the beginning
+               if (move == 0)
+               {
+                  continue;
+               }
 
                if (!board.MakeMove(move))
                {
-                  moves.RemoveAt(index);
                   board.UndoMove(move);
                   continue;
                }
 
+               foundMove = true;
                break;
             }
 
-            // Generated a position with no moves (checkmate or stalemate)
-            if (moves.Count == 0)
+            if (!foundMove)
             {
-               // reset and try a new random position
-               board.SetPosition(Constants.START_POS);
-               i = 0;
+               break;
             }
          }
+
+         return foundMove;
       }
 
       // This is not a complete FEN for the position. It excludes some values (like castling) that aren't needed for datagen
