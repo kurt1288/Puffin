@@ -30,6 +30,7 @@ namespace Puffin.Tuner
          public double[][] queenMobility = new double[28][];
          public double[][] kingAttackWeights = new double[5][];
          public double[][] pawnShield = new double[4][];
+         public double[][] passedPawn = new double[7][];
          public double score = 0;
 
          public Trace()
@@ -72,6 +73,11 @@ namespace Puffin.Tuner
             for (int i = 0; i < 4; i++)
             {
                pawnShield[i] = new double[2];
+            }
+
+            for (int i = 0; i < 7; i++)
+            {
+               passedPawn[i] = new double[2];
             }
          }
       }
@@ -119,7 +125,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[465];
+      private ParameterWeight[] Parameters = new ParameterWeight[472];
 
       public Tuner()
       {
@@ -162,6 +168,11 @@ namespace Puffin.Tuner
          for (int i = 0; i < 4; i++)
          {
             Evaluation.PawnShield[i] = new Score();
+         }
+
+         for (int i = 0; i < 7; i++)
+         {
+            Evaluation.PassedPawn[i] = new Score();
          }
       }
 
@@ -338,6 +349,7 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.QueenMobility, ref index);
          AddParameters(Evaluation.KingAttackWeights, ref index);
          AddParameters(Evaluation.PawnShield, ref index);
+         AddParameters(Evaluation.PassedPawn, ref index);
       }
 
       private void AddParameters(Score[] values, ref int index)
@@ -428,6 +440,8 @@ namespace Puffin.Tuner
 
          Score white = Material(board, Color.White, ref trace);
          Score black = Material(board, Color.Black, ref trace);
+         white += Pawns(board, Color.White, trace);
+         black += Pawns(board, Color.Black, trace);
          white += Knights(board, Color.White, trace, blackKingZone, ref kingAttacks, ref kingAttacksCount);
          black += Knights(board, Color.Black, trace, whiteKingZone, ref kingAttacks, ref kingAttacksCount);
          white += Bishops(board, Color.White, trace, blackKingZone, ref kingAttacks, ref kingAttacksCount);
@@ -593,6 +607,29 @@ namespace Puffin.Tuner
          return score;
       }
 
+      private static Score Pawns(Board board, Color color, Trace trace)
+      {
+         Score score = new();
+         Bitboard friendlyPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color];
+         Bitboard enemyPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1];
+
+         while (!friendlyPawns.IsEmpty())
+         {
+            int square = friendlyPawns.GetLSB();
+            friendlyPawns.ClearLSB();
+            int rank = color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3);
+
+            // Passed pawns
+            if ((Constants.PassedPawnMasks[(int)color][square] & enemyPawns.Value) == 0)
+            {
+               score += Evaluation.PassedPawn[rank - 1];
+               trace.passedPawn[rank - 1][(int)color]++;
+            }
+         }
+
+         return score;
+      }
+
       private List<CoefficientEntry> GetCoefficients(Trace trace)
       {
          List<CoefficientEntry> entryCoefficients = new();
@@ -606,6 +643,7 @@ namespace Puffin.Tuner
          AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7, ref currentIndex);
 
          return entryCoefficients;
       }
@@ -662,6 +700,7 @@ namespace Puffin.Tuner
          PrintArray("queen mobility", ref index, 28, sw);
          PrintArray("king attack weights", ref index, 5, sw);
          PrintArray("pawn shield", ref index, 4, sw);
+         PrintArray("passed pawn", ref index, 7, sw);
       }
 
       private void PrintArray(string name, ref int index, int count, StreamWriter writer)
