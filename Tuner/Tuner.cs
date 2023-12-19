@@ -32,6 +32,7 @@ namespace Puffin.Tuner
          public double[][] pawnShield = new double[4][];
          public double[][] passedPawn = new double[7][];
          public double[][] defendedPawn = new double[8][];
+         public double[][] connectedPawn = new double[9][];
          public double score = 0;
 
          public Trace()
@@ -49,6 +50,7 @@ namespace Puffin.Tuner
             for (int i = 0; i < 9; i++)
             {
                knightMobility[i] = new double[2];
+               connectedPawn[i] = new double[2];
             }
 
             for (int i = 0; i < 14; i++)
@@ -79,7 +81,6 @@ namespace Puffin.Tuner
             for (int i = 0; i < 7; i++)
             {
                passedPawn[i] = new double[2];
-               defendedPawn[i] = new double[2];
             }
 
             for (int i = 0; i < 8; i++)
@@ -132,7 +133,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[480];
+      private ParameterWeight[] Parameters = new ParameterWeight[489];
 
       public Tuner()
       {
@@ -150,6 +151,7 @@ namespace Puffin.Tuner
          for (int i = 0; i < 9; i++)
          {
             Evaluation.KnightMobility[i] = new Score();
+            Evaluation.ConnectedPawn[i] = new();
          }
 
          for (int i = 0; i < 14; i++)
@@ -180,7 +182,6 @@ namespace Puffin.Tuner
          for (int i = 0; i < 7; i++)
          {
             Evaluation.PassedPawn[i] = new Score();
-            Evaluation.DefendedPawn[i] = new();
          }
 
          for (int i = 0; i < 8; i++)
@@ -364,6 +365,7 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.PawnShield, ref index);
          AddParameters(Evaluation.PassedPawn, ref index);
          AddParameters(Evaluation.DefendedPawn, ref index);
+         AddParameters(Evaluation.ConnectedPawn, ref index);
       }
 
       private void AddParameters(Score[] values, ref int index)
@@ -629,6 +631,7 @@ namespace Puffin.Tuner
          Bitboard pawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color];
          Bitboard enemyPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1];
          int defender = 0;
+         int connected = 0;
 
          while (!pawns.IsEmpty())
          {
@@ -644,14 +647,23 @@ namespace Puffin.Tuner
                trace.passedPawn[rank - 1][(int)color]++;
             }
 
+            // Defending pawn
             if ((Attacks.PawnAttacks[(int)color][square] & friendlyPawns.Value) != 0)
             {
                defender++;
+            }
+
+            // Connected pawn
+            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & friendlyPawns.Value) != 0)
+            {
+               connected++;
             }
          }
 
          score += Evaluation.DefendedPawn[defender];
          trace.defendedPawn[defender][(int)color]++;
+         score += Evaluation.ConnectedPawn[defender];
+         trace.connectedPawn[connected][(int)color]++;
 
          mobilitySquares[(int)color ^ 1] = ~mobilitySquares[(int)color ^ 1];
 
@@ -673,6 +685,7 @@ namespace Puffin.Tuner
          AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.defendedPawn, 8, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.connectedPawn, 9, ref currentIndex);
 
          return entryCoefficients;
       }
@@ -731,6 +744,7 @@ namespace Puffin.Tuner
          PrintArray("pawn shield", ref index, 4, sw);
          PrintArray("passed pawn", ref index, 7, sw);
          PrintArray("defended pawn", ref index, 8, sw);
+         PrintArray("connected pawn", ref index, 9, sw);
       }
 
       private void PrintArray(string name, ref int index, int count, StreamWriter writer)
