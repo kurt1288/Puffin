@@ -4,6 +4,208 @@ namespace Puffin
 {
    internal static class Evaluation
    {
+      public static int Evaluate(Board board)
+      {
+         Score score = board.MaterialValue[(int)Color.White] - board.MaterialValue[(int)Color.Black];
+         Score[] kingAttacks = [new(), new()];
+         int[] kingAttacksCount = [0, 0];
+         ulong[] mobilitySquares = [0, 0];
+         ulong[] kingZones = [
+            Attacks.KingAttacks[board.GetSquareByPiece(PieceType.King, Color.White)],
+            Attacks.KingAttacks[board.GetSquareByPiece(PieceType.King, Color.Black)]
+         ];
+         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
+
+         Bitboard whitePawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.White];
+         Bitboard blackPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.Black];
+
+         Pawns(Color.White, whitePawns, blackPawns, ref mobilitySquares, ref score);
+         Pawns(Color.Black, blackPawns, whitePawns, ref mobilitySquares, ref score);
+         Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount);
+         Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied);
+         Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied);
+         Queens(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied);
+         Kings(board, ref score, ref kingAttacks, ref kingAttacksCount);
+
+         if (board.SideToMove == Color.Black)
+         {
+            score *= -1;
+         }
+
+         return (score.Mg * board.Phase + score.Eg * (24 - board.Phase)) / 24;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public static Score GetPSTScore(Piece piece, int square)
+      {
+         if (piece.Color == Color.Black)
+         {
+            square ^= 56;
+         }
+
+         return PST[(int)piece.Type * 64 + square];
+      }
+
+      // Used for debugging and verification of lazy eval during board updates
+      public static Score Material(Board board, Color color)
+      {
+         Bitboard us = new(board.ColorBB[(int)color].Value);
+         Score score = new();
+         while (!us.IsEmpty())
+         {
+            int square = us.GetLSB();
+            us.ClearLSB();
+            Piece piece = board.Mailbox[square];
+            score += PieceValues[(int)piece.Type];
+            score += GetPSTScore(piece, square);
+         }
+         return score;
+      }
+
+      private static void Knights(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount)
+      {
+         Bitboard knightsBB = board.PieceBB[(int)PieceType.Knight];
+
+         while (!knightsBB.IsEmpty())
+         {
+            int square = knightsBB.GetLSB();
+            knightsBB.ClearLSB();
+            Color color = board.Mailbox[square].Color;
+            // * (1 - 2 * (int)color) evaluates to 1 when color is white and to -1 when color is black (so that black score is subtracted)
+            score += KnightMobility[new Bitboard(Attacks.KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+
+            if ((Attacks.KnightAttacks[square] & kingZones[(int)color ^ 1]) != 0)
+            {
+               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Knight] * new Bitboard(Attacks.KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacksCount[(int)color]++;
+            }
+         }
+      }
+
+      private static void Bishops(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied)
+      {
+         Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
+
+         while (!bishopBB.IsEmpty())
+         {
+            int square = bishopBB.GetLSB();
+            bishopBB.ClearLSB();
+            Color color = board.Mailbox[square].Color;
+            ulong moves = Attacks.GetBishopAttacks(square, occupied);
+            score += BishopMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+
+            if ((moves & kingZones[(int)color ^ 1]) != 0)
+            {
+               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacksCount[(int)color]++;
+            }
+         }
+      }
+
+      private static void Rooks(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied)
+      {
+         Bitboard rookBB = board.PieceBB[(int)PieceType.Rook];
+
+         while (!rookBB.IsEmpty())
+         {
+            int square = rookBB.GetLSB();
+            rookBB.ClearLSB();
+            Color color = board.Mailbox[square].Color;
+            ulong moves = Attacks.GetRookAttacks(square, occupied);
+            score += RookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+
+            if ((moves & kingZones[(int)color ^ 1]) != 0)
+            {
+               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Rook] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacksCount[(int)color]++;
+            }
+         }
+      }
+
+      private static void Queens(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied)
+      {
+         Bitboard queenBB = board.PieceBB[(int)PieceType.Queen];
+
+         while (!queenBB.IsEmpty())
+         {
+            int square = queenBB.GetLSB();
+            queenBB.ClearLSB();
+            Color color = board.Mailbox[square].Color;
+            ulong moves = Attacks.GetQueenAttacks(square, occupied);
+            score += QueenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+
+            if ((moves & kingZones[(int)color ^ 1]) != 0)
+            {
+               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Queen] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacksCount[(int)color]++;
+            }
+         }
+      }
+
+      private static void Kings(Board board, ref Score score, ref Score[] kingAttacks, ref int[] kingAttacksCount)
+      {
+         Bitboard kingBB = board.PieceBB[(int)PieceType.King];
+
+         while (!kingBB.IsEmpty())
+         {
+            int kingSq = kingBB.GetLSB();
+            kingBB.ClearLSB();
+            Color color = board.Mailbox[kingSq].Color;
+            ulong kingSquares = color == Color.White ? 0xD7C3000000000000 : 0xC3D7;
+
+            if ((kingSquares & Constants.SquareBB[kingSq]) != 0)
+            {
+               ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x007000000000000 : 0x000E0000000000000) : (ulong)(kingSq % 8 < 3 ? 0x700 : 0xE000);
+
+               Bitboard pawns = new(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & pawnSquares);
+               score += PawnShield[Math.Min(pawns.CountBits(), 3)] * (1 - 2 * (int)color);
+            }
+
+            if (kingAttacksCount[(int)color ^ 1] >= 2)
+            {
+               score -= kingAttacks[(int)color ^ 1] * (1 - 2 * (int)color);
+            }
+         }
+      }
+
+      private static void Pawns(Color color, Bitboard friendlyPawns, Bitboard enemyPawns, ref ulong[] mobilitySquares, ref Score score)
+      {
+         Bitboard pawns = friendlyPawns;
+         int defender = 0;
+         int connected = 0;
+
+         while (!pawns.IsEmpty())
+         {
+            int square = pawns.GetLSB();
+            pawns.ClearLSB();
+            int rank = color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3);
+            mobilitySquares[(int)color ^ 1] |= Attacks.PawnAttacks[(int)color][square];
+
+            // Passed pawns
+            if ((Constants.PassedPawnMasks[(int)color][square] & enemyPawns.Value) == 0)
+            {
+               score += PassedPawn[rank - 1] * (1 - 2 * (int)color);
+            }
+
+            // Defending pawn
+            if ((Attacks.PawnAttacks[(int)color][square] & friendlyPawns.Value) != 0)
+            {
+               defender++;
+            }
+
+            // Connected pawn
+            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & friendlyPawns.Value) != 0)
+            {
+               connected++;
+            }
+         }
+
+         score += DefendedPawn[defender] * (1 - 2 * (int)color);
+         score += ConnectedPawn[connected] * (1 - 2 * (int)color);
+
+         mobilitySquares[(int)color ^ 1] = ~mobilitySquares[(int)color ^ 1];
+      }
+
       public static readonly Score[] PieceValues = {
          new(64, 102),
          new(292, 339),
@@ -203,226 +405,5 @@ namespace Puffin
          new(-14, 0),
          new(0, 0),
       ];
-
-      public static int Evaluate(Board board)
-      {
-         Score white = board.MaterialValue[(int)Color.White];
-         Score black = board.MaterialValue[(int)Color.Black];
-
-         ulong whiteKingZone = Attacks.KingAttacks[board.GetSquareByPiece(PieceType.King, Color.White)];
-         ulong blackKingZone = Attacks.KingAttacks[board.GetSquareByPiece(PieceType.King, Color.Black)];
-         Score[] kingAttacks = { new(), new() };
-         int[] kingAttacksCount = { 0, 0 };
-         ulong[] mobilitySquares = [0, 0];
-
-         white += Pawns(board, Color.White, ref mobilitySquares);
-         black += Pawns(board, Color.Black, ref mobilitySquares);
-         white += Knights(board, Color.White, blackKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         black += Knights(board, Color.Black, whiteKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         white += Bishops(board, Color.White, blackKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         black += Bishops(board, Color.Black, whiteKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         white += Rooks(board, Color.White, blackKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         black += Rooks(board, Color.Black, whiteKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         white += Queens(board, Color.White, blackKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         black += Queens(board, Color.Black, whiteKingZone, ref kingAttacks, ref kingAttacksCount, ref mobilitySquares);
-         white += Kings(board, Color.White, ref kingAttacks, ref kingAttacksCount);
-         black += Kings(board, Color.Black, ref kingAttacks, ref kingAttacksCount);
-
-         Score total = white - black;
-
-         if (board.SideToMove == Color.Black)
-         {
-            total *= -1;
-         }
-
-         return (total.Mg * board.Phase + total.Eg * (24 - board.Phase)) / 24;
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public static Score GetPSTScore(Piece piece, int square)
-      {
-         if (piece.Color == Color.Black)
-         {
-            square ^= 56;
-         }
-
-         return PST[(int)piece.Type * 64 + square];
-      }
-
-      // Used for debugging and verification of lazy eval during board updates
-      public static Score Material(Board board, Color color)
-      {
-         Bitboard us = new(board.ColorBB[(int)color].Value);
-         Score score = new();
-         while (!us.IsEmpty())
-         {
-            int square = us.GetLSB();
-            us.ClearLSB();
-            Piece piece = board.Mailbox[square];
-            score += PieceValues[(int)piece.Type];
-            score += GetPSTScore(piece, square);
-         }
-         return score;
-      }
-
-      private static Score Knights(Board board, Color color, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref ulong[] mobilitySquares)
-      {
-         Bitboard knightsBB = new(board.PieceBB[(int)PieceType.Knight].Value & board.ColorBB[(int)color].Value);
-         ulong us = board.ColorBB[(int)color].Value;
-         Score score = new();
-
-         while (!knightsBB.IsEmpty())
-         {
-            int square = knightsBB.GetLSB();
-            knightsBB.ClearLSB();
-            score += KnightMobility[new Bitboard(Attacks.KnightAttacks[square] & ~us & mobilitySquares[(int)color]).CountBits()];
-
-            if ((Attacks.KnightAttacks[square] & kingZone) != 0)
-            {
-               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Knight] * new Bitboard(Attacks.KnightAttacks[square] & kingZone).CountBits();
-               kingAttacksCount[(int)color]++;
-            }
-         }
-
-         return score;
-      }
-
-      private static Score Bishops(Board board, Color color, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref ulong[] mobilitySquares)
-      {
-         Bitboard bishopBB = new(board.PieceBB[(int)PieceType.Bishop].Value & board.ColorBB[(int)color].Value);
-         ulong us = board.ColorBB[(int)color].Value;
-         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         Score score = new();
-
-         while (!bishopBB.IsEmpty())
-         {
-            int square = bishopBB.GetLSB();
-            bishopBB.ClearLSB();
-            ulong moves = Attacks.GetBishopAttacks(square, occupied);
-            score += BishopMobility[new Bitboard(moves & ~us & mobilitySquares[(int)color]).CountBits()];
-
-            if ((moves & kingZone) != 0)
-            {
-               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & kingZone).CountBits();
-               kingAttacksCount[(int)color]++;
-            }
-         }
-
-         return score;
-      }
-
-      private static Score Rooks(Board board, Color color, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref ulong[] mobilitySquares)
-      {
-         Bitboard rookBB = new(board.PieceBB[(int)PieceType.Rook].Value & board.ColorBB[(int)color].Value);
-         ulong us = board.ColorBB[(int)color].Value;
-         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         Score score = new();
-
-         while (!rookBB.IsEmpty())
-         {
-            int square = rookBB.GetLSB();
-            rookBB.ClearLSB();
-            ulong moves = Attacks.GetRookAttacks(square, occupied);
-            score += RookMobility[new Bitboard(moves & ~us & mobilitySquares[(int)color]).CountBits()];
-
-            if ((moves & kingZone) != 0)
-            {
-               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Rook] * new Bitboard(moves & kingZone).CountBits();
-               kingAttacksCount[(int)color]++;
-            }
-         }
-
-         return score;
-      }
-
-      private static Score Queens(Board board, Color color, ulong kingZone, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref ulong[] mobilitySquares)
-      {
-         Bitboard queenBB = new(board.PieceBB[(int)PieceType.Queen].Value & board.ColorBB[(int)color].Value);
-         ulong us = board.ColorBB[(int)color].Value;
-         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         Score score = new();
-
-         while (!queenBB.IsEmpty())
-         {
-            int square = queenBB.GetLSB();
-            queenBB.ClearLSB();
-            ulong moves = Attacks.GetQueenAttacks(square, occupied);
-            score += QueenMobility[new Bitboard(moves & ~us & mobilitySquares[(int)color]).CountBits()];
-
-            if ((moves & kingZone) != 0)
-            {
-               kingAttacks[(int)color] += KingAttackWeights[(int)PieceType.Queen] * new Bitboard(moves & kingZone).CountBits();
-               kingAttacksCount[(int)color]++;
-            }
-         }
-
-         return score;
-      }
-
-      private static Score Kings(Board board, Color color, ref Score[] kingAttacks, ref int[] kingAttacksCount)
-      {
-         Score score = new();
-         Bitboard kingBB = new(board.PieceBB[(int)PieceType.King].Value & board.ColorBB[(int)color].Value);
-         int kingSq = kingBB.GetLSB();
-         ulong kingSquares = color == Color.White ? 0xD7C3000000000000 : 0xC3D7;
-
-         if ((kingSquares & Constants.SquareBB[kingSq]) != 0)
-         {
-            ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x007000000000000 : 0x000E0000000000000) : (ulong)(kingSq % 8 < 3 ? 0x700 : 0xE000);
-
-            Bitboard pawns = new(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & pawnSquares);
-            score += PawnShield[Math.Min(pawns.CountBits(), 3)];
-         }
-
-         if (kingAttacksCount[(int)color ^ 1] >= 2)
-         {
-            score -= kingAttacks[(int)color ^ 1];
-         }
-
-         return score;
-      }
-
-      private static Score Pawns(Board board, Color color, ref ulong[] mobilitySquares)
-      {
-         Score score = new();
-         Bitboard friendlyPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color];
-         Bitboard pawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color];
-         Bitboard enemyPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1];
-         int defender = 0;
-         int connected = 0;
-
-         while (!pawns.IsEmpty())
-         {
-            int square = pawns.GetLSB();
-            pawns.ClearLSB();
-            int rank = color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3);
-            mobilitySquares[(int)color ^ 1] |= Attacks.PawnAttacks[(int)color][square];
-
-            // Passed pawns
-            if ((Constants.PassedPawnMasks[(int)color][square] & enemyPawns.Value) == 0)
-            {
-               score += PassedPawn[rank - 1];
-            }
-
-            // Defending pawn
-            if ((Attacks.PawnAttacks[(int)color][square] & friendlyPawns.Value) != 0)
-            {
-               defender++;
-            }
-
-            // Connected pawn
-            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & friendlyPawns.Value) != 0)
-            {
-               connected++;
-            }
-         }
-
-         score += DefendedPawn[defender];
-         score += ConnectedPawn[connected];
-
-         mobilitySquares[(int)color ^ 1] = ~mobilitySquares[(int)color ^ 1];
-
-         return score;
-      }
    }
 }
