@@ -13,6 +13,7 @@ namespace Puffin
       public readonly static ulong[] SquareBB = new ulong[64];
       public readonly static ulong[][] BetweenBB = new ulong[64][];
       public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
+      public readonly static int[][] TaxiDistance = new int[64][];
 
       public readonly static ImmutableArray<ulong> FILE_MASKS = ImmutableArray.Create<ulong>(
          0x101010101010101,
@@ -55,6 +56,7 @@ namespace Puffin
 
             SquareBB[i] = board.Value;
             BetweenBB[i] = new ulong[64];
+            TaxiDistance[i] = new int[64];
 
             PassedPawnMasks[(int)Color.White][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
             PassedPawnMasks[(int)Color.Black][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
@@ -81,6 +83,7 @@ namespace Puffin
                line *= between & -between;
 
                BetweenBB[i][j] = (ulong)(line & between);
+               TaxiDistance[i][j] = Math.Abs((j >> 3) - (i >> 3)) + Math.Abs((j & 7) - (i & 7));
             }
          }
       }
