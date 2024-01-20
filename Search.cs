@@ -411,7 +411,7 @@
 
          int last = Math.Max(Board.GameHistory.Count - Board.Halfmoves, 0);
 
-         for (int i = Board.GameHistory.Count - 2; i >= last; i -= 2)
+         for (int i = Board.GameHistory.Count - 4; i >= last; i -= 2)
          {
             if (Board.GameHistory.Stack[i].Hash == Board.Hash)
             {
