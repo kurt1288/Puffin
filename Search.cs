@@ -360,6 +360,12 @@
 
          while (moves.Next())
          {
+            // Delta pruning
+            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Mailbox[moves.Move.GetTo()].Type, Board) + 200 < alpha)
+            {
+               continue;
+            }
+
             if (!Board.MakeMove(moves.Move))
             {
                Board.UndoMove(moves.Move);

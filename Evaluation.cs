@@ -42,6 +42,13 @@ namespace Puffin
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public static int GetPieceValue(PieceType piece, Board board)
+      {
+         Score value = PieceValues[(int)(piece == PieceType.Null ? PieceType.Pawn : piece)];
+         return (value.Mg * board.Phase + value.Eg * (24 - board.Phase)) / 24;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public static Score GetPSTScore(Piece piece, int square)
       {
          if (piece.Color == Color.Black)
