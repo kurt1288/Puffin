@@ -15,6 +15,8 @@ namespace Puffin
       public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
       public readonly static int[][] TaxiDistance = new int[64][];
 
+      public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
+
       public readonly static ImmutableArray<ulong> FILE_MASKS = ImmutableArray.Create<ulong>(
          0x101010101010101,
          0x202020202020202,
@@ -48,6 +50,16 @@ namespace Puffin
          ulong notFileH = ~FILE_MASKS[(int)File.H];
          PassedPawnMasks[(int)Color.White] = new ulong[64];
          PassedPawnMasks[(int)Color.Black] = new ulong[64];
+
+         for (int depth = 0; depth < MAX_PLY; depth++)
+         {
+            LMR_Reductions[depth] = new int[218];
+
+            for (int moves = 0; moves < 218; moves++)
+            {
+               LMR_Reductions[depth][moves] = (int)(0.85 + Math.Log(depth) * Math.Log(moves) * 0.3);
+            }
+         }
 
          for (int i = 0; i < 64; i++)
          {

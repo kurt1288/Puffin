@@ -254,9 +254,14 @@
 
             if (depth > LMR_Depth && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
             {
-               int R = 1 + depth / 4;
+               int R = Constants.LMR_Reductions[depth][legalMoves];
 
-               if (isPVNode)
+               if (!isPVNode)
+               {
+                  R += 1;
+               }
+
+               if (Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1))
                {
                   R -= 1;
                }
