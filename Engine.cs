@@ -178,7 +178,7 @@
                   }
                case "depth":
                   {
-                     Timer.MaxDepth = Math.Min(int.Parse(command[1]), Constants.MAX_PLY);
+                     Timer.MaxDepth = Math.Clamp(int.Parse(command[1]), 1, Constants.MAX_PLY - 1);
                      break;
                   }
                case "nodes":
@@ -189,7 +189,7 @@
             }
          }
 
-         if (!movetime && Timer.MaxDepth == Constants.MAX_PLY && Timer.NodeLimit == 0)
+         if (!movetime && Timer.MaxDepth == Constants.MAX_PLY - 1 && Timer.NodeLimit == 0)
          {
             Timer.SetTimeLimit(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, false);
          }
