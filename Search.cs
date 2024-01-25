@@ -228,12 +228,15 @@
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
+         Move[] quietMoves = new Move[100];
+         int quietMovesCount = 0;
 
          MovePicker moves = new(Board, ThreadInfo, ply, TTable);
 
          while (moves.Next())
          {
-            if (!isPVNode && !inCheck && !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion))
+            bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
+            if (!isPVNode && !inCheck && isQuiet)
             {
                // Futility pruning
                if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
@@ -304,7 +307,7 @@
             {
                flag = HashFlag.Beta;
 
-               if (!moves.Move.HasType(MoveType.Capture))
+               if (isQuiet)
                {
                   if (moves.Move != ThreadInfo.KillerMoves[ply][0])
                   {
@@ -313,9 +316,25 @@
                   }
 
                   ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, depth * depth);
+
+                  // Reduce history score for other quiet moves
+                  for (int i = 0; i < quietMovesCount; i++)
+                  {
+                     if (quietMoves[i] == moves.Move)
+                     {
+                        continue;
+                     }
+
+                     ThreadInfo.UpdateHistory(Board.SideToMove, quietMoves[i], -depth * depth);
+                  }
                }
 
                break;
+            }
+
+            if (isQuiet)
+            {
+               quietMoves[quietMovesCount++] = moves.Move;
             }
 
             b = alpha + 1;
