@@ -269,6 +269,7 @@
                   R -= 1;
                }
 
+               // Moves that do not beat the current best value (alpha) are cut-off. Moves that do will be researched below
                if (-NegaScout(-alpha - 1, -alpha, depth - 1 - Math.Max(0, R) + E, ply + 1) <= alpha)
                {
                   Board.UndoMove(moves.Move);
@@ -276,8 +277,11 @@
                }
             }
 
+            // First move of leftmost nodes get searched with a full window (because b = beta)
+            // Subsequent moves get searched with a null window (b = alpha + 1)
             int score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1);
 
+            // After the first legal move, if the intial search (above) fails high or low, research with the full window
             if (score > alpha && score < beta && legalMoves > 1)
             {
                score = -NegaScout(-beta, -alpha, depth - 1 + E, ply + 1);
@@ -337,6 +341,7 @@
                quietMoves[quietMovesCount++] = moves.Move;
             }
 
+            // Adjust null window
             b = alpha + 1;
          }
 
