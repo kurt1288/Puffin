@@ -374,6 +374,20 @@
             return 0;
          }
 
+         if (ply > 0)
+         {
+            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
+
+            if (entry.HasValue
+               && (entry.Value.Flag == HashFlag.Exact
+               || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
+               || entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha
+               ))
+            {
+               return entry.Value.Score;
+            }
+         }
+
          int bestScore = Evaluation.Evaluate(Board);
 
          if (bestScore >= beta)
@@ -385,6 +399,8 @@
             alpha = bestScore;
          }
 
+         Move bestMove = new();
+         HashFlag flag = HashFlag.Alpha;
          MovePicker moves = new(Board, ThreadInfo, ply, TTable, true);
 
          while (moves.Next())
@@ -415,18 +431,23 @@
             if (score > bestScore)
             {
                bestScore = score;
+               bestMove = moves.Move;
             }
 
             if (score > alpha)
             {
                alpha = score;
+               flag = HashFlag.Exact;
             }
 
             if (score >= beta)
             {
+               flag = HashFlag.Beta;
                break;
             }
          }
+
+         TTable.SaveEntry(Board.Hash, 0, ply, bestMove.GetEncoded(), bestScore, flag);
 
          return bestScore;
       }
