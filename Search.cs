@@ -173,12 +173,12 @@
             return 0;
          }
 
+         bool isPVNode = beta != alpha + 1;
+
          if (depth <= 0)
          {
-            return Quiescence(alpha, beta, ply);
+            return Quiescence(alpha, beta, ply, isPVNode);
          }
-
-         bool isPVNode = beta != alpha + 1;
 
          if (!isPVNode && ply > 0)
          {
@@ -362,7 +362,7 @@
          return bestScore;
       }
 
-      private int Quiescence(int alpha, int beta, int ply)
+      private int Quiescence(int alpha, int beta, int ply, bool isPVNode)
       {
          if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
          {
@@ -374,7 +374,7 @@
             return 0;
          }
 
-         if (ply > 0)
+         if (!isPVNode)
          {
             TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
 
@@ -419,7 +419,7 @@
 
             ThreadInfo.Nodes += 1;
 
-            int score = -Quiescence(-beta, -alpha, ply + 1);
+            int score = -Quiescence(-beta, -alpha, ply + 1, isPVNode);
 
             Board.UndoMove(moves.Move);
 
