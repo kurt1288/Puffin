@@ -67,5 +67,7 @@ namespace Puffin
       public static Bitboard operator &(Bitboard a, ulong b) => new(a.Value & b);
       public static Bitboard operator &(Bitboard a, Bitboard b) => new(a.Value & b.Value);
       public static Bitboard operator |(Bitboard a, Bitboard b) => new(a.Value | b.Value);
+      public static bool operator ==(Bitboard a, Bitboard b) => a.Value == b.Value;
+      public static bool operator !=(Bitboard a, Bitboard b) => a.Value != b.Value;
    }
 }

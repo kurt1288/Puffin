@@ -528,6 +528,12 @@ namespace Puffin
          return new Bitboard(PieceBB[(int)piece].Value & ColorBB[(int)color].Value).GetLSB();
       }
 
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public Bitboard MinorPieces(Color color)
+      {
+         return (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)color].Value;
+      }
+
       public bool IsAttacked(int square, int color)
       {
          if ((Attacks.PawnAttacks[color ^ 1][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[color].Value) != 0)
@@ -565,42 +571,54 @@ namespace Puffin
 
       public bool IsDrawn()
       {
+         // No draw if there are pawns or major pieces left
+         if (PieceBB[(int)PieceType.Pawn].CountBits() != 0 || PieceBB[(int)PieceType.Rook].CountBits() != 0 || PieceBB[(int)PieceType.Queen].CountBits() != 0)
+         {
+            return false;
+         }
+
          // Only kings
-         if (PieceBB[(int)PieceType.King].Value == (ColorBB[(int)Color.White].Value | PieceBB[(int)PieceType.King].Value))
+         if ((ColorBB[(int)Color.White] | ColorBB[(int)Color.Black]).CountBits() == 2)
          {
             return true;
          }
 
-         // One side has only a king left
-         if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.White].Value))
+         // White only has 1 king left, check what black pieces are left
+         if (ColorBB[(int)Color.White].CountBits() == 1)
          {
-            Bitboard minorPieces = (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)Color.Black].Value;
-
-            // Other side only has a king and 1 minor piece
-            if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value | minorPieces.Value) && minorPieces.CountBits() == 1)
+            // Only 1 minor piece
+            if (MinorPieces(Color.Black).CountBits() == 1)
             {
                return true;
             }
-         }
-         else if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.Black].Value))
-         {
-            Bitboard minorPieces = (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)Color.White].Value;
-
-            // Other side only has a king and 1 minor piece
-            if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value | minorPieces.Value) && minorPieces.CountBits() == 1)
+            // Only two knights
+            else if (MinorPieces(Color.Black).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.Black]).CountBits() == 0)
             {
                return true;
             }
          }
 
-         // Both sides have a king and a bishop, and both bishops are on the same color square
-         if ((ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value) == (PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value))
+         // Black only has 1 king left, check what white pieces are left
+         else if (ColorBB[(int)Color.Black].CountBits() == 1)
          {
-            int whiteBishop = (ColorBB[(int)Color.White] & PieceBB[(int)PieceType.Bishop]).GetLSB();
-            int blackBishop = (ColorBB[(int)Color.Black] & PieceBB[(int)PieceType.Bishop]).GetLSB();
+            // Only 1 minor piece
+            if (MinorPieces(Color.White).CountBits() == 1)
+            {
+               return true;
+            }
+            // Only two knights
+            else if (MinorPieces(Color.White).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.White]).CountBits() == 0)
+            {
+               return true;
+            }
+         }
 
-            // returns true if squares are the same color
-            return ((9 * (whiteBishop ^ blackBishop)) & 8) == 0;
+         // Both sides only have a king and 1 minor piece
+         else if (ColorBB[(int)Color.White].CountBits() == 2 && ColorBB[(int)Color.Black].CountBits() == 2)
+         {
+            // We've already returned false if there are pawns, rooks, or queens on the board
+            // so the 2nd piece has to be a minor piece
+            return true;
          }
 
          return false;
