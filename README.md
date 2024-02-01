@@ -11,7 +11,7 @@ Puffin is a UCI-compatible chess engine written in C#.
 Download the latest version [here](https://github.com/kurt1288/Puffin/releases/latest). Only use the legacy executable
 if your CPU does not support PEXT instructions.
 
-If you want to compile it yourself, the only prerequisite is the [.NET 7 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/7.0).
+If you want to compile it yourself, the only prerequisite is the [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 
 ## Usage
 
