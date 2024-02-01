@@ -4,12 +4,13 @@ namespace Puffin
 {
    internal class TimeManager : ICloneable
    {
-      public int MaxDepth = Constants.MAX_PLY;
+      public int MaxDepth = Constants.MAX_PLY - 1;
 
       bool stopped = false;
       bool infititeTime = true;
       double SoftLimit = 0;
       double HardLimit = 0;
+      public int NodeLimit { get; private set; } = 0;
       readonly Stopwatch StopWatch = new();
 
       public TimeManager() { }
@@ -20,6 +21,7 @@ namespace Puffin
          infititeTime = other.infititeTime;
          SoftLimit = other.SoftLimit;
          HardLimit = other.HardLimit;
+         NodeLimit = other.NodeLimit;
          StopWatch = new();
       }
 
@@ -49,6 +51,12 @@ namespace Puffin
          }
       }
 
+      public void SetNodeLimit(int nodeLimit)
+      {
+         infititeTime = false;
+         NodeLimit = nodeLimit;
+      }
+
       public void Start()
       {
          StopWatch.Start();
@@ -61,12 +69,19 @@ namespace Puffin
          stopped = true;
       }
 
+      public void Restart()
+      {
+         StopWatch.Reset();
+         Start();
+      }
+
       public void Reset()
       {
-         MaxDepth = Constants.MAX_PLY;
+         MaxDepth = Constants.MAX_PLY - 1;
          infititeTime = true;
          SoftLimit = 0;
          HardLimit = 0;
+         NodeLimit = 0;
          StopWatch.Reset();
       }
 
@@ -85,12 +100,12 @@ namespace Puffin
          {
             return true;
          }
-         else if (newIteration && StopWatch.ElapsedMilliseconds >= SoftLimit)
+         else if (SoftLimit > 0 && newIteration && StopWatch.ElapsedMilliseconds >= SoftLimit)
          {
             Stop();
             return true;
          }
-         else if (StopWatch.ElapsedMilliseconds >= HardLimit)
+         else if ((HardLimit > 0 && StopWatch.ElapsedMilliseconds >= HardLimit))
          {
             Stop();
             return true;

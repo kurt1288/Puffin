@@ -9,6 +9,7 @@ namespace Puffin
       public int Nodes;
       public readonly Move[][] KillerMoves = new Move[Constants.MAX_PLY][];
       public readonly int[] HistoryScores = new int[2 * 64 * 64];
+      public int Score = -Constants.INFINITY;
 
       public SearchInfo()
       {
@@ -16,6 +17,7 @@ namespace Puffin
          Pv = new Move[Constants.MAX_PLY][];
          PvLength = new int[Constants.MAX_PLY];
          Nodes = 0;
+         Score = -Constants.INFINITY;
 
          for (int i = 0; i < Constants.MAX_PLY; i++)
          {
@@ -29,6 +31,7 @@ namespace Puffin
          Pv = new Move[Constants.MAX_PLY][];
          PvLength = new int[Constants.MAX_PLY];
          Nodes = 0;
+         Score = -Constants.INFINITY;
 
          for (int i = 0; i < Constants.MAX_PLY; i++)
          {

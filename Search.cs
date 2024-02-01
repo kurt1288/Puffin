@@ -88,6 +88,13 @@
          // Iterative deepening
          for (int i = 1; i <= Time.MaxDepth && (stop = Time.LimitReached(true)) != true; i++)
          {
+            if (Time.NodeLimit > 0 && ThreadInfo.Nodes >= Time.NodeLimit)
+            {
+               stop = true;
+               Time.Stop();
+               break;
+            }
+
             int margin = ASP_Margin;
 
             // Use aspiration windows at higher depths
@@ -99,7 +106,7 @@
 
             while (true)
             {
-               if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+               if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
                {
                   stop = true;
                   break;
@@ -107,7 +114,7 @@
 
                try
                {
-                  score = NegaScout(alpha, beta, i, 0, false);
+                  score = ThreadInfo.Score = NegaScout(alpha, beta, i, 0, false);
                }
                catch (TimeoutException)
                {
@@ -149,7 +156,7 @@
 
       private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull = true)
       {
-         if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
          {
             throw new TimeoutException();
          }
@@ -166,12 +173,12 @@
             return 0;
          }
 
+         bool isPVNode = beta != alpha + 1;
+
          if (depth <= 0)
          {
-            return Quiescence(alpha, beta, ply);
+            return Quiescence(alpha, beta, ply, isPVNode);
          }
-
-         bool isPVNode = beta != alpha + 1;
 
          if (!isPVNode && ply > 0)
          {
@@ -221,12 +228,15 @@
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
+         Move[] quietMoves = new Move[100];
+         int quietMovesCount = 0;
 
          MovePicker moves = new(Board, ThreadInfo, ply, TTable);
 
          while (moves.Next())
          {
-            if (!isPVNode && !inCheck && !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion))
+            bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
+            if (!isPVNode && !inCheck && isQuiet)
             {
                // Futility pruning
                if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
@@ -247,13 +257,19 @@
 
             if (depth > LMR_Depth && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
             {
-               int R = 1 + depth / 4;
+               int R = Constants.LMR_Reductions[depth][legalMoves];
 
-               if (isPVNode)
+               if (!isPVNode)
+               {
+                  R += 1;
+               }
+
+               if (Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1))
                {
                   R -= 1;
                }
 
+               // Moves that do not beat the current best value (alpha) are cut-off. Moves that do will be researched below
                if (-NegaScout(-alpha - 1, -alpha, depth - 1 - Math.Max(0, R) + E, ply + 1) <= alpha)
                {
                   Board.UndoMove(moves.Move);
@@ -261,8 +277,11 @@
                }
             }
 
+            // First move of leftmost nodes get searched with a full window (because b = beta)
+            // Subsequent moves get searched with a null window (b = alpha + 1)
             int score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1);
 
+            // After the first legal move, if the intial search (above) fails high or low, research with the full window
             if (score > alpha && score < beta && legalMoves > 1)
             {
                score = -NegaScout(-beta, -alpha, depth - 1 + E, ply + 1);
@@ -270,7 +289,7 @@
 
             Board.UndoMove(moves.Move);
 
-            if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+            if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
             {
                throw new TimeoutException();
             }
@@ -292,7 +311,7 @@
             {
                flag = HashFlag.Beta;
 
-               if (!moves.Move.HasType(MoveType.Capture))
+               if (isQuiet)
                {
                   if (moves.Move != ThreadInfo.KillerMoves[ply][0])
                   {
@@ -301,11 +320,28 @@
                   }
 
                   ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, depth * depth);
+
+                  // Reduce history score for other quiet moves
+                  for (int i = 0; i < quietMovesCount; i++)
+                  {
+                     if (quietMoves[i] == moves.Move)
+                     {
+                        continue;
+                     }
+
+                     ThreadInfo.UpdateHistory(Board.SideToMove, quietMoves[i], -depth * depth);
+                  }
                }
 
                break;
             }
 
+            if (isQuiet)
+            {
+               quietMoves[quietMovesCount++] = moves.Move;
+            }
+
+            // Adjust null window
             b = alpha + 1;
          }
 
@@ -326,9 +362,9 @@
          return bestScore;
       }
 
-      private int Quiescence(int alpha, int beta, int ply)
+      private int Quiescence(int alpha, int beta, int ply, bool isPVNode)
       {
-         if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
          {
             throw new TimeoutException();
          }
@@ -336,6 +372,20 @@
          if (ply >= Constants.MAX_PLY)
          {
             return 0;
+         }
+
+         if (!isPVNode)
+         {
+            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
+
+            if (entry.HasValue
+               && (entry.Value.Flag == HashFlag.Exact
+               || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
+               || entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha
+               ))
+            {
+               return entry.Value.Score;
+            }
          }
 
          int bestScore = Evaluation.Evaluate(Board);
@@ -349,10 +399,18 @@
             alpha = bestScore;
          }
 
+         Move bestMove = new();
+         HashFlag flag = HashFlag.Alpha;
          MovePicker moves = new(Board, ThreadInfo, ply, TTable, true);
 
          while (moves.Next())
          {
+            // Delta pruning
+            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Mailbox[moves.Move.GetTo()].Type, Board) + 200 < alpha)
+            {
+               continue;
+            }
+
             if (!Board.MakeMove(moves.Move))
             {
                Board.UndoMove(moves.Move);
@@ -361,11 +419,11 @@
 
             ThreadInfo.Nodes += 1;
 
-            int score = -Quiescence(-beta, -alpha, ply + 1);
+            int score = -Quiescence(-beta, -alpha, ply + 1, isPVNode);
 
             Board.UndoMove(moves.Move);
 
-            if (ThreadInfo.Nodes % 2048 == 0 && Time.LimitReached(false))
+            if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
             {
                throw new TimeoutException();
             }
@@ -373,23 +431,28 @@
             if (score > bestScore)
             {
                bestScore = score;
+               bestMove = moves.Move;
             }
 
             if (score > alpha)
             {
                alpha = score;
+               flag = HashFlag.Exact;
             }
 
             if (score >= beta)
             {
+               flag = HashFlag.Beta;
                break;
             }
          }
 
+         TTable.SaveEntry(Board.Hash, 0, ply, bestMove.GetEncoded(), bestScore, flag);
+
          return bestScore;
       }
 
-      private bool IsRepeated()
+      public bool IsRepeated()
       {
          if (Board.Halfmoves < 4 || Board.GameHistory.Count <= 1)
          {
@@ -398,7 +461,7 @@
 
          int last = Math.Max(Board.GameHistory.Count - Board.Halfmoves, 0);
 
-         for (int i = Board.GameHistory.Count - 2; i >= last; i -= 2)
+         for (int i = Board.GameHistory.Count - 4; i >= last; i -= 2)
          {
             if (Board.GameHistory.Stack[i].Hash == Board.Hash)
             {

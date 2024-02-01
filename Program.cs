@@ -3,7 +3,7 @@ using Puffin.Tuner;
 using System.Runtime.Intrinsics.X86;
 
 const string Name = "Puffin";
-const string Version = "1.0.0";
+const string Version = "2.0";
 const string Author = "Kurt Peters";
 
 // These intrinsics aren't required. If they're not supported BitOperations will fall back to whatever is.
@@ -37,8 +37,15 @@ if (args.Length != 0)
       if (arg == "tune")
       {
          int epochs = int.Parse(args[i + 1]);
-         Tuner tuner = new(engine);
+         Tuner tuner = new();
          tuner.Run(epochs);
+         break;
+      }
+      else if (arg == "datagen")
+      {
+         Datagen datagen = new();
+         Datagen.Run(int.Parse(args[i + 1]));
+         Environment.Exit(100);
          break;
       }
    }

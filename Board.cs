@@ -528,6 +528,12 @@ namespace Puffin
          return new Bitboard(PieceBB[(int)piece].Value & ColorBB[(int)color].Value).GetLSB();
       }
 
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public Bitboard MinorPieces(Color color)
+      {
+         return (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)color].Value;
+      }
+
       public bool IsAttacked(int square, int color)
       {
          if ((Attacks.PawnAttacks[color ^ 1][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[color].Value) != 0)
@@ -558,6 +564,127 @@ namespace Puffin
          if ((Attacks.GetRookAttacks(square, occupied) & rookQueens) != 0)
          {
             return true;
+         }
+
+         return false;
+      }
+
+      public bool IsDrawn()
+      {
+         // No draw if there are pawns or major pieces left
+         if (PieceBB[(int)PieceType.Pawn].CountBits() != 0 || PieceBB[(int)PieceType.Rook].CountBits() != 0 || PieceBB[(int)PieceType.Queen].CountBits() != 0)
+         {
+            return false;
+         }
+
+         // Only kings
+         if ((ColorBB[(int)Color.White] | ColorBB[(int)Color.Black]).CountBits() == 2)
+         {
+            return true;
+         }
+
+         // White only has 1 king left, check what black pieces are left
+         if (ColorBB[(int)Color.White].CountBits() == 1)
+         {
+            // Only 1 minor piece
+            if (MinorPieces(Color.Black).CountBits() == 1)
+            {
+               return true;
+            }
+            // Only two knights
+            else if (MinorPieces(Color.Black).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.Black]).CountBits() == 0)
+            {
+               return true;
+            }
+         }
+
+         // Black only has 1 king left, check what white pieces are left
+         else if (ColorBB[(int)Color.Black].CountBits() == 1)
+         {
+            // Only 1 minor piece
+            if (MinorPieces(Color.White).CountBits() == 1)
+            {
+               return true;
+            }
+            // Only two knights
+            else if (MinorPieces(Color.White).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.White]).CountBits() == 0)
+            {
+               return true;
+            }
+         }
+
+         // Both sides only have a king and 1 minor piece
+         else if (ColorBB[(int)Color.White].CountBits() == 2 && ColorBB[(int)Color.Black].CountBits() == 2)
+         {
+            // We've already returned false if there are pawns, rooks, or queens on the board
+            // so the 2nd piece has to be a minor piece
+            return true;
+         }
+
+         return false;
+      }
+
+      public bool IsWon()
+      {
+         // One side has only a king left
+         if (ColorBB[(int)Color.White].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.White].Value))
+         {
+            // Other side only has a king and either a rook or queen
+            if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Queen].Value) & ColorBB[(int)Color.Black].Value))
+            {
+               return true;
+            }
+            else if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Rook].Value) & ColorBB[(int)Color.Black].Value))
+            {
+               return true;
+            }
+            // 2 bishops, on different color squares?
+            else if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value) & ColorBB[(int)Color.Black].Value)
+               && PieceBB[(int)PieceType.Bishop].CountBits() == 2)
+            {
+               int sq1 = PieceBB[(int)PieceType.Bishop].GetLSB();
+               int sq2 = PieceBB[(int)PieceType.Bishop].GetMSB();
+
+               return ((9 * (sq1 ^ sq2)) & 8) != 0;
+            }
+            // bishop + knight
+            else if (ColorBB[(int)Color.Black].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Knight].Value) & ColorBB[(int)Color.Black].Value))
+            {               
+               if (PieceBB[(int)PieceType.Knight].CountBits() == 1 && PieceBB[(int)PieceType.Bishop].CountBits() == 1)
+               {
+                  return true;
+               }
+
+               return false;
+            }
+         }
+         else if (ColorBB[(int)Color.Black].Value == (PieceBB[(int)PieceType.King].Value & ColorBB[(int)Color.Black].Value))
+         {
+            if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Queen].Value) & ColorBB[(int)Color.White].Value))
+            {
+               return true;
+            }
+            else if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Rook].Value) & ColorBB[(int)Color.White].Value))
+            {
+               return true;
+            }
+            else if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value) & ColorBB[(int)Color.White].Value)
+               && PieceBB[(int)PieceType.Bishop].CountBits() == 2)
+            {
+               int sq1 = PieceBB[(int)PieceType.Bishop].GetLSB();
+               int sq2 = PieceBB[(int)PieceType.Bishop].GetMSB();
+
+               return ((9 * (sq1 ^ sq2)) & 8) != 0;
+            }
+            else if (ColorBB[(int)Color.White].Value == ((PieceBB[(int)PieceType.King].Value | PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Knight].Value) & ColorBB[(int)Color.White].Value))
+            {
+               if (PieceBB[(int)PieceType.Knight].CountBits() == 1 && PieceBB[(int)PieceType.Bishop].CountBits() == 1)
+               {
+                  return true;
+               }
+
+               return false;
+            }
          }
 
          return false;

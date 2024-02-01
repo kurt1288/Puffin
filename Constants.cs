@@ -12,6 +12,10 @@ namespace Puffin
 
       public readonly static ulong[] SquareBB = new ulong[64];
       public readonly static ulong[][] BetweenBB = new ulong[64][];
+      public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
+      public readonly static int[][] TaxiDistance = new int[64][];
+
+      public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
 
       public readonly static ImmutableArray<ulong> FILE_MASKS = ImmutableArray.Create<ulong>(
          0x101010101010101,
@@ -42,6 +46,20 @@ namespace Puffin
          long a2a7 = 0x0001010101010100;
          long b2g7 = 0x0040201008040200;
          long h1b7 = 0x0002040810204080;
+         ulong notFileA = ~FILE_MASKS[(int)File.A];
+         ulong notFileH = ~FILE_MASKS[(int)File.H];
+         PassedPawnMasks[(int)Color.White] = new ulong[64];
+         PassedPawnMasks[(int)Color.Black] = new ulong[64];
+
+         for (int depth = 0; depth < MAX_PLY; depth++)
+         {
+            LMR_Reductions[depth] = new int[218];
+
+            for (int moves = 0; moves < 218; moves++)
+            {
+               LMR_Reductions[depth][moves] = (int)(0.85 + Math.Log(depth) * Math.Log(moves) * 0.3);
+            }
+         }
 
          for (int i = 0; i < 64; i++)
          {
@@ -50,6 +68,20 @@ namespace Puffin
 
             SquareBB[i] = board.Value;
             BetweenBB[i] = new ulong[64];
+            TaxiDistance[i] = new int[64];
+
+            PassedPawnMasks[(int)Color.White][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
+            PassedPawnMasks[(int)Color.Black][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
+
+            for (int j = 7 - (i >> 3); j >= 0; j--)
+            {
+               PassedPawnMasks[(int)Color.White][i] &= ~RANK_MASKS[j];
+            }
+
+            for (int j = 7 - (i >> 3); j <= 7; j++)
+            {
+               PassedPawnMasks[(int)Color.Black][i] &= ~RANK_MASKS[j];
+            }
 
             for (int j = 0; j < 64; j++)
             {
@@ -63,6 +95,7 @@ namespace Puffin
                line *= between & -between;
 
                BetweenBB[i][j] = (ulong)(line & between);
+               TaxiDistance[i][j] = Math.Abs((j >> 3) - (i >> 3)) + Math.Abs((j & 7) - (i & 7));
             }
          }
       }
