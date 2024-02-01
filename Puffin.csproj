@@ -7,6 +7,12 @@
 		<Nullable>enable</Nullable>
 		<Platforms>AnyCPU;x64</Platforms>
 		<Configurations>Debug;Release;Legacy;DebugLegacy</Configurations>
+		<Optimize>True</Optimize>
+		<TieredCompilation>false</TieredCompilation>
+		<Authors>Kurt Peters</Authors>
+		<Version>2.0</Version>
+		<AssemblyVersion>2.0</AssemblyVersion>
+		<PackageProjectUrl>https://github.com/kurt1288/Puffin</PackageProjectUrl>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -20,22 +26,13 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-		<Optimize>True</Optimize>
-		<TieredCompilation>false</TieredCompilation>
-		<Authors>Kurt Peters</Authors>
-		<Version>2</Version>
-		<PackageProjectUrl>https://github.com/kurt1288/Puffin</PackageProjectUrl>
 		<DefineConstants>Pext</DefineConstants>
+		<AssemblyName>$(MSBuildProjectName)-$(AssemblyVersion)</AssemblyName>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Legacy|x64'">
-		<Optimize>True</Optimize>
-		<TieredCompilation>false</TieredCompilation>
-		<Authors>Kurt Peters</Authors>
-		<Version>2</Version>
-		<PackageProjectUrl>https://github.com/kurt1288/Puffin</PackageProjectUrl>
 		<DefineConstants>Legacy</DefineConstants>
-		<AssemblyName>Puffin_Legacy</AssemblyName>
+		<AssemblyName>Puffin_Legacy-$(AssemblyVersion)</AssemblyName>
 	</PropertyGroup>
 
 </Project>
