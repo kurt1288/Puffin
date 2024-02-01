@@ -23,7 +23,7 @@
 		<Optimize>True</Optimize>
 		<TieredCompilation>false</TieredCompilation>
 		<Authors>Kurt Peters</Authors>
-		<Version>1.0.0</Version>
+		<Version>2</Version>
 		<PackageProjectUrl>https://github.com/kurt1288/Puffin</PackageProjectUrl>
 		<DefineConstants>Pext</DefineConstants>
 	</PropertyGroup>
@@ -32,7 +32,7 @@
 		<Optimize>True</Optimize>
 		<TieredCompilation>false</TieredCompilation>
 		<Authors>Kurt Peters</Authors>
-		<Version>1.0.0</Version>
+		<Version>2</Version>
 		<PackageProjectUrl>https://github.com/kurt1288/Puffin</PackageProjectUrl>
 		<DefineConstants>Legacy</DefineConstants>
 		<AssemblyName>Puffin_Legacy</AssemblyName>

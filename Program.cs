@@ -3,7 +3,7 @@ using Puffin.Tuner;
 using System.Runtime.Intrinsics.X86;
 
 const string Name = "Puffin";
-const string Version = "1.0.0";
+const string Version = "2";
 const string Author = "Kurt Peters";
 
 // These intrinsics aren't required. If they're not supported BitOperations will fall back to whatever is.
