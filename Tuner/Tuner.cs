@@ -251,9 +251,10 @@ namespace Puffin.Tuner
                Console.WriteLine($"Epoch: {epoch}, EPS: {1000 * (long)epoch / timer.ElapsedMilliseconds}, error: {bestError}, E: {bestError - avgError}, Time: {timer.Elapsed:hh\\:mm\\:ss}. Remaining: {TimeSpan.FromMilliseconds((maxEpochs - epoch) * (timer.ElapsedMilliseconds / epoch)):hh\\:mm\\:ss}");
             }
 
-            epoch += 1;
+            epoch++;
          }
 
+         timer.Stop();
          PrintResults();
          Console.WriteLine("Completed");
          Environment.Exit(100);
@@ -263,12 +264,16 @@ namespace Puffin.Tuner
       {
          ConcurrentBag<ParameterWeight[]> newGradients = new();
 
-         Parallel.For(0, entries.Length, () => new ParameterWeight[Parameters.Length],
+         Parallel.ForEach(
+            entries,
+            () => new ParameterWeight[Parameters.Length],
             (j, loop, localGradients) =>
             {
-               UpdateSingleGradient(entries[j], K, ref localGradients);
+               UpdateSingleGradient(j, K, ref localGradients);
                return localGradients;
-            }, newGradients.Add);
+            },
+            newGradients.Add
+         );
 
          foreach (var grad in newGradients)
          {
@@ -276,21 +281,6 @@ namespace Puffin.Tuner
             {
                gradients[n] += grad[n];
             }
-         }
-      }
-
-      private void UpdateSingleGradientTest(Entry entry, double K, ref double[][] gradient)
-      {
-         double sig = Sigmoid(K, Evaluate(entry));
-         double res = (entry.Result - sig) * sig * (1.0 - sig);
-
-         double mg_base = res * (entry.Phase / 24);
-         double eg_base = res - mg_base;
-
-         foreach (CoefficientEntry coef in entry.Coefficients)
-         {
-            gradient[coef.Index][0] += mg_base * coef.Value;
-            gradient[coef.Index][1] += eg_base * coef.Value;
          }
       }
 
@@ -332,13 +322,16 @@ namespace Puffin.Tuner
       {
          double sum = 0;
 
-         Parallel.For(0, entries.Length, () => 0.0,
+         Parallel.ForEach(
+            entries,
+            () => 0.0,
             (j, loop, subtotal) =>
             {
-               subtotal += Math.Pow(entries[j].Result - Sigmoid(K, Evaluate(entries[j])), 2);
+               subtotal += Math.Pow(j.Result - Sigmoid(K, Evaluate(j)), 2);
                return subtotal;
             },
-            subtotal => Add(ref sum, subtotal));
+            subtotal => Add(ref sum, subtotal)
+         );
 
          return sum / entries.Length;
       }
@@ -405,13 +398,11 @@ namespace Puffin.Tuner
 
                (Trace trace, double phase) = GetEval(board);
 
-               entries[lines] = new(GetCoefficients(trace), phase, GetEntryResult(line));
+               entries[lines++] = new(GetCoefficients(trace), phase, GetEntryResult(line));
 
-               lines++;
                Console.Write($"\rPositions loaded: {lines}/{totalLines} {100 * (long)lines / totalLines}% | {sw.Elapsed}");
-               board.Reset();
 
-               // Force garbage collection every 1 million lines. This seems to help with memory issues.
+               //Force garbage collection every 1 million lines. This seems to help with memory issues.
                if (lines % 1000000 == 0)
                {
                   GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
@@ -431,24 +422,7 @@ namespace Puffin.Tuner
 
          if (match.Success)
          {
-            string result = match.Groups[1].Value;
-
-            if (result == "1.0")
-            {
-               return 1.0;
-            }
-            else if (result == "0.5")
-            {
-               return 0.5;
-            }
-            else if (result == "0.0")
-            {
-               return 0.0;
-            }
-            else
-            {
-               throw new Exception($"Unknown fen result: {result}");
-            }
+            return Convert.ToDouble(match.Groups[1].Value);
          }
          else
          {
@@ -715,11 +689,11 @@ namespace Puffin.Tuner
 
       private void AddCoefficientsAndEntries(ref List<CoefficientEntry> entryCoefficients, double[][] trace, int size, ref int currentIndex)
       {
-         for (int i = 0; i < size; i++)
+         foreach (var item in trace)
          {
-            if ((short)(trace[i][0] - trace[i][1]) != 0)
+            if ((short)(item[0] - item[1]) != 0)
             {
-               entryCoefficients.Add(new CoefficientEntry((short)(trace[i][0] - trace[i][1]), currentIndex));
+               entryCoefficients.Add(new CoefficientEntry((short)(item[0] - item[1]), currentIndex));
             }
             currentIndex++;
          }

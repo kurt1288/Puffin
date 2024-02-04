@@ -25,29 +25,29 @@ namespace Puffin
       {
          for (int i = 0; i < Mailbox.Length; i++)
          {
-            Mailbox[i] = new Piece();
+            Mailbox[i].Reset();
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
          {
-            ColorBB[i] = new Bitboard();
+            ColorBB[i].Reset();
          }
 
          for (int i = 0; i < PieceBB.Length; i++)
          {
-            PieceBB[i] = new Bitboard();
+            PieceBB[i].Reset();
          }
 
+         GameHistory.Reset();
          SideToMove = Color.Null;
          En_Passant = Square.Null;
          CastleSquares = 0;
-         GameHistory = new();
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
          MaterialValue[(int)Color.White] = new Score(0, 0);
          MaterialValue[(int)Color.Black] = new Score(0, 0);
-         Hash = new();
+         Hash = 0;
       }
 
       public Board(Board other)
@@ -75,7 +75,7 @@ namespace Puffin
       {
          for (int i = 0; i < Mailbox.Length; i++)
          {
-            Mailbox[i] = new Piece();
+            Mailbox[i].Reset();
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
@@ -88,16 +88,16 @@ namespace Puffin
             PieceBB[i].Reset();
          }
 
+         GameHistory.Reset();
          SideToMove = Color.Null;
          En_Passant = Square.Null;
          CastleSquares = 0;
-         GameHistory = new();
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
          MaterialValue[(int)Color.White] = new Score(0, 0);
          MaterialValue[(int)Color.Black] = new Score(0, 0);
-         Hash = new();
+         Hash = 0;
       }
 
       public void SetPosition(string fen)
