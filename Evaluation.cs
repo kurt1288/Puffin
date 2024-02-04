@@ -20,13 +20,7 @@ namespace Puffin
          ];
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
 
-         Bitboard[] pawns = [
-            board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.White],
-            board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.Black]
-         ];
-
-         Pawns(Color.White, pawns[(int)Color.White], pawns[(int)Color.Black], kingSquares, ref mobilitySquares, ref score);
-         Pawns(Color.Black, pawns[(int)Color.Black], pawns[(int)Color.White], kingSquares, ref mobilitySquares, ref score);
+         Pawns(board, kingSquares, ref mobilitySquares, ref score);
          Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount);
          Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied);
          Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied);
@@ -181,44 +175,45 @@ namespace Puffin
          }
       }
 
-      private static void Pawns(Color color, Bitboard friendlyPawns, Bitboard enemyPawns, int[] kingSquares, ref ulong[] mobilitySquares, ref Score score)
+      private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ref Score score)
       {
-         Bitboard pawns = friendlyPawns;
-         int defender = 0;
-         int connected = 0;
+         Bitboard pawns = board.PieceBB[(int)PieceType.Pawn];
+         Bitboard[] colorPawns = [pawns & board.ColorBB[(int)Color.White], pawns & board.ColorBB[(int)Color.Black]];
+         int[] defender = [0, 0];
+         int[] connected = [0, 0];
 
          while (!pawns.IsEmpty())
          {
             int square = pawns.GetLSB();
+            Color color = board.Mailbox[square].Color;
             pawns.ClearLSB();
-            int rank = color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3);
             mobilitySquares[(int)color ^ 1] |= Attacks.PawnAttacks[(int)color][square];
 
             // Passed pawns
-            if ((Constants.PassedPawnMasks[(int)color][square] & enemyPawns.Value) == 0)
+            if ((Constants.PassedPawnMasks[(int)color][square] & colorPawns[(int)color ^ 1].Value) == 0)
             {
-               score += PassedPawn[rank - 1] * (1 - 2 * (int)color);
+               score += PassedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1] * (1 - 2 * (int)color);
                score += Constants.TaxiDistance[square][kingSquares[(int)color]] * FriendlyKingPawnDistance * (1 - 2 * (int)color);
                score += Constants.TaxiDistance[square][kingSquares[(int)color ^ 1]] * EnemyKingPawnDistance * (1 - 2 * (int)color);
             }
 
             // Defending pawn
-            if ((Attacks.PawnAttacks[(int)color][square] & friendlyPawns.Value) != 0)
+            if ((Attacks.PawnAttacks[(int)color][square] & colorPawns[(int)color].Value) != 0)
             {
-               defender++;
+               defender[(int)color]++;
             }
 
             // Connected pawn
-            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & friendlyPawns.Value) != 0)
+            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & colorPawns[(int)color].Value) != 0)
             {
-               connected++;
+               connected[(int)color]++;
             }            
          }
 
-         score += DefendedPawn[defender] * (1 - 2 * (int)color);
-         score += ConnectedPawn[connected] * (1 - 2 * (int)color);
-
-         mobilitySquares[(int)color ^ 1] = ~mobilitySquares[(int)color ^ 1];
+         score += DefendedPawn[defender[(int)Color.White]] - DefendedPawn[defender[(int)Color.Black]];
+         score += ConnectedPawn[connected[(int)Color.White]] - ConnectedPawn[connected[(int)Color.Black]];
+         mobilitySquares[(int)Color.White] = ~mobilitySquares[(int)Color.White];
+         mobilitySquares[(int)Color.Black] = ~mobilitySquares[(int)Color.Black];
       }
 
       public static readonly Score[] PieceValues = [
