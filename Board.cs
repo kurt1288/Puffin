@@ -193,9 +193,9 @@ namespace Puffin
       // Returns false if the move is illegal (leaves the king in check)
       public bool MakeMove(Move move)
       {
-         MoveFlag flag = move.GetFlag();
-         int from = move.GetFrom();
-         int to = move.GetTo();
+         MoveFlag flag = move.Flag;
+         int from = move.From;
+         int to = move.To;
          Piece piece = Mailbox[from];
 
          GameHistory.Add(
@@ -367,15 +367,15 @@ namespace Puffin
 
          // if a piece is moving either to or from a rook square, either the rook is moving, being captured, or just not on that square. either way, castling rights
          // on that side are gone.
-         if ((Constants.SquareBB[move.GetFrom()] & CastleSquares) != 0)
+         if ((Constants.SquareBB[move.From] & CastleSquares) != 0)
          {
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.GetFrom()]);
-            CastleSquares &= ~Constants.SquareBB[move.GetFrom()];
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.From]);
+            CastleSquares &= ~Constants.SquareBB[move.From];
          }
-         if ((Constants.SquareBB[move.GetTo()] & CastleSquares) != 0)
+         if ((Constants.SquareBB[move.To] & CastleSquares) != 0)
          {
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.GetTo()]);
-            CastleSquares &= ~Constants.SquareBB[move.GetTo()];
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.To]);
+            CastleSquares &= ~Constants.SquareBB[move.To];
          }
 
          SideToMove = (Color)((int)SideToMove ^ 1);
@@ -430,8 +430,8 @@ namespace Puffin
          Halfmoves = previousState.Halfmoves;
          Fullmoves = previousState.Fullmoves;
 
-         int from = move.GetFrom();
-         int to = move.GetTo();
+         int from = move.From;
+         int to = move.To;
          Piece piece = Mailbox[to];
 
          if (move.HasType(MoveType.Promotion))
@@ -446,7 +446,7 @@ namespace Puffin
 
             Piece rook = new(PieceType.Rook, piece.Color);
 
-            if (move.GetFlag() == MoveFlag.KingCastle)
+            if (move.Flag == MoveFlag.KingCastle)
             {
                RemovePiece(rook, piece.Color == Color.White ? (int)Square.F1 : (int)Square.F8);
                SetPiece(rook, piece.Color == Color.White ? (int)Square.H1 : (int)Square.H8);
@@ -465,7 +465,7 @@ namespace Puffin
 
          if (move.HasType(MoveType.Capture))
          {
-            if (move.GetFlag() == MoveFlag.EPCapture)
+            if (move.Flag == MoveFlag.EPCapture)
             {
                SetPiece(previousState.CapturedPiece, piece.Color == Color.White ? to + 8 : to - 8);
             }
@@ -697,7 +697,7 @@ namespace Puffin
             return false;
          }
 
-         Piece piece = Mailbox[move.GetFrom()];
+         Piece piece = Mailbox[move.From];
 
          // there's no piece to move?
          if (piece.Type == PieceType.Null)
@@ -712,7 +712,7 @@ namespace Puffin
          }
 
          // capturing our own piece?
-         if (Mailbox[move.GetTo()].Color == SideToMove)
+         if (Mailbox[move.To].Color == SideToMove)
          {
             return false;
          }
@@ -720,7 +720,7 @@ namespace Puffin
          // sliding piece trying to slide through pieces?
          if (piece.Type == PieceType.Bishop || piece.Type == PieceType.Rook || piece.Type == PieceType.Queen)
          {
-            if ((Constants.BetweenBB[move.GetFrom()][move.GetTo()] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
+            if ((Constants.BetweenBB[move.From][move.To] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
             {
                return false;
             }

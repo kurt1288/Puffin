@@ -76,12 +76,12 @@ namespace Puffin
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void UpdateHistory(Color color, Move move, int value)
       {
-         HistoryScores[(int)color * 4096 + move.GetFrom() * 64 + move.GetTo()] += value;
+         HistoryScores[(int)color * 4096 + move.From * 64 + move.To] += value;
       }
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetHistory(Color color, Move move)
       {
-         return HistoryScores[(int)color * 4096 + move.GetFrom() * 64 + move.GetTo()];
+         return HistoryScores[(int)color * 4096 + move.From * 64 + move.To];
       }
    }
 }
