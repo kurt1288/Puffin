@@ -58,7 +58,7 @@ namespace Puffin
       {
          Bitboard us = new(board.ColorBB[(int)color].Value);
          Score score = new();
-         while (!us.IsEmpty())
+         while (us)
          {
             int square = us.GetLSB();
             us.ClearLSB();
@@ -73,7 +73,7 @@ namespace Puffin
       {
          Bitboard knightsBB = board.PieceBB[(int)PieceType.Knight];
 
-         while (!knightsBB.IsEmpty())
+         while (knightsBB)
          {
             int square = knightsBB.GetLSB();
             knightsBB.ClearLSB();
@@ -93,7 +93,7 @@ namespace Puffin
       {
          Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
 
-         while (!bishopBB.IsEmpty())
+         while (bishopBB)
          {
             int square = bishopBB.GetLSB();
             bishopBB.ClearLSB();
@@ -113,7 +113,7 @@ namespace Puffin
       {
          Bitboard rookBB = board.PieceBB[(int)PieceType.Rook];
 
-         while (!rookBB.IsEmpty())
+         while (rookBB)
          {
             int square = rookBB.GetLSB();
             rookBB.ClearLSB();
@@ -133,7 +133,7 @@ namespace Puffin
       {
          Bitboard queenBB = board.PieceBB[(int)PieceType.Queen];
 
-         while (!queenBB.IsEmpty())
+         while (queenBB)
          {
             int square = queenBB.GetLSB();
             queenBB.ClearLSB();
@@ -153,7 +153,7 @@ namespace Puffin
       {
          Bitboard kingBB = board.PieceBB[(int)PieceType.King];
 
-         while (!kingBB.IsEmpty())
+         while (kingBB)
          {
             int kingSq = kingBB.GetLSB();
             kingBB.ClearLSB();
@@ -182,7 +182,7 @@ namespace Puffin
          int[] defender = [0, 0];
          int[] connected = [0, 0];
 
-         while (!pawns.IsEmpty())
+         while (pawns)
          {
             int square = pawns.GetLSB();
             Color color = board.Mailbox[square].Color;

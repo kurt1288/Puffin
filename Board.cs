@@ -261,7 +261,7 @@ namespace Puffin
 
                   // Check the path of the king to make sure it isn't moving from check or moving through check
                   Bitboard kingPath = new(Constants.BetweenBB[from][to] | Constants.SquareBB[to] | Constants.SquareBB[from]);
-                  while (!kingPath.IsEmpty())
+                  while (kingPath)
                   {
                      int square = kingPath.GetLSB();
                      kingPath.ClearLSB();
@@ -287,7 +287,7 @@ namespace Puffin
 
                   // Check the path of the king to make sure it isn't moving from check or doesn't moving through check
                   Bitboard kingPath = new(Constants.BetweenBB[from][to] | Constants.SquareBB[to] | Constants.SquareBB[from]);
-                  while (!kingPath.IsEmpty())
+                  while (kingPath)
                   {
                      int square = kingPath.GetLSB();
                      kingPath.ClearLSB();
@@ -743,7 +743,7 @@ namespace Puffin
          int phase = 0;
          Bitboard pieces = new(ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value);
 
-         while (!pieces.IsEmpty())
+         while (pieces)
          {
             int square = pieces.GetLSB();
             pieces.ClearLSB();

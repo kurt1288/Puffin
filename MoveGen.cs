@@ -19,7 +19,7 @@
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
          Bitboard nonPawns = board.ColorBB[(int)board.SideToMove] & ~board.PieceBB[(int)PieceType.Pawn].Value;
 
-         while (!nonPawns.IsEmpty())
+         while (nonPawns)
          {
             int from = nonPawns.GetLSB();
             nonPawns.ClearLSB();
@@ -35,7 +35,7 @@
             };
 
             quiets &= ~occupied;
-            while (!quiets.IsEmpty())
+            while (quiets)
             {
                moveList.Add(new Move(from, quiets.GetLSB(), MoveFlag.Quiet));
                quiets.ClearLSB();
@@ -52,7 +52,7 @@
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
          Bitboard nonPawns = board.ColorBB[(int)board.SideToMove] & ~board.PieceBB[(int)PieceType.Pawn].Value;
 
-         while (!nonPawns.IsEmpty())
+         while (nonPawns)
          {
             int from = nonPawns.GetLSB();
             nonPawns.ClearLSB();
@@ -68,7 +68,7 @@
             };
 
             attacks &= board.ColorBB[(int)board.SideToMove ^ 1];
-            while (!attacks.IsEmpty())
+            while (attacks)
             {
                moveList.Add(new Move(from, attacks.GetLSB(), MoveFlag.Capture));
                attacks.ClearLSB();
@@ -86,7 +86,7 @@
          Bitboard targets = board.SideToMove == Color.White ? new(pawns >> 8) : new(pawns << 8);
          targets &= empty & ~Constants.RANK_MASKS[board.SideToMove == Color.White ? (int)Rank.Rank_8 : (int)Rank.Rank_1];
 
-         while (!targets.IsEmpty())
+         while (targets)
          {
             int square = targets.GetLSB();
             targets.ClearLSB();
@@ -116,7 +116,7 @@
          rightTargets &= board.ColorBB[(int)board.SideToMove ^ 1];
          leftTargets &= board.ColorBB[(int)board.SideToMove ^ 1];
 
-         while (!rightTargets.IsEmpty())
+         while (rightTargets)
          {
             int to = rightTargets.GetLSB();
             rightTargets.ClearLSB();
@@ -136,7 +136,7 @@
             }
          }
 
-         while (!leftTargets.IsEmpty())
+         while (leftTargets)
          {
             int to = leftTargets.GetLSB();
             leftTargets.ClearLSB();
@@ -172,7 +172,7 @@
 
          targets &= empty;
 
-         while (!targets.IsEmpty())
+         while (targets)
          {
             int square = targets.GetLSB();
             targets.ClearLSB();
@@ -191,7 +191,7 @@
                & board.ColorBB[(int)board.SideToMove].Value)
             : new();
 
-         while (!attackers.IsEmpty())
+         while (attackers)
          {
             int square = attackers.GetLSB();
             attackers.ClearLSB();
@@ -204,7 +204,7 @@
          Bitboard castleSquares = new(board.CastleSquares & (board.SideToMove == Color.White ? Constants.RANK_MASKS[(int)Rank.Rank_1] : Constants.RANK_MASKS[(int)Rank.Rank_8]));
          int kingSquare = board.SideToMove == Color.White ? board.PieceBB[(int)PieceType.King].GetMSB() : board.PieceBB[(int)PieceType.King].GetLSB();
 
-         while (!castleSquares.IsEmpty())
+         while (castleSquares)
          {
             int square = castleSquares.GetLSB();
             castleSquares.ClearLSB();

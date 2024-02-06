@@ -43,7 +43,7 @@ namespace Puffin
 
          Bitboard pieces = new(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
 
-         while (!pieces.IsEmpty())
+         while (pieces)
          {
             int square = pieces.GetLSB();
             pieces.ClearLSB();
@@ -88,7 +88,7 @@ namespace Puffin
       public static void UpdateCastle(ref ulong hash, ulong castlingSquares)
       {
          Bitboard castle = new(castlingSquares);
-         while (!castle.IsEmpty())
+         while (castle)
          {
             int square = castle.GetLSB();
             castle.ClearLSB();

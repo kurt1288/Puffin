@@ -476,7 +476,7 @@ namespace Puffin.Tuner
          Bitboard us = new(board.ColorBB[(int)color].Value);
          Score score = new();
 
-         while (!us.IsEmpty())
+         while (us)
          {
             int square = us.GetLSB();
             us.ClearLSB();
@@ -501,7 +501,7 @@ namespace Puffin.Tuner
       {
          Bitboard knightsBB = board.PieceBB[(int)PieceType.Knight];
 
-         while (!knightsBB.IsEmpty())
+         while (knightsBB)
          {
             int square = knightsBB.GetLSB();
             knightsBB.ClearLSB();
@@ -523,7 +523,7 @@ namespace Puffin.Tuner
       {
          Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
 
-         while (!bishopBB.IsEmpty())
+         while (bishopBB)
          {
             int square = bishopBB.GetLSB();
             bishopBB.ClearLSB();
@@ -545,7 +545,7 @@ namespace Puffin.Tuner
       {
          Bitboard rookBB = board.PieceBB[(int)PieceType.Rook];
 
-         while (!rookBB.IsEmpty())
+         while (rookBB)
          {
             int square = rookBB.GetLSB();
             rookBB.ClearLSB();
@@ -566,7 +566,7 @@ namespace Puffin.Tuner
       {
          Bitboard queenBB = board.PieceBB[(int)PieceType.Queen];
 
-         while (!queenBB.IsEmpty())
+         while (queenBB)
          {
             int square = queenBB.GetLSB();
             queenBB.ClearLSB();
@@ -588,7 +588,7 @@ namespace Puffin.Tuner
       {
          Bitboard kingBB = board.PieceBB[(int)PieceType.King];
 
-         while (!kingBB.IsEmpty())
+         while (kingBB)
          {
             int kingSq = kingBB.GetLSB();
             kingBB.ClearLSB();
@@ -617,7 +617,7 @@ namespace Puffin.Tuner
          int defender = 0;
          int connected = 0;
 
-         while (!pawns.IsEmpty())
+         while (pawns)
          {
             int square = pawns.GetLSB();
             pawns.ClearLSB();
