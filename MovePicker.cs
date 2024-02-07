@@ -135,7 +135,6 @@
          }
 
          list.SwapMoves(index, best);
-         list.SwapScores(index, best);
 
          return list[index];
       }
