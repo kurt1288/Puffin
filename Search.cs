@@ -238,6 +238,14 @@
             bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
             if (!isPVNode && !inCheck && isQuiet)
             {
+               // Late move pruning
+               if (depth <= 8 && legalMoves > 5 + depth * depth)
+               {
+                  // Skip all other quiet moves
+                  moves.Stage++;
+                  continue;
+               }
+
                // Futility pruning
                if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {

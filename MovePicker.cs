@@ -116,9 +116,11 @@
 
                   return false;
                }
+            default:
+               {
+                  return false;
+               }
          }
-
-         return false;
       }
 
       public static Move NextMove(MoveList list, int index)
