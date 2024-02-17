@@ -16,6 +16,8 @@
       const int LMR_Depth = 2;
       const int FP_Depth = 7;
       const int FP_Margin = 80;
+      const int LMP_Depth = 8;
+      const int LMP_Margin = 5;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
@@ -239,7 +241,7 @@
             if (!isPVNode && !inCheck && isQuiet)
             {
                // Late move pruning
-               if (depth <= 8 && legalMoves > 5 + depth * depth)
+               if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth)
                {
                   // Skip all other quiet moves
                   moves.Stage++;
