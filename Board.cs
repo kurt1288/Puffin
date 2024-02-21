@@ -59,7 +59,7 @@ namespace Puffin
          Fullmoves = other.Fullmoves;
          Phase = other.Phase;
          Hash = other.Hash;
-         GameHistory = (History)GameHistory.Clone();
+         GameHistory = (History)other.GameHistory.Clone();
          Array.Copy(other.Mailbox, Mailbox, Mailbox.Length);
          Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
          Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);
