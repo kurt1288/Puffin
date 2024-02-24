@@ -448,13 +448,7 @@ namespace Puffin.Tuner
          ];
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
 
-         Bitboard[] pawns = [
-            board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.White],
-            board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.Black]
-         ];
-
-         Pawns(Color.White, pawns[(int)Color.White], pawns[(int)Color.Black], kingSquares, ref mobilitySquares, ref score, ref trace);
-         Pawns(Color.Black, pawns[(int)Color.Black], pawns[(int)Color.White], kingSquares, ref mobilitySquares, ref score, ref trace);
+         Pawns(board, kingSquares, ref mobilitySquares, ref score, ref trace);
          Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, ref trace);
          Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
          Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
@@ -611,24 +605,25 @@ namespace Puffin.Tuner
          }
       }
 
-      private static void Pawns(Color color, Bitboard friendlyPawns, Bitboard enemyPawns, int[] kingSquares, ref ulong[] mobilitySquares, ref Score score, ref Trace trace)
+      private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ref Score score, ref Trace trace)
       {
-         Bitboard pawns = friendlyPawns;
-         int defender = 0;
-         int connected = 0;
+         Bitboard pawns = board.PieceBB[(int)PieceType.Pawn];
+         Bitboard[] colorPawns = [pawns & board.ColorBB[(int)Color.White], pawns & board.ColorBB[(int)Color.Black]];
+         int[] defender = [0, 0];
+         int[] connected = [0, 0];
 
          while (pawns)
          {
             int square = pawns.GetLSB();
+            Color color = board.Mailbox[square].Color;
             pawns.ClearLSB();
-            int rank = color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3);
             mobilitySquares[(int)color ^ 1] |= Attacks.PawnAttacks[(int)color][square];
 
             // Passed pawns
-            if ((Constants.PassedPawnMasks[(int)color][square] & enemyPawns.Value) == 0)
+            if ((Constants.PassedPawnMasks[(int)color][square] & colorPawns[(int)color ^ 1].Value) == 0)
             {
-               score += Evaluation.PassedPawn[rank - 1] * (1 - 2 * (int)color);
-               trace.passedPawn[rank - 1][(int)color]++;
+               score += Evaluation.PassedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1] * (1 - 2 * (int)color);
+               trace.passedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1][(int)color]++;
                score += Constants.TaxiDistance[square][kingSquares[(int)color]] * Evaluation.FriendlyKingPawnDistance * (1 - 2 * (int)color);
                score += Constants.TaxiDistance[square][kingSquares[(int)color ^ 1]] * Evaluation.EnemyKingPawnDistance * (1 - 2 * (int)color);
                trace.friendlyKingPawnDistance[(int)color] += Constants.TaxiDistance[square][kingSquares[(int)color]];
@@ -636,24 +631,26 @@ namespace Puffin.Tuner
             }
 
             // Defending pawn
-            if ((Attacks.PawnAttacks[(int)color][square] & friendlyPawns.Value) != 0)
+            if ((Attacks.PawnAttacks[(int)color][square] & colorPawns[(int)color].Value) != 0)
             {
-               defender++;
+               defender[(int)color]++;
             }
 
             // Connected pawn
-            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & friendlyPawns.Value) != 0)
+            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & colorPawns[(int)color].Value) != 0)
             {
-               connected++;
+               connected[(int)color]++;
             }
          }
 
-         score += Evaluation.DefendedPawn[defender] * (1 - 2 * (int)color);
-         trace.defendedPawn[defender][(int)color]++;
-         score += Evaluation.ConnectedPawn[connected] * (1 - 2 * (int)color);
-         trace.connectedPawn[connected][(int)color]++;
-
-         mobilitySquares[(int)color ^ 1] = ~mobilitySquares[(int)color ^ 1];
+         score += Evaluation.DefendedPawn[defender[(int)Color.White]] - Evaluation.DefendedPawn[defender[(int)Color.Black]];
+         trace.defendedPawn[defender[(int)Color.White]][(int)Color.White]++;
+         trace.defendedPawn[defender[(int)Color.Black]][(int)Color.Black]++;
+         score += Evaluation.ConnectedPawn[connected[(int)Color.White]] - Evaluation.ConnectedPawn[connected[(int)Color.Black]];
+         trace.connectedPawn[connected[(int)Color.White]][(int)Color.White]++;
+         trace.connectedPawn[connected[(int)Color.Black]][(int)Color.Black]++;
+         mobilitySquares[(int)Color.White] = ~mobilitySquares[(int)Color.White];
+         mobilitySquares[(int)Color.Black] = ~mobilitySquares[(int)Color.Black];
       }
 
       private List<CoefficientEntry> GetCoefficients(Trace trace)
