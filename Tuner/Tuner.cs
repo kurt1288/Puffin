@@ -19,6 +19,7 @@ namespace Puffin.Tuner
    {
       const double Epsilon = 1e-7;
       const string PositionsFile = @"./datagen.epd";
+      string ResultsPath = @$"./Tune_{DateTime.Now:yyyy-MM-dd,HHmmss}";
 
       private class Trace
       {
@@ -195,7 +196,7 @@ namespace Puffin.Tuner
          }
       }
 
-      public void Run(int maxEpochs = 3000)
+      public void Run(int maxEpochs = 10000)
       {
          Console.WriteLine($"Number of epochs set to: {maxEpochs}");
 
@@ -212,7 +213,12 @@ namespace Puffin.Tuner
          double bestError = avgError + Epsilon * 2;
          Console.WriteLine($"Initial average error: {avgError}");
 
+         int learningRateStepRate = 250;
+         double learningRateDrop = 1.0; // 1.0 wont ever drop the learning rate
          double learningRate = 1;
+         double beta1 = 0.9;
+         double beta2 = 0.999;
+
          ParameterWeight[] momentum = new ParameterWeight[Parameters.Length];
          ParameterWeight[] velocity = new ParameterWeight[Parameters.Length];
 
@@ -222,14 +228,10 @@ namespace Puffin.Tuner
          Stopwatch timer = new();
          timer.Start();
 
-         // optional condition: Math.Abs(bestError - avgError) >= Epsilon && 
-         while (Math.Abs(bestError - avgError) >= Epsilon && epoch < maxEpochs)
+         while (Math.Abs(bestError - avgError) >= Epsilon && epoch <= maxEpochs)
          {
             ParameterWeight[] gradients = new ParameterWeight[Parameters.Length];
             ComputeGradient(ref gradients, entries, K);
-
-            double beta1 = 0.9;
-            double beta2 = 0.999;
 
             for (int parameterIndex = 0; parameterIndex < Parameters.Length; parameterIndex++)
             {
@@ -246,16 +248,21 @@ namespace Puffin.Tuner
 
             if (epoch % 100 == 0)
             {
+               PrintResults(epoch);
                bestError = avgError;
                avgError = GetAverageError(entries, K);
                Console.WriteLine($"Epoch: {epoch}, EPS: {1000 * (long)epoch / timer.ElapsedMilliseconds}, error: {bestError}, E: {bestError - avgError}, Time: {timer.Elapsed:hh\\:mm\\:ss}. Remaining: {TimeSpan.FromMilliseconds((maxEpochs - epoch) * (timer.ElapsedMilliseconds / epoch)):hh\\:mm\\:ss}");
+            }
+
+            if (epoch % learningRateStepRate == 0)
+            {
+               learningRate /= learningRateDrop;
             }
 
             epoch++;
          }
 
          timer.Stop();
-         PrintResults();
          Console.WriteLine("Completed");
          Environment.Exit(100);
       }
@@ -715,17 +722,16 @@ namespace Puffin.Tuner
          }
       }
 
-      private void PrintResults()
+      private void PrintResults(int epoch)
       {
-         string path = @$"./Tuning_Results_{DateTime.Now.ToString("yyyy-MM-dd,HHmmss")}.txt";
-
-         if (!System.IO.File.Exists(path))
+         if (!Directory.Exists(ResultsPath))
          {
-            string createText = $"Tuning results generated on {DateTime.Now.ToString("yyyy-MM-dd,HHmmss")}\r\n";
-            System.IO.File.WriteAllText(path, createText);
+            Directory.CreateDirectory(ResultsPath);
          }
 
-         using StreamWriter sw = new(path, true);
+         using StreamWriter sw = new($"{ResultsPath}/Epoch_{epoch}.txt", true);
+
+         sw.WriteLine($"Tuning results generated on {DateTime.Now.ToString("yyyy-MM-dd,HHmmss")}\r\n");
 
          int index = 0;
          PrintArray("material", ref index, 6, sw);
