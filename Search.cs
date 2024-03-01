@@ -18,6 +18,7 @@
       const int FP_Margin = 80;
       const int LMP_Depth = 8;
       const int LMP_Margin = 5;
+      const int IIR_Depth = 5;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
@@ -182,10 +183,11 @@
             return Quiescence(alpha, beta, ply, isPVNode);
          }
 
+         TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
+         ushort ttMove = entry.HasValue ? entry.Value.Move : (ushort)0;
+
          if (!isPVNode && ply > 0)
          {
-            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
-
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
                || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
@@ -232,6 +234,12 @@
          int legalMoves = 0;
          Move[] quietMoves = new Move[100];
          int quietMovesCount = 0;
+
+         // Internal iterative reduction
+         if (depth >= IIR_Depth && ttMove == 0)
+         {
+            depth--;
+         }
 
          MovePicker moves = new(Board, ThreadInfo, ply, TTable);
 
