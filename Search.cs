@@ -272,6 +272,12 @@
 
             ThreadInfo.Nodes += 1;
             legalMoves += 1;
+
+            if (isQuiet)
+            {
+               quietMoves[quietMovesCount++] = moves.Move;
+            }
+
             int E = inCheck ? 1 : 0;
 
             if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && !inCheck && moves.Stage == Stage.Quiet)
@@ -353,11 +359,6 @@
                }
 
                break;
-            }
-
-            if (isQuiet)
-            {
-               quietMoves[quietMovesCount++] = moves.Move;
             }
 
             // Adjust null window
