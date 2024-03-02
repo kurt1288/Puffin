@@ -6,6 +6,7 @@ namespace Puffin
    {
       private readonly (Move Move, int Score)[] _moves = new (Move, int)[218];
       private int _count;
+      private readonly Random rnd = new();
 
       public MoveList()
       {
@@ -20,7 +21,6 @@ namespace Puffin
 
       public void Shuffle()
       {
-         Random rnd = new();
          rnd.Shuffle(_moves);
       }
 
