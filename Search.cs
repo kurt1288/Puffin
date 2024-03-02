@@ -14,6 +14,7 @@
       const int RFP_Depth = 10;
       const int RFP_Margin = 70;
       const int LMR_Depth = 2;
+      const int LMR_MoveLimit = 3;
       const int FP_Depth = 7;
       const int FP_Margin = 80;
       const int LMP_Depth = 8;
@@ -273,7 +274,7 @@
             legalMoves += 1;
             int E = inCheck ? 1 : 0;
 
-            if (depth > LMR_Depth && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
+            if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && !inCheck && moves.Stage == Stage.Quiet)
             {
                int R = Constants.LMR_Reductions[depth][legalMoves];
 

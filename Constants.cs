@@ -10,6 +10,9 @@ namespace Puffin
       public const int INFINITY = 30000;
       public const int MATE = 20000;
 
+      public const double LMR_Reduction_Base = 0.85;
+      public const double LMR_Reduction_Multiplier = 0.3;
+
       public readonly static ulong[] SquareBB = new ulong[64];
       public readonly static ulong[][] BetweenBB = new ulong[64][];
       public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
@@ -57,7 +60,7 @@ namespace Puffin
 
             for (int moves = 0; moves < 218; moves++)
             {
-               LMR_Reductions[depth][moves] = (int)(0.85 + Math.Log(depth) * Math.Log(moves) * 0.3);
+               LMR_Reductions[depth][moves] = (int)(LMR_Reduction_Base + Math.Log(depth) * Math.Log(moves) * LMR_Reduction_Multiplier);
             }
          }
 
