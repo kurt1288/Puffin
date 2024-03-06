@@ -34,6 +34,7 @@ namespace Puffin.Tuner
          public double[][] passedPawn = new double[7][];
          public double[][] defendedPawn = new double[8][];
          public double[][] connectedPawn = new double[9][];
+         public double[][] isolatedPawn = new double[8][];
          public double[] friendlyKingPawnDistance = new double[2];
          public double[] enemyKingPawnDistance = new double[2];
          public double score = 0;
@@ -89,6 +90,7 @@ namespace Puffin.Tuner
             for (int i = 0; i < 8; i++)
             {
                defendedPawn[i] = new double[2];
+               isolatedPawn[i] = new double[2];
             }
          }
       }
@@ -136,7 +138,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[491];
+      private ParameterWeight[] Parameters = new ParameterWeight[499];
 
       public Tuner()
       {
@@ -193,6 +195,7 @@ namespace Puffin.Tuner
          for (int i = 0; i < 8; i++)
          {
             Evaluation.DefendedPawn[i] = new();
+            Evaluation.IsolatedPawn[i] = new();
          }
       }
 
@@ -371,6 +374,7 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.PassedPawn, ref index);
          AddParameters(Evaluation.DefendedPawn, ref index);
          AddParameters(Evaluation.ConnectedPawn, ref index);
+         AddParameters(Evaluation.IsolatedPawn, ref index);
          AddSingleParameter(Evaluation.FriendlyKingPawnDistance, ref index);
          AddSingleParameter(Evaluation.EnemyKingPawnDistance, ref index);
       }
@@ -648,6 +652,14 @@ namespace Puffin.Tuner
             {
                connected[(int)color]++;
             }
+
+            // Isolated pawn
+            if ((Constants.IsolatedPawnMasks[square & 7] & colorPawns[(int)color].Value) == 0)
+            {
+               // Penalty is based on file
+               score -= Evaluation.IsolatedPawn[square & 7] * (1 - 2 * (int)color);
+               trace.isolatedPawn[square & 7][(int)color]--;
+            }
          }
 
          score += Evaluation.DefendedPawn[defender[(int)Color.White]] - Evaluation.DefendedPawn[defender[(int)Color.Black]];
@@ -676,6 +688,7 @@ namespace Puffin.Tuner
          AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.defendedPawn, 8, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.connectedPawn, 9, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.isolatedPawn, 8, ref currentIndex);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance, ref currentIndex);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance, ref currentIndex);
 
@@ -745,6 +758,7 @@ namespace Puffin.Tuner
          PrintArray("passed pawn", ref index, 7, sw);
          PrintArray("defended pawn", ref index, 8, sw);
          PrintArray("connected pawn", ref index, 9, sw);
+         PrintArray("isolated pawn", ref index, 8, sw);
          PrintSingle("friendly king pawn distance", ref index, sw);
          PrintSingle("enemy king pawn distance", ref index, sw);
       }
