@@ -534,8 +534,8 @@ namespace Puffin.Tuner
             bishopBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = Attacks.GetBishopAttacks(square, occupied);
-            score += Evaluation.BishopMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.bishopMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            score += Evaluation.BishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            trace.bishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
