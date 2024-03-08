@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using static Puffin.Constants;
+
+namespace Puffin
 {
    internal class Search
    {
@@ -55,13 +57,13 @@
 
       static string FormatScore(int score)
       {
-         if (score < -Constants.MATE + Constants.MAX_PLY)
+         if (score < -MATE + MAX_PLY)
          {
-            return $"mate {(-Constants.MATE - score) / 2}";
+            return $"mate {(-MATE - score) / 2}";
          }
-         else if (score > Constants.MATE - Constants.MAX_PLY)
+         else if (score > MATE - MAX_PLY)
          {
-            return $"mate {(Constants.MATE - score + 1) / 2}";
+            return $"mate {(MATE - score + 1) / 2}";
          }
          else
          {
@@ -84,8 +86,8 @@
       {
          ThreadInfo.Reset();
 
-         int alpha = -Constants.INFINITY;
-         int beta = Constants.INFINITY;
+         int alpha = -INFINITY;
+         int beta = INFINITY;
          int score = 0;
          bool stop;
 
@@ -104,8 +106,8 @@
             // Use aspiration windows at higher depths
             if (i >= ASP_Depth)
             {
-               alpha = Math.Max(score - margin, -Constants.INFINITY);
-               beta = Math.Min(score + margin, Constants.INFINITY);
+               alpha = Math.Max(score - margin, -INFINITY);
+               beta = Math.Min(score + margin, INFINITY);
             }
 
             while (true)
@@ -128,12 +130,12 @@
 
                if (score <= alpha)
                {
-                  alpha = Math.Max(score - margin, -Constants.INFINITY);
+                  alpha = Math.Max(score - margin, -INFINITY);
                   beta = (alpha + beta) / 2;
                }
                else if (score >= beta)
                {
-                  beta = Math.Min(score + margin, Constants.INFINITY);
+                  beta = Math.Min(score + margin, INFINITY);
                }
                else
                {
@@ -167,7 +169,7 @@
 
          ThreadInfo.InitPvLength(ply);
 
-         if (ply >= Constants.MAX_PLY)
+         if (ply >= MAX_PLY)
          {
             return 0;
          }
@@ -228,7 +230,7 @@
             }
          }
 
-         int bestScore = -Constants.INFINITY;
+         int bestScore = -INFINITY;
          Move bestMove = new();
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
@@ -282,7 +284,7 @@
 
             if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && !inCheck && moves.Stage == Stage.Quiet)
             {
-               int R = Constants.LMR_Reductions[depth][legalMoves];
+               int R = LMR_Reductions[depth][legalMoves];
 
                if (!isPVNode)
                {
@@ -369,7 +371,7 @@
          {
             if (inCheck)
             {
-               return -Constants.MATE + ply;
+               return -MATE + ply;
             }
             else
             {
@@ -389,7 +391,7 @@
             throw new TimeoutException();
          }
 
-         if (ply >= Constants.MAX_PLY)
+         if (ply >= MAX_PLY)
          {
             return 0;
          }

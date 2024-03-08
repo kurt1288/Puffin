@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using static Puffin.Constants;
+
+namespace Puffin
 {
    internal class Engine
    {
@@ -178,7 +180,7 @@
                   }
                case "depth":
                   {
-                     Timer.MaxDepth = Math.Clamp(int.Parse(command[1]), 1, Constants.MAX_PLY - 1);
+                     Timer.MaxDepth = Math.Clamp(int.Parse(command[1]), 1, MAX_PLY - 1);
                      break;
                   }
                case "nodes":
@@ -189,7 +191,7 @@
             }
          }
 
-         if (!movetime && Timer.MaxDepth == Constants.MAX_PLY - 1 && Timer.NodeLimit == 0)
+         if (!movetime && Timer.MaxDepth == MAX_PLY - 1 && Timer.NodeLimit == 0)
          {
             Timer.SetTimeLimit(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, false);
          }

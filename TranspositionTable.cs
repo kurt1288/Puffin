@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using static Puffin.Constants;
+
+namespace Puffin
 {
    public enum HashFlag : byte
    {
@@ -59,11 +61,11 @@
          }
 
          // Mate score adjustments
-         if (entry.Score > Constants.MATE - Constants.MAX_PLY)
+         if (entry.Score > MATE - MAX_PLY)
          {
             entry.Score -= ply;
          }
-         else if (entry.Score < -(Constants.MATE - Constants.MAX_PLY))
+         else if (entry.Score < -(MATE - MAX_PLY))
          {
             entry.Score += ply;
          }
@@ -74,11 +76,11 @@
       public void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
       {
          // Mate score adjustments
-         if (score > Constants.MATE - Constants.MAX_PLY)
+         if (score > MATE - MAX_PLY)
          {
             score += ply;
          }
-         else if (score < -(Constants.MATE - Constants.MAX_PLY))
+         else if (score < -(MATE - MAX_PLY))
          {
             score -= ply;
          }

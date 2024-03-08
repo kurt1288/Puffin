@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics.X86;
+using static Puffin.Constants;
 
 namespace Puffin
 {
@@ -31,10 +32,10 @@ namespace Puffin
 
       static Attacks()
       {
-         ulong notFileA = ~Constants.FILE_MASKS[(int)File.A];
-         ulong notFileH = ~Constants.FILE_MASKS[(int)File.H];
-         ulong notFilesAB = ~(Constants.FILE_MASKS[(int)File.A] | Constants.FILE_MASKS[(int)File.B]);
-         ulong notFilesGH = ~(Constants.FILE_MASKS[(int)File.G] | Constants.FILE_MASKS[(int)File.H]);
+         ulong notFileA = ~FILE_MASKS[(int)File.A];
+         ulong notFileH = ~FILE_MASKS[(int)File.H];
+         ulong notFilesAB = ~(FILE_MASKS[(int)File.A] | FILE_MASKS[(int)File.B]);
+         ulong notFilesGH = ~(FILE_MASKS[(int)File.G] | FILE_MASKS[(int)File.H]);
 
          PawnAttacks[(int)Color.White] = new ulong[64];
          PawnAttacks[(int)Color.Black] = new ulong[64];

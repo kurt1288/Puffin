@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using static Puffin.Constants;
 
 namespace Puffin
 {
@@ -7,35 +8,35 @@ namespace Puffin
       Move[][] Pv;
       int[] PvLength;
       public int Nodes;
-      public readonly Move[][] KillerMoves = new Move[Constants.MAX_PLY][];
+      public readonly Move[][] KillerMoves = new Move[MAX_PLY][];
       public readonly int[] HistoryScores = new int[2 * 64 * 64];
-      public int Score = -Constants.INFINITY;
+      public int Score = -INFINITY;
 
       public SearchInfo()
       {
          Array.Clear(HistoryScores, 0, HistoryScores.Length);
-         Pv = new Move[Constants.MAX_PLY][];
-         PvLength = new int[Constants.MAX_PLY];
+         Pv = new Move[MAX_PLY][];
+         PvLength = new int[MAX_PLY];
          Nodes = 0;
-         Score = -Constants.INFINITY;
+         Score = -INFINITY;
 
-         for (int i = 0; i < Constants.MAX_PLY; i++)
+         for (int i = 0; i < MAX_PLY; i++)
          {
-            Pv[i] = new Move[Constants.MAX_PLY];
+            Pv[i] = new Move[MAX_PLY];
             KillerMoves[i] = new Move[2];
          }
       }
 
       public void Reset()
       {
-         Pv = new Move[Constants.MAX_PLY][];
-         PvLength = new int[Constants.MAX_PLY];
+         Pv = new Move[MAX_PLY][];
+         PvLength = new int[MAX_PLY];
          Nodes = 0;
-         Score = -Constants.INFINITY;
+         Score = -INFINITY;
 
-         for (int i = 0; i < Constants.MAX_PLY; i++)
+         for (int i = 0; i < MAX_PLY; i++)
          {
-            Pv[i] = new Move[Constants.MAX_PLY];
+            Pv[i] = new Move[MAX_PLY];
          }
       }
 

@@ -12,6 +12,8 @@ using System.Diagnostics;
 using System.Runtime;
 using System.Text;
 using System.Text.RegularExpressions;
+using static Puffin.Constants;
+using static Puffin.Attacks;
 
 namespace Puffin.Tuner
 {
@@ -454,8 +456,8 @@ namespace Puffin.Tuner
             board.GetSquareByPiece(PieceType.King, Color.Black)
          ];
          ulong[] kingZones = [
-            Attacks.KingAttacks[kingSquares[(int)Color.White]],
-            Attacks.KingAttacks[kingSquares[(int)Color.Black]]
+            KingAttacks[kingSquares[(int)Color.White]],
+            KingAttacks[kingSquares[(int)Color.Black]]
          ];
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
 
@@ -512,14 +514,14 @@ namespace Puffin.Tuner
             knightsBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             // * (1 - 2 * (int)color) evaluates to 1 when color is white and to -1 when color is black (so that black score is subtracted)
-            score += Evaluation.KnightMobility[new Bitboard(Attacks.KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.knightMobility[new Bitboard(Attacks.KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            score += Evaluation.KnightMobility[new Bitboard(KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            trace.knightMobility[new Bitboard(KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
-            if ((Attacks.KnightAttacks[square] & kingZones[(int)color ^ 1]) != 0)
+            if ((KnightAttacks[square] & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * new Bitboard(Attacks.KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Knight][(int)color] += new Bitboard(Attacks.KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               trace.kingAttackWeights[(int)PieceType.Knight][(int)color] += new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
             }
          }
       }
@@ -533,7 +535,7 @@ namespace Puffin.Tuner
             int square = bishopBB.GetLSB();
             bishopBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
-            ulong moves = Attacks.GetBishopAttacks(square, occupied);
+            ulong moves = GetBishopAttacks(square, occupied);
             score += Evaluation.BishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.bishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
@@ -555,7 +557,7 @@ namespace Puffin.Tuner
             int square = rookBB.GetLSB();
             rookBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
-            ulong moves = Attacks.GetRookAttacks(square, occupied);
+            ulong moves = GetRookAttacks(square, occupied);
             score += Evaluation.RookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.rookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
@@ -576,7 +578,7 @@ namespace Puffin.Tuner
             int square = queenBB.GetLSB();
             queenBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
-            ulong moves = Attacks.GetQueenAttacks(square, occupied);
+            ulong moves = GetQueenAttacks(square, occupied);
             score += Evaluation.QueenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.queenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
@@ -600,7 +602,7 @@ namespace Puffin.Tuner
             Color color = board.Mailbox[kingSq].Color;
             ulong kingSquares = color == Color.White ? 0xD7C3000000000000 : 0xC3D7;
 
-            if ((kingSquares & Constants.SquareBB[kingSq]) != 0)
+            if ((kingSquares & SquareBB[kingSq]) != 0)
             {
                ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x007000000000000 : 0x000E0000000000000) : (ulong)(kingSq % 8 < 3 ? 0x700 : 0xE000);
 
@@ -628,33 +630,33 @@ namespace Puffin.Tuner
             int square = pawns.GetLSB();
             Color color = board.Mailbox[square].Color;
             pawns.ClearLSB();
-            mobilitySquares[(int)color ^ 1] |= Attacks.PawnAttacks[(int)color][square];
+            mobilitySquares[(int)color ^ 1] |= PawnAttacks[(int)color][square];
 
             // Passed pawns
-            if ((Constants.PassedPawnMasks[(int)color][square] & colorPawns[(int)color ^ 1].Value) == 0)
+            if ((PassedPawnMasks[(int)color][square] & colorPawns[(int)color ^ 1].Value) == 0)
             {
                score += Evaluation.PassedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1] * (1 - 2 * (int)color);
                trace.passedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1][(int)color]++;
-               score += Constants.TaxiDistance[square][kingSquares[(int)color]] * Evaluation.FriendlyKingPawnDistance * (1 - 2 * (int)color);
-               score += Constants.TaxiDistance[square][kingSquares[(int)color ^ 1]] * Evaluation.EnemyKingPawnDistance * (1 - 2 * (int)color);
-               trace.friendlyKingPawnDistance[(int)color] += Constants.TaxiDistance[square][kingSquares[(int)color]];
-               trace.enemyKingPawnDistance[(int)color] += Constants.TaxiDistance[square][kingSquares[(int)color ^ 1]];
+               score += TaxiDistance[square][kingSquares[(int)color]] * Evaluation.FriendlyKingPawnDistance * (1 - 2 * (int)color);
+               score += TaxiDistance[square][kingSquares[(int)color ^ 1]] * Evaluation.EnemyKingPawnDistance * (1 - 2 * (int)color);
+               trace.friendlyKingPawnDistance[(int)color] += TaxiDistance[square][kingSquares[(int)color]];
+               trace.enemyKingPawnDistance[(int)color] += TaxiDistance[square][kingSquares[(int)color ^ 1]];
             }
 
             // Defending pawn
-            if ((Attacks.PawnAttacks[(int)color][square] & colorPawns[(int)color].Value) != 0)
+            if ((PawnAttacks[(int)color][square] & colorPawns[(int)color].Value) != 0)
             {
                defender[(int)color]++;
             }
 
             // Connected pawn
-            if ((((Constants.SquareBB[square] & ~Constants.FILE_MASKS[(int)File.H]) << 1) & colorPawns[(int)color].Value) != 0)
+            if ((((SquareBB[square] & ~FILE_MASKS[(int)File.H]) << 1) & colorPawns[(int)color].Value) != 0)
             {
                connected[(int)color]++;
             }
 
             // Isolated pawn
-            if ((Constants.IsolatedPawnMasks[square & 7] & colorPawns[(int)color].Value) == 0)
+            if ((IsolatedPawnMasks[square & 7] & colorPawns[(int)color].Value) == 0)
             {
                // Penalty is based on file
                score -= Evaluation.IsolatedPawn[square & 7] * (1 - 2 * (int)color);

@@ -1,5 +1,6 @@
 ﻿using Puffin;
 using Puffin.Tuner;
+using static Puffin.Constants;
 using System.Runtime.Intrinsics.X86;
 
 const string Name = "Puffin";
@@ -92,7 +93,7 @@ while (true)
          {
             if (tokens[1] == "startpos")
             {
-               engine.SetPosition(Constants.START_POS);
+               engine.SetPosition(START_POS);
 
                if (tokens.Length > 2 && tokens[2] == "moves")
                {
