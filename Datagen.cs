@@ -251,7 +251,7 @@ namespace Puffin
             }
             
             // Adjudicate draws
-            if ((board.Fullmoves > 40 && board.Halfmoves > 5 && (info.Score is >= -20 and <= 20)) || board.Halfmoves >= 100 || search.IsRepeated() || board.IsDrawn())
+            if ((board.Fullmoves > 40 && board.Halfmoves > 5 && (info.Score is >= -20 and <= 20)) || board.Halfmoves >= 100 || search.IsDraw())
             {
                positions.WDL = 0.5;
                break;

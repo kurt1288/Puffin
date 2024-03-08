@@ -174,7 +174,7 @@ namespace Puffin
             return 0;
          }
 
-         if (ply > 0 && IsRepeated())
+         if (ply > 0 && IsDraw())
          {
             return 0;
          }
@@ -396,6 +396,11 @@ namespace Puffin
             return 0;
          }
 
+         if (IsDraw())
+         {
+            return 0;
+         }
+
          if (!isPVNode)
          {
             TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
@@ -474,7 +479,12 @@ namespace Puffin
          return bestScore;
       }
 
-      public bool IsRepeated()
+      public bool IsDraw()
+      {
+         return IsRepeated() || Board.Halfmoves >= 100 || Board.IsDrawn();
+      }
+
+      private bool IsRepeated()
       {
          if (Board.Halfmoves < 4 || Board.GameHistory.Count <= 1)
          {

@@ -571,55 +571,30 @@ namespace Puffin
          return false;
       }
 
+      // Determines if there is a draw by insufficient material
       public bool IsDrawn()
       {
-         // No draw if there are pawns or major pieces left
-         if (PieceBB[(int)PieceType.Pawn].CountBits() != 0 || PieceBB[(int)PieceType.Rook].CountBits() != 0 || PieceBB[(int)PieceType.Queen].CountBits() != 0)
-         {
-            return false;
-         }
-
-         // Only kings
+         // KvK
          if ((ColorBB[(int)Color.White] | ColorBB[(int)Color.Black]).CountBits() == 2)
          {
             return true;
          }
 
-         // White only has 1 king left, check what black pieces are left
-         if (ColorBB[(int)Color.White].CountBits() == 1)
+         // Board with pawn, rook, or queen(s) can't be material draw
+         if (PieceBB[(int)PieceType.Pawn] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen])
          {
-            // Only 1 minor piece
-            if (MinorPieces(Color.Black).CountBits() == 1)
-            {
-               return true;
-            }
-            // Only two knights
-            else if (MinorPieces(Color.Black).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.Black]).CountBits() == 0)
-            {
-               return true;
-            }
+            return false;
          }
 
-         // Black only has 1 king left, check what white pieces are left
-         else if (ColorBB[(int)Color.Black].CountBits() == 1)
+         // KvB or KvN
+         if ((PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]).CountBits() <= 1)
          {
-            // Only 1 minor piece
-            if (MinorPieces(Color.White).CountBits() == 1)
-            {
-               return true;
-            }
-            // Only two knights
-            else if (MinorPieces(Color.White).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.White]).CountBits() == 0)
-            {
-               return true;
-            }
+            return true;
          }
 
-         // Both sides only have a king and 1 minor piece
-         else if (ColorBB[(int)Color.White].CountBits() == 2 && ColorBB[(int)Color.Black].CountBits() == 2)
+         // KvNN
+         if (!PieceBB[(int)PieceType.Bishop] && PieceBB[(int)PieceType.Knight].CountBits() == 2)
          {
-            // We've already returned false if there are pawns, rooks, or queens on the board
-            // so the 2nd piece has to be a minor piece
             return true;
          }
 
