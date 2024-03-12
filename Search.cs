@@ -10,18 +10,18 @@ namespace Puffin
       readonly TranspositionTable TTable;
       static SearchInfo[] infos;
 
-      const int ASP_Depth = 4;
-      const int ASP_Margin = 10;
-      const int NMP_Depth = 3;
-      const int RFP_Depth = 10;
-      const int RFP_Margin = 70;
-      const int LMR_Depth = 2;
-      const int LMR_MoveLimit = 3;
-      const int FP_Depth = 7;
-      const int FP_Margin = 80;
-      const int LMP_Depth = 8;
-      const int LMP_Margin = 5;
-      const int IIR_Depth = 5;
+      internal static int ASP_Depth = 4;
+      internal static int ASP_Margin = 10;
+      internal static int NMP_Depth = 3;
+      internal static int RFP_Depth = 10;
+      internal static int RFP_Margin = 70;
+      internal static int LMR_Depth = 2;
+      internal static int LMR_MoveLimit = 3;
+      internal static int FP_Depth = 7;
+      internal static int FP_Margin = 80;
+      internal static int LMP_Depth = 8;
+      internal static int LMP_Margin = 5;
+      internal static int IIR_Depth = 5;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {

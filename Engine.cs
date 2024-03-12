@@ -206,19 +206,79 @@ namespace Puffin
 
       public void SetOption(string[] option)
       {
+         _ = int.TryParse(option[3], out int value);
+
          switch (option[1].ToLower())
          {
             case "hash":
                {
-                  _ = int.TryParse(option[3], out int value);
                   value = Math.Clamp(value, 1, 512);
                   TTable.Resize(value);
                   break;
                }
             case "threads":
                {
-                  _ = int.TryParse(option[3], out int value);
                   Threads = value;
+                  break;
+               }
+            case "ASP_Depth":
+               {
+                  Search.ASP_Depth = value;
+                  break;
+               }
+            case "ASP_Margin":
+               {
+                  Search.ASP_Margin = value;
+                  break;
+               }
+            case "NMP_Depth":
+               {
+                  Search.NMP_Depth = value;
+                  break;
+               }
+            case "RFP_Depth":
+               {
+                  Search.RFP_Depth = value;
+                  break;
+               }
+            case "RFP_Margin":
+               {
+                  Search.RFP_Margin = value;
+                  break;
+               }
+            case "LMR_Depth":
+               {
+                  Search.LMR_Depth = value;
+                  break;
+               }
+            case "LMR_MoveLimit":
+               {
+                  Search.LMR_MoveLimit = value;
+                  break;
+               }
+            case "FP_Depth":
+               {
+                  Search.FP_Depth = value;
+                  break;
+               }
+            case "FP_Margin":
+               {
+                  Search.FP_Margin = value;
+                  break;
+               }
+            case "LMP_Depth":
+               {
+                  Search.LMP_Depth = value;
+                  break;
+               }
+            case "LMP_Margin":
+               {
+                  Search.LMP_Margin = value;
+                  break;
+               }
+            case "IIR_Depth":
+               {
+                  Search.IIR_Depth = value;
                   break;
                }
             default:
