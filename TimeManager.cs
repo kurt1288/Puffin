@@ -87,8 +87,14 @@ namespace Puffin
 
       public bool LimitReached(bool newIteration)
       {
+         if (Stopped)
+         {
+            return true;
+         }
+
          if (SoftTime != 0 && MaxTime != 0 && ((StopWatch.ElapsedMilliseconds >= SoftTime && newIteration) || StopWatch.ElapsedMilliseconds >= MaxTime))
          {
+            Stop();
             return true;
          }
 
