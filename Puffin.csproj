@@ -10,8 +10,8 @@
 		<Optimize>True</Optimize>
 		<TieredCompilation>false</TieredCompilation>
 		<Authors>Kurt Peters</Authors>
-		<Version>2.0</Version>
-		<AssemblyVersion>2.0</AssemblyVersion>
+		<Version>3.0</Version>
+		<AssemblyVersion>3.0</AssemblyVersion>
 		<PackageProjectUrl>https://github.com/kurt1288/Puffin</PackageProjectUrl>
 	</PropertyGroup>
 
