@@ -96,7 +96,6 @@ namespace Puffin
          {
             if (Time.NodeLimit > 0 && ThreadInfo.Nodes >= Time.NodeLimit)
             {
-               stop = true;
                Time.Stop();
                break;
             }
