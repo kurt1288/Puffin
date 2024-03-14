@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using static Puffin.Constants;
+
+namespace Puffin
 {
    internal class Search
    {
@@ -8,14 +10,18 @@
       readonly TranspositionTable TTable;
       static SearchInfo[] infos;
 
-      const int ASP_Depth = 4;
-      const int ASP_Margin = 10;
-      const int NMP_Depth = 3;
-      const int RFP_Depth = 10;
-      const int RFP_Margin = 70;
-      const int LMR_Depth = 2;
-      const int FP_Depth = 7;
-      const int FP_Margin = 80;
+      internal static int ASP_Depth = 4;
+      internal static int ASP_Margin = 10;
+      internal static int NMP_Depth = 3;
+      internal static int RFP_Depth = 10;
+      internal static int RFP_Margin = 70;
+      internal static int LMR_Depth = 2;
+      internal static int LMR_MoveLimit = 3;
+      internal static int FP_Depth = 7;
+      internal static int FP_Margin = 80;
+      internal static int LMP_Depth = 8;
+      internal static int LMP_Margin = 5;
+      internal static int IIR_Depth = 5;
 
       public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
       {
@@ -51,13 +57,13 @@
 
       static string FormatScore(int score)
       {
-         if (score < -Constants.MATE + Constants.MAX_PLY)
+         if (score < -MATE + MAX_PLY)
          {
-            return $"mate {(-Constants.MATE - score) / 2}";
+            return $"mate {(-MATE - score) / 2}";
          }
-         else if (score > Constants.MATE - Constants.MAX_PLY)
+         else if (score > MATE - MAX_PLY)
          {
-            return $"mate {(Constants.MATE - score + 1) / 2}";
+            return $"mate {(MATE - score + 1) / 2}";
          }
          else
          {
@@ -80,8 +86,8 @@
       {
          ThreadInfo.Reset();
 
-         int alpha = -Constants.INFINITY;
-         int beta = Constants.INFINITY;
+         int alpha = -INFINITY;
+         int beta = INFINITY;
          int score = 0;
          bool stop;
 
@@ -100,8 +106,8 @@
             // Use aspiration windows at higher depths
             if (i >= ASP_Depth)
             {
-               alpha = Math.Max(score - margin, -Constants.INFINITY);
-               beta = Math.Min(score + margin, Constants.INFINITY);
+               alpha = Math.Max(score - margin, -INFINITY);
+               beta = Math.Min(score + margin, INFINITY);
             }
 
             while (true)
@@ -124,12 +130,12 @@
 
                if (score <= alpha)
                {
-                  alpha = Math.Max(score - margin, -Constants.INFINITY);
+                  alpha = Math.Max(score - margin, -INFINITY);
                   beta = (alpha + beta) / 2;
                }
                else if (score >= beta)
                {
-                  beta = Math.Min(score + margin, Constants.INFINITY);
+                  beta = Math.Min(score + margin, INFINITY);
                }
                else
                {
@@ -163,12 +169,12 @@
 
          ThreadInfo.InitPvLength(ply);
 
-         if (ply >= Constants.MAX_PLY)
+         if (ply >= MAX_PLY)
          {
             return 0;
          }
 
-         if (ply > 0 && IsRepeated())
+         if (ply > 0 && IsDraw())
          {
             return 0;
          }
@@ -180,10 +186,11 @@
             return Quiescence(alpha, beta, ply, isPVNode);
          }
 
+         TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
+         ushort ttMove = entry.HasValue ? entry.Value.Move : (ushort)0;
+
          if (!isPVNode && ply > 0)
          {
-            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
-
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
                || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
@@ -223,13 +230,19 @@
             }
          }
 
-         int bestScore = -Constants.INFINITY;
+         int bestScore = -INFINITY;
          Move bestMove = new();
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
          Move[] quietMoves = new Move[100];
          int quietMovesCount = 0;
+
+         // Internal iterative reduction
+         if (depth >= IIR_Depth && ttMove == 0)
+         {
+            depth--;
+         }
 
          MovePicker moves = new(Board, ThreadInfo, ply, TTable);
 
@@ -238,6 +251,14 @@
             bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
             if (!isPVNode && !inCheck && isQuiet)
             {
+               // Late move pruning
+               if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth)
+               {
+                  // Skip all other quiet moves
+                  moves.Stage++;
+                  continue;
+               }
+
                // Futility pruning
                if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
@@ -253,11 +274,17 @@
 
             ThreadInfo.Nodes += 1;
             legalMoves += 1;
+
+            if (isQuiet)
+            {
+               quietMoves[quietMovesCount++] = moves.Move;
+            }
+
             int E = inCheck ? 1 : 0;
 
-            if (depth > LMR_Depth && legalMoves > 3 && !inCheck && moves.Stage == Stage.Quiet)
+            if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && !inCheck && moves.Stage == Stage.Quiet)
             {
-               int R = Constants.LMR_Reductions[depth][legalMoves];
+               int R = LMR_Reductions[depth][legalMoves];
 
                if (!isPVNode)
                {
@@ -336,11 +363,6 @@
                break;
             }
 
-            if (isQuiet)
-            {
-               quietMoves[quietMovesCount++] = moves.Move;
-            }
-
             // Adjust null window
             b = alpha + 1;
          }
@@ -349,7 +371,7 @@
          {
             if (inCheck)
             {
-               return -Constants.MATE + ply;
+               return -MATE + ply;
             }
             else
             {
@@ -369,7 +391,12 @@
             throw new TimeoutException();
          }
 
-         if (ply >= Constants.MAX_PLY)
+         if (ply >= MAX_PLY)
+         {
+            return 0;
+         }
+
+         if (IsDraw())
          {
             return 0;
          }
@@ -406,7 +433,7 @@
          while (moves.Next())
          {
             // Delta pruning
-            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Mailbox[moves.Move.GetTo()].Type, Board) + 200 < alpha)
+            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Mailbox[moves.Move.To].Type, Board) + 200 < alpha)
             {
                continue;
             }
@@ -452,7 +479,12 @@
          return bestScore;
       }
 
-      public bool IsRepeated()
+      public bool IsDraw()
+      {
+         return IsRepeated() || Board.Halfmoves >= 100 || Board.IsDrawn();
+      }
+
+      private bool IsRepeated()
       {
          if (Board.Halfmoves < 4 || Board.GameHistory.Count <= 1)
          {

@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using static Puffin.Constants;
+
+namespace Puffin
 {
    internal class Engine
    {
@@ -69,7 +71,7 @@
 
             if (move.Length == 5)
             {
-               if (move[4] == 'n')
+               if (char.ToLower(move[4]) == 'n')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -80,7 +82,7 @@
                      flag = MoveFlag.KnightPromotion;
                   }
                }
-               if (move[4] == 'b')
+               else if (char.ToLower(move[4]) == 'b')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -91,7 +93,7 @@
                      flag = MoveFlag.BishopPromotion;
                   }
                }
-               if (move[4] == 'r')
+               else if (char.ToLower(move[4]) == 'r')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -102,7 +104,7 @@
                      flag = MoveFlag.RookPromotion;
                   }
                }
-               if (move[4] == 'q')
+               else if (char.ToLower(move[4]) == 'q')
                {
                   if (Board.Mailbox[to].Type != PieceType.Null)
                   {
@@ -178,7 +180,7 @@
                   }
                case "depth":
                   {
-                     Timer.MaxDepth = Math.Clamp(int.Parse(command[1]), 1, Constants.MAX_PLY - 1);
+                     Timer.MaxDepth = Math.Clamp(int.Parse(command[1]), 1, MAX_PLY - 1);
                      break;
                   }
                case "nodes":
@@ -189,7 +191,7 @@
             }
          }
 
-         if (!movetime && Timer.MaxDepth == Constants.MAX_PLY - 1 && Timer.NodeLimit == 0)
+         if (!movetime && Timer.MaxDepth == MAX_PLY - 1 && Timer.NodeLimit == 0)
          {
             Timer.SetTimeLimit(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, false);
          }
@@ -204,19 +206,79 @@
 
       public void SetOption(string[] option)
       {
+         _ = int.TryParse(option[3], out int value);
+
          switch (option[1].ToLower())
          {
             case "hash":
                {
-                  _ = int.TryParse(option[3], out int value);
                   value = Math.Clamp(value, 1, 512);
                   TTable.Resize(value);
                   break;
                }
             case "threads":
                {
-                  _ = int.TryParse(option[3], out int value);
                   Threads = value;
+                  break;
+               }
+            case "ASP_Depth":
+               {
+                  Search.ASP_Depth = value;
+                  break;
+               }
+            case "ASP_Margin":
+               {
+                  Search.ASP_Margin = value;
+                  break;
+               }
+            case "NMP_Depth":
+               {
+                  Search.NMP_Depth = value;
+                  break;
+               }
+            case "RFP_Depth":
+               {
+                  Search.RFP_Depth = value;
+                  break;
+               }
+            case "RFP_Margin":
+               {
+                  Search.RFP_Margin = value;
+                  break;
+               }
+            case "LMR_Depth":
+               {
+                  Search.LMR_Depth = value;
+                  break;
+               }
+            case "LMR_MoveLimit":
+               {
+                  Search.LMR_MoveLimit = value;
+                  break;
+               }
+            case "FP_Depth":
+               {
+                  Search.FP_Depth = value;
+                  break;
+               }
+            case "FP_Margin":
+               {
+                  Search.FP_Margin = value;
+                  break;
+               }
+            case "LMP_Depth":
+               {
+                  Search.LMP_Depth = value;
+                  break;
+               }
+            case "LMP_Margin":
+               {
+                  Search.LMP_Margin = value;
+                  break;
+               }
+            case "IIR_Depth":
+               {
+                  Search.IIR_Depth = value;
                   break;
                }
             default:

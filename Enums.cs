@@ -41,7 +41,7 @@
    }
 
    // https://www.chessprogramming.org/Encoding_Moves
-   enum MoveType
+   enum MoveType : byte
    {
       Promotion = 8,
       Capture = 4,

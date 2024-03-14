@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
+using static Puffin.Constants;
 
 namespace Puffin
 {
    internal class TimeManager : ICloneable
    {
-      public int MaxDepth = Constants.MAX_PLY - 1;
+      public int MaxDepth = MAX_PLY - 1;
 
       bool stopped = false;
       bool infititeTime = true;
@@ -77,7 +78,7 @@ namespace Puffin
 
       public void Reset()
       {
-         MaxDepth = Constants.MAX_PLY - 1;
+         MaxDepth = MAX_PLY - 1;
          infititeTime = true;
          SoftLimit = 0;
          HardLimit = 0;

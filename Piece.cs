@@ -23,6 +23,12 @@
          Color = char.IsUpper(piece) ? Color.White : Color.Black;
       }
 
+      public void Reset()
+      {
+         Type = PieceType.Null;
+         Color = Color.Null;
+      }
+
       static PieceType FromChar(char piece)
       {
          return char.ToLower(piece) switch

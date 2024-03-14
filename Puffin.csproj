@@ -16,13 +16,15 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<Optimize>False</Optimize>
 		<TieredCompilation>false</TieredCompilation>
 		<DefineConstants>Pext</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLegacy|x64'">
-	  <TieredCompilation>false</TieredCompilation>
-	  <DefineConstants>Legacy</DefineConstants>
+		<Optimize>False</Optimize>
+		<TieredCompilation>false</TieredCompilation>
+		<DefineConstants>Legacy</DefineConstants>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

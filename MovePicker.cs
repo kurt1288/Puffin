@@ -116,9 +116,11 @@
 
                   return false;
                }
+            default:
+               {
+                  return false;
+               }
          }
-
-         return false;
       }
 
       public static Move NextMove(MoveList list, int index)
@@ -135,7 +137,6 @@
          }
 
          list.SwapMoves(index, best);
-         list.SwapScores(index, best);
 
          return list[index];
       }
@@ -152,20 +153,20 @@
             }
             else if (move.HasType(MoveType.Capture))
             {
-               Piece captured = Board.Mailbox[move.GetTo()];
+               Piece captured = Board.Mailbox[move.To];
 
-               if (move.GetFlag() == MoveFlag.EPCapture)
+               if (move.Flag == MoveFlag.EPCapture)
                {
                   captured = new Piece(PieceType.Pawn, Color.White); // color doesn't matter here
                }
 
-               Piece moving = Board.Mailbox[move.GetFrom()];
+               Piece moving = Board.Mailbox[move.From];
 
                moves.SetScore(i, 150000 + (50 * Evaluation.PieceValues[(int)captured.Type].Mg - Evaluation.PieceValues[(int)moving.Type].Mg));
             }
             else
             {
-               moves.SetScore(i, SearchInfo.GetHistory(Board.Mailbox[move.GetFrom()].Color, move));
+               moves.SetScore(i, SearchInfo.GetHistory(Board.Mailbox[move.From].Color, move));
             }
          }
       }

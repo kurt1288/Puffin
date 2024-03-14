@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using static Puffin.Constants;
+using static Puffin.Attacks;
 
 namespace Puffin
 {
@@ -25,29 +27,29 @@ namespace Puffin
       {
          for (int i = 0; i < Mailbox.Length; i++)
          {
-            Mailbox[i] = new Piece();
+            Mailbox[i].Reset();
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
          {
-            ColorBB[i] = new Bitboard();
+            ColorBB[i].Reset();
          }
 
          for (int i = 0; i < PieceBB.Length; i++)
          {
-            PieceBB[i] = new Bitboard();
+            PieceBB[i].Reset();
          }
 
+         GameHistory.Reset();
          SideToMove = Color.Null;
          En_Passant = Square.Null;
          CastleSquares = 0;
-         GameHistory = new();
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
          MaterialValue[(int)Color.White] = new Score(0, 0);
          MaterialValue[(int)Color.Black] = new Score(0, 0);
-         Hash = new();
+         Hash = 0;
       }
 
       public Board(Board other)
@@ -59,7 +61,7 @@ namespace Puffin
          Fullmoves = other.Fullmoves;
          Phase = other.Phase;
          Hash = other.Hash;
-         GameHistory = (History)GameHistory.Clone();
+         GameHistory = (History)other.GameHistory.Clone();
          Array.Copy(other.Mailbox, Mailbox, Mailbox.Length);
          Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
          Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);
@@ -75,7 +77,7 @@ namespace Puffin
       {
          for (int i = 0; i < Mailbox.Length; i++)
          {
-            Mailbox[i] = new Piece();
+            Mailbox[i].Reset();
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
@@ -88,16 +90,16 @@ namespace Puffin
             PieceBB[i].Reset();
          }
 
+         GameHistory.Reset();
          SideToMove = Color.Null;
          En_Passant = Square.Null;
          CastleSquares = 0;
-         GameHistory = new();
          Halfmoves = 0;
          Fullmoves = 0;
          Phase = 0;
          MaterialValue[(int)Color.White] = new Score(0, 0);
          MaterialValue[(int)Color.Black] = new Score(0, 0);
-         Hash = new();
+         Hash = 0;
       }
 
       public void SetPosition(string fen)
@@ -138,22 +140,22 @@ namespace Puffin
                {
                   case 'K':
                      {
-                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.White].Value & Constants.RANK_MASKS[(int)Rank.Rank_1] & Constants.FILE_MASKS[(int)File.H];
+                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.White].Value & RANK_MASKS[(int)Rank.Rank_1] & FILE_MASKS[(int)File.H];
                         break;
                      }
                   case 'Q':
                      {
-                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.White].Value & Constants.RANK_MASKS[(int)Rank.Rank_1] & Constants.FILE_MASKS[(int)File.A];
+                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.White].Value & RANK_MASKS[(int)Rank.Rank_1] & FILE_MASKS[(int)File.A];
                         break;
                      }
                   case 'k':
                      {
-                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.Black].Value & Constants.RANK_MASKS[(int)Rank.Rank_8] & Constants.FILE_MASKS[(int)File.H];
+                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.Black].Value & RANK_MASKS[(int)Rank.Rank_8] & FILE_MASKS[(int)File.H];
                         break;
                      }
                   case 'q':
                      {
-                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.Black].Value & Constants.RANK_MASKS[(int)Rank.Rank_8] & Constants.FILE_MASKS[(int)File.A];
+                        CastleSquares |= PieceBB[(int)PieceType.Rook].Value & ColorBB[(int)Color.Black].Value & RANK_MASKS[(int)Rank.Rank_8] & FILE_MASKS[(int)File.A];
                         break;
                      }
                   default:
@@ -193,9 +195,9 @@ namespace Puffin
       // Returns false if the move is illegal (leaves the king in check)
       public bool MakeMove(Move move)
       {
-         MoveFlag flag = move.GetFlag();
-         int from = move.GetFrom();
-         int to = move.GetTo();
+         MoveFlag flag = move.Flag;
+         int from = move.From;
+         int to = move.To;
          Piece piece = Mailbox[from];
 
          GameHistory.Add(
@@ -254,14 +256,14 @@ namespace Puffin
                   SetPiece(piece, to);
 
                   // Move rook
-                  int rFrom = new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
+                  int rFrom = new Bitboard(CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
                   int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
                   SetPiece(Mailbox[rFrom], rTo);
                   RemovePiece(Mailbox[rFrom], rFrom);
 
                   // Check the path of the king to make sure it isn't moving from check or moving through check
-                  Bitboard kingPath = new(Constants.BetweenBB[from][to] | Constants.SquareBB[to] | Constants.SquareBB[from]);
-                  while (!kingPath.IsEmpty())
+                  Bitboard kingPath = new(BetweenBB[from][to] | SquareBB[to] | SquareBB[from]);
+                  while (kingPath)
                   {
                      int square = kingPath.GetLSB();
                      kingPath.ClearLSB();
@@ -280,14 +282,14 @@ namespace Puffin
                   SetPiece(piece, to);
 
                   // Move rook
-                  int rFrom = new Bitboard(CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetLSB();
+                  int rFrom = new Bitboard(CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetLSB();
                   int rTo = SideToMove == Color.White ? (int)Square.D1 : (int)Square.D8;
                   SetPiece(Mailbox[rFrom], rTo);
                   RemovePiece(Mailbox[rFrom], rFrom);
 
                   // Check the path of the king to make sure it isn't moving from check or doesn't moving through check
-                  Bitboard kingPath = new(Constants.BetweenBB[from][to] | Constants.SquareBB[to] | Constants.SquareBB[from]);
-                  while (!kingPath.IsEmpty())
+                  Bitboard kingPath = new(BetweenBB[from][to] | SquareBB[to] | SquareBB[from]);
+                  while (kingPath)
                   {
                      int square = kingPath.GetLSB();
                      kingPath.ClearLSB();
@@ -361,21 +363,21 @@ namespace Puffin
          if (piece.Type == PieceType.King)
          {
             // If the king moves, remove the castle squares from the home rank
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
-            CastleSquares &= ~Constants.RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
+            CastleSquares &= ~RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
          }
 
          // if a piece is moving either to or from a rook square, either the rook is moving, being captured, or just not on that square. either way, castling rights
          // on that side are gone.
-         if ((Constants.SquareBB[move.GetFrom()] & CastleSquares) != 0)
+         if ((SquareBB[move.From] & CastleSquares) != 0)
          {
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.GetFrom()]);
-            CastleSquares &= ~Constants.SquareBB[move.GetFrom()];
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & SquareBB[move.From]);
+            CastleSquares &= ~SquareBB[move.From];
          }
-         if ((Constants.SquareBB[move.GetTo()] & CastleSquares) != 0)
+         if ((SquareBB[move.To] & CastleSquares) != 0)
          {
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & Constants.SquareBB[move.GetTo()]);
-            CastleSquares &= ~Constants.SquareBB[move.GetTo()];
+            Zobrist.UpdateCastle(ref Hash, CastleSquares & SquareBB[move.To]);
+            CastleSquares &= ~SquareBB[move.To];
          }
 
          SideToMove = (Color)((int)SideToMove ^ 1);
@@ -430,8 +432,8 @@ namespace Puffin
          Halfmoves = previousState.Halfmoves;
          Fullmoves = previousState.Fullmoves;
 
-         int from = move.GetFrom();
-         int to = move.GetTo();
+         int from = move.From;
+         int to = move.To;
          Piece piece = Mailbox[to];
 
          if (move.HasType(MoveType.Promotion))
@@ -446,7 +448,7 @@ namespace Puffin
 
             Piece rook = new(PieceType.Rook, piece.Color);
 
-            if (move.GetFlag() == MoveFlag.KingCastle)
+            if (move.Flag == MoveFlag.KingCastle)
             {
                RemovePiece(rook, piece.Color == Color.White ? (int)Square.F1 : (int)Square.F8);
                SetPiece(rook, piece.Color == Color.White ? (int)Square.H1 : (int)Square.H8);
@@ -465,7 +467,7 @@ namespace Puffin
 
          if (move.HasType(MoveType.Capture))
          {
-            if (move.GetFlag() == MoveFlag.EPCapture)
+            if (move.Flag == MoveFlag.EPCapture)
             {
                SetPiece(previousState.CapturedPiece, piece.Color == Color.White ? to + 8 : to - 8);
             }
@@ -536,17 +538,17 @@ namespace Puffin
 
       public bool IsAttacked(int square, int color)
       {
-         if ((Attacks.PawnAttacks[color ^ 1][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[color].Value) != 0)
+         if ((PawnAttacks[color ^ 1][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[color].Value) != 0)
          {
             return true;
          }
 
-         if ((Attacks.KnightAttacks[square] & PieceBB[(int)PieceType.Knight].Value & ColorBB[color].Value) != 0)
+         if ((KnightAttacks[square] & PieceBB[(int)PieceType.Knight].Value & ColorBB[color].Value) != 0)
          {
             return true;
          }
 
-         if ((Attacks.KingAttacks[square] & PieceBB[(int)PieceType.King].Value & ColorBB[color].Value) != 0)
+         if ((KingAttacks[square] & PieceBB[(int)PieceType.King].Value & ColorBB[color].Value) != 0)
          {
             return true;
          }
@@ -554,14 +556,14 @@ namespace Puffin
          ulong occupied = ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value;
          ulong bishopQueens = (PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Queen].Value) & ColorBB[color].Value;
 
-         if ((Attacks.GetBishopAttacks(square, occupied) & bishopQueens) != 0)
+         if ((GetBishopAttacks(square, occupied) & bishopQueens) != 0)
          {
             return true;
          }
 
          ulong rookQueens = (PieceBB[(int)PieceType.Rook].Value | PieceBB[(int)PieceType.Queen].Value) & ColorBB[color].Value;
 
-         if ((Attacks.GetRookAttacks(square, occupied) & rookQueens) != 0)
+         if ((GetRookAttacks(square, occupied) & rookQueens) != 0)
          {
             return true;
          }
@@ -569,55 +571,30 @@ namespace Puffin
          return false;
       }
 
+      // Determines if there is a draw by insufficient material
       public bool IsDrawn()
       {
-         // No draw if there are pawns or major pieces left
-         if (PieceBB[(int)PieceType.Pawn].CountBits() != 0 || PieceBB[(int)PieceType.Rook].CountBits() != 0 || PieceBB[(int)PieceType.Queen].CountBits() != 0)
-         {
-            return false;
-         }
-
-         // Only kings
+         // KvK
          if ((ColorBB[(int)Color.White] | ColorBB[(int)Color.Black]).CountBits() == 2)
          {
             return true;
          }
 
-         // White only has 1 king left, check what black pieces are left
-         if (ColorBB[(int)Color.White].CountBits() == 1)
+         // Board with pawn, rook, or queen(s) can't be material draw
+         if (PieceBB[(int)PieceType.Pawn] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen])
          {
-            // Only 1 minor piece
-            if (MinorPieces(Color.Black).CountBits() == 1)
-            {
-               return true;
-            }
-            // Only two knights
-            else if (MinorPieces(Color.Black).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.Black]).CountBits() == 0)
-            {
-               return true;
-            }
+            return false;
          }
 
-         // Black only has 1 king left, check what white pieces are left
-         else if (ColorBB[(int)Color.Black].CountBits() == 1)
+         // KvB or KvN
+         if ((PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]).CountBits() <= 1)
          {
-            // Only 1 minor piece
-            if (MinorPieces(Color.White).CountBits() == 1)
-            {
-               return true;
-            }
-            // Only two knights
-            else if (MinorPieces(Color.White).CountBits() == 2 && (PieceBB[(int)PieceType.Bishop] & ColorBB[(int)Color.White]).CountBits() == 0)
-            {
-               return true;
-            }
+            return true;
          }
 
-         // Both sides only have a king and 1 minor piece
-         else if (ColorBB[(int)Color.White].CountBits() == 2 && ColorBB[(int)Color.Black].CountBits() == 2)
+         // KvNN
+         if (!PieceBB[(int)PieceType.Bishop] && PieceBB[(int)PieceType.Knight].CountBits() == 2)
          {
-            // We've already returned false if there are pawns, rooks, or queens on the board
-            // so the 2nd piece has to be a minor piece
             return true;
          }
 
@@ -697,7 +674,7 @@ namespace Puffin
             return false;
          }
 
-         Piece piece = Mailbox[move.GetFrom()];
+         Piece piece = Mailbox[move.From];
 
          // there's no piece to move?
          if (piece.Type == PieceType.Null)
@@ -712,7 +689,7 @@ namespace Puffin
          }
 
          // capturing our own piece?
-         if (Mailbox[move.GetTo()].Color == SideToMove)
+         if (Mailbox[move.To].Color == SideToMove)
          {
             return false;
          }
@@ -720,7 +697,7 @@ namespace Puffin
          // sliding piece trying to slide through pieces?
          if (piece.Type == PieceType.Bishop || piece.Type == PieceType.Rook || piece.Type == PieceType.Queen)
          {
-            if ((Constants.BetweenBB[move.GetFrom()][move.GetTo()] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
+            if ((BetweenBB[move.From][move.To] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
             {
                return false;
             }
@@ -743,7 +720,7 @@ namespace Puffin
          int phase = 0;
          Bitboard pieces = new(ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value);
 
-         while (!pieces.IsEmpty())
+         while (pieces)
          {
             int square = pieces.GetLSB();
             pieces.ClearLSB();

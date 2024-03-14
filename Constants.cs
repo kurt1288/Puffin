@@ -10,9 +10,13 @@ namespace Puffin
       public const int INFINITY = 30000;
       public const int MATE = 20000;
 
+      public const double LMR_Reduction_Base = 0.85;
+      public const double LMR_Reduction_Multiplier = 0.3;
+
       public readonly static ulong[] SquareBB = new ulong[64];
       public readonly static ulong[][] BetweenBB = new ulong[64][];
       public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
+      public readonly static ulong[] IsolatedPawnMasks = new ulong[8];
       public readonly static int[][] TaxiDistance = new int[64][];
 
       public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
@@ -57,7 +61,7 @@ namespace Puffin
 
             for (int moves = 0; moves < 218; moves++)
             {
-               LMR_Reductions[depth][moves] = (int)(0.85 + Math.Log(depth) * Math.Log(moves) * 0.3);
+               LMR_Reductions[depth][moves] = (int)(LMR_Reduction_Base + Math.Log(depth) * Math.Log(moves) * LMR_Reduction_Multiplier);
             }
          }
 
@@ -72,6 +76,8 @@ namespace Puffin
 
             PassedPawnMasks[(int)Color.White][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
             PassedPawnMasks[(int)Color.Black][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
+
+            IsolatedPawnMasks[i & 7] = ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
 
             for (int j = 7 - (i >> 3); j >= 0; j--)
             {

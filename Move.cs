@@ -5,6 +5,9 @@ namespace Puffin
    internal readonly struct Move
    {
       readonly ushort Encoded;
+      public readonly int To => Encoded & 0x3F;
+      public readonly int From => (Encoded >> 6) & 0x3F;
+      public readonly MoveFlag Flag => (MoveFlag)(Encoded >> 12 & 0xF);
 
       public Move(int from, int to, MoveFlag flag)
       {
@@ -17,40 +20,11 @@ namespace Puffin
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public int GetTo()
-      {
-         return Encoded & 0x3f;
-      }
-
+      public readonly bool HasType(MoveType type) => ((byte)Flag & (int)type) != 0;
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public int GetFrom()
-      {
-         return Encoded >> 6 & 0x3f;
-      }
-
+      public readonly bool IsCastle() => Flag == MoveFlag.KingCastle || Flag == MoveFlag.QueenCastle;
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public MoveFlag GetFlag()
-      {
-         return (MoveFlag)(Encoded >> 12 & 0xf);
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public bool HasType(MoveType type)
-      {
-         return (Encoded >> 12 & (int)type) != 0;
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public bool IsCastle()
-      {
-         return GetFlag() == MoveFlag.KingCastle || GetFlag() == MoveFlag.QueenCastle;
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public ushort GetEncoded()
-      {
-         return Encoded;
-      }
+      public readonly ushort GetEncoded() => Encoded;
 
       public static bool operator ==(Move a, int b) => a.Encoded == b;
       public static bool operator !=(Move a, int b) => a.Encoded != b;
@@ -59,23 +33,23 @@ namespace Puffin
 
       public override string ToString()
       {
-         string str = $"{Enum.GetName(typeof(Square), GetFrom()).ToLower()}{Enum.GetName(typeof(Square), GetTo()).ToLower()}";
+         string str = $"{Enum.GetName(typeof(Square), From).ToLower()}{Enum.GetName(typeof(Square), To).ToLower()}";
 
          if (HasType(MoveType.Promotion))
          {
-            if (GetFlag() == MoveFlag.KnightPromotion || GetFlag() == MoveFlag.KnightPromotionCapture)
+            if (Flag == MoveFlag.KnightPromotion || Flag == MoveFlag.KnightPromotionCapture)
             {
                str += "n";
             }
-            else if (GetFlag() == MoveFlag.BishopPromotion || GetFlag() == MoveFlag.BishopPromotionCapture)
+            else if (Flag == MoveFlag.BishopPromotion || Flag == MoveFlag.BishopPromotionCapture)
             {
                str += "b";
             }
-            else if (GetFlag() == MoveFlag.RookPromotion || GetFlag() == MoveFlag.RookPromotionCapture)
+            else if (Flag == MoveFlag.RookPromotion || Flag == MoveFlag.RookPromotionCapture)
             {
                str += "r";
             }
-            else if (GetFlag() == MoveFlag.QueenPromotion || GetFlag() == MoveFlag.QueenPromotionCapture)
+            else if (Flag == MoveFlag.QueenPromotion || Flag == MoveFlag.QueenPromotionCapture)
             {
                str += "q";
             }

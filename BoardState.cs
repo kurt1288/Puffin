@@ -42,6 +42,11 @@
          return new History(this);
       }
 
+      public void Reset()
+      {
+         _count = 0;
+      }
+
       public int Count
       {
          get
