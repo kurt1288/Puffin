@@ -281,7 +281,7 @@ namespace Puffin
 
             int E = inCheck ? 1 : 0;
 
-            if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && !inCheck && moves.Stage == Stage.Quiet)
+            if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && moves.Stage == Stage.Quiet)
             {
                int R = LMR_Reductions[depth][legalMoves];
 
@@ -295,8 +295,10 @@ namespace Puffin
                   R -= 1;
                }
 
+               int reduction = Math.Clamp(depth - 1 + E - R, 1, depth - 1 + E + 1);
+
                // Moves that do not beat the current best value (alpha) are cut-off. Moves that do will be researched below
-               if (-NegaScout(-alpha - 1, -alpha, depth - 1 - Math.Max(0, R) + E, ply + 1) <= alpha)
+               if (-NegaScout(-alpha - 1, -alpha, reduction, ply + 1) <= alpha)
                {
                   Board.UndoMove(moves.Move);
                   continue;
