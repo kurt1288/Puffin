@@ -28,7 +28,7 @@ namespace Puffin
       }
    }
 
-   public sealed class TranspositionTable
+   public struct TranspositionTable
    {
       TTEntry[] Table = new TTEntry[32 * 1024 * 1024 / 16]; // Default to 32MB table size
       ulong Used = 0;
@@ -51,7 +51,7 @@ namespace Puffin
          Used = 0;
       }
 
-      public TTEntry? GetEntry(ulong hash, int ply)
+      public readonly TTEntry? GetEntry(ulong hash, int ply)
       {
          TTEntry entry = Table[hash % (ulong)Table.Length];
 
@@ -94,18 +94,13 @@ namespace Puffin
          entry = new TTEntry(hash, depth, move, flag, score);
       }
 
-      public ushort GetHashMove(ulong hash)
+      public readonly ushort GetHashMove(ulong hash)
       {
          TTEntry entry = Table[hash % (ulong)Table.Length];
-         if (entry.Hash == hash)
-         {
-            return entry.Move;
-         }
-
-         return 0;
+         return entry.Hash == hash ? entry.Move : (ushort)0;
       }
 
-      public ulong GetUsed()
+      public readonly ulong GetUsed()
       {
          return 1000 * Used / (ulong)Table.Length;
       }
