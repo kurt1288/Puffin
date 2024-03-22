@@ -622,7 +622,10 @@ namespace Puffin.Tuner
       {
          Bitboard pawns = board.PieceBB[(int)PieceType.Pawn];
          Bitboard[] colorPawns = [pawns & board.ColorBB[(int)Color.White], pawns & board.ColorBB[(int)Color.Black]];
-         int[] defender = [0, 0];
+         int[] defended = [
+            (colorPawns[(int)Color.White] & WhitePawnAttacks(colorPawns[(int)Color.White].Value)).CountBits(),
+            (colorPawns[(int)Color.Black] & BlackPawnAttacks(colorPawns[(int)Color.Black].Value)).CountBits(),
+         ];
          int[] connected = [0, 0];
 
          while (pawns)
@@ -643,12 +646,6 @@ namespace Puffin.Tuner
                trace.enemyKingPawnDistance[(int)color] += TaxiDistance[square][kingSquares[(int)color ^ 1]];
             }
 
-            // Defending pawn
-            if ((PawnAttacks[(int)color][square] & colorPawns[(int)color].Value) != 0)
-            {
-               defender[(int)color]++;
-            }
-
             // Connected pawn
             if ((((SquareBB[square] & ~FILE_MASKS[(int)File.H]) << 1) & colorPawns[(int)color].Value) != 0)
             {
@@ -664,9 +661,9 @@ namespace Puffin.Tuner
             }
          }
 
-         score += Evaluation.DefendedPawn[defender[(int)Color.White]] - Evaluation.DefendedPawn[defender[(int)Color.Black]];
-         trace.defendedPawn[defender[(int)Color.White]][(int)Color.White]++;
-         trace.defendedPawn[defender[(int)Color.Black]][(int)Color.Black]++;
+         score += Evaluation.DefendedPawn[defended[(int)Color.White]] - Evaluation.DefendedPawn[defended[(int)Color.Black]];
+         trace.defendedPawn[defended[(int)Color.White]][(int)Color.White]++;
+         trace.defendedPawn[defended[(int)Color.Black]][(int)Color.Black]++;
          score += Evaluation.ConnectedPawn[connected[(int)Color.White]] - Evaluation.ConnectedPawn[connected[(int)Color.Black]];
          trace.connectedPawn[connected[(int)Color.White]][(int)Color.White]++;
          trace.connectedPawn[connected[(int)Color.Black]][(int)Color.Black]++;
