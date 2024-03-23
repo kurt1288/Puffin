@@ -185,7 +185,10 @@ namespace Puffin
             (colorPawns[(int)Color.White] & WhitePawnAttacks(colorPawns[(int)Color.White].Value)).CountBits(),
             (colorPawns[(int)Color.Black] & BlackPawnAttacks(colorPawns[(int)Color.Black].Value)).CountBits(),
          ];
-         int[] connected = [0, 0];
+         int[] connected = [
+            (colorPawns[(int)Color.White] & Bitboard.RightShift(colorPawns[(int)Color.White].Value)).CountBits(),
+            (colorPawns[(int)Color.Black] & Bitboard.RightShift(colorPawns[(int)Color.Black].Value)).CountBits(),
+         ];
 
          while (pawns)
          {
@@ -200,12 +203,6 @@ namespace Puffin
                score += PassedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1] * (1 - 2 * (int)color);
                score += TaxiDistance[square][kingSquares[(int)color]] * FriendlyKingPawnDistance * (1 - 2 * (int)color);
                score += TaxiDistance[square][kingSquares[(int)color ^ 1]] * EnemyKingPawnDistance * (1 - 2 * (int)color);
-            }
-
-            // Connected pawn
-            if ((((SquareBB[square] & ~FILE_MASKS[(int)File.H]) << 1) & colorPawns[(int)color].Value) != 0)
-            {
-               connected[(int)color]++;
             }
 
             // Isolated pawn
