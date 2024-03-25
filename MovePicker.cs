@@ -18,7 +18,7 @@
       private readonly bool NoisyOnly = false;
       public readonly SearchInfo SearchInfo;
       public readonly int Ply;
-      private ushort HashMove = 0;
+      private Move HashMove = new();
       TranspositionTable TTable;
       public Stage Stage;
       public Move Move;
@@ -44,12 +44,12 @@
          {
             case Stage.HashMove:
                {
-                  HashMove = TTable.GetHashMove(Board.Hash);
+                  HashMove = new Move(TTable.GetHashMove(Board.Hash));
                   Stage++;
 
-                  if (HashMove != 0)
+                  if (HashMove != 0 && Board.IsPseudoLegal(HashMove))
                   {
-                     Move = new Move(HashMove);
+                     Move = HashMove;
                      return true;
                   }
 
@@ -84,7 +84,7 @@
                {
                   if (Index < 2)
                   {
-                     if (Board.MoveIsValid(SearchInfo.KillerMoves[Ply][Index]))
+                     if (Board.IsPseudoLegal(SearchInfo.KillerMoves[Ply][Index]))
                      {
                         Move = SearchInfo.KillerMoves[Ply][Index++];
                         return true;
