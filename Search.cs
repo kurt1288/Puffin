@@ -274,7 +274,7 @@ namespace Puffin
             ThreadInfo.Nodes += 1;
             legalMoves += 1;
 
-            if (isQuiet)
+            if (isQuiet && quietMovesCount < 100)
             {
                quietMoves[quietMovesCount++] = moves.Move;
             }
