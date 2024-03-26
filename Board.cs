@@ -820,7 +820,10 @@ namespace Puffin
             }
          }
 
-         if (move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.DoublePawnPush || move.Flag == MoveFlag.EPCapture || (move.Flag == MoveFlag.Quiet && Mailbox[move.To].Type != PieceType.Null))
+         // At this point, pawn moves, quiet moves to an occupied space, and capture moves to an unoccupied space are all invalid
+         if (move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.DoublePawnPush || move.Flag == MoveFlag.EPCapture
+            || (move.Flag == MoveFlag.Quiet && Mailbox[move.To].Type != PieceType.Null)
+            || (move.Flag == MoveFlag.Capture && Mailbox[move.To].Type == PieceType.Null))
          {
             return false;
          }

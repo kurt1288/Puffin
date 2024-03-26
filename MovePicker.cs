@@ -47,7 +47,7 @@
                   HashMove = new Move(TTable.GetHashMove(Board.Hash));
                   Stage++;
 
-                  if (HashMove != 0 && Board.IsPseudoLegal(HashMove))
+                  if (Board.IsPseudoLegal(HashMove))
                   {
                      Move = HashMove;
                      return true;
