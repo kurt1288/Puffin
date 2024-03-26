@@ -186,8 +186,8 @@ namespace Puffin
             (colorPawns[(int)Color.Black] & BlackPawnAttacks(colorPawns[(int)Color.Black].Value)).CountBits(),
          ];
          int[] connected = [
-            (colorPawns[(int)Color.White] & Bitboard.RightShift(colorPawns[(int)Color.White].Value)).CountBits(),
-            (colorPawns[(int)Color.Black] & Bitboard.RightShift(colorPawns[(int)Color.Black].Value)).CountBits(),
+            (colorPawns[(int)Color.White] & colorPawns[(int)Color.White].RightShift()).CountBits(),
+            (colorPawns[(int)Color.Black] & colorPawns[(int)Color.Black].RightShift()).CountBits(),
          ];
 
          while (pawns)

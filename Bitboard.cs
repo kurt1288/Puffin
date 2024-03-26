@@ -59,9 +59,9 @@ namespace Puffin
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public static ulong RightShift(ulong board)
+      public ulong RightShift()
       {
-         return (board & ~Constants.FILE_MASKS[(int)File.H]) << 1;
+         return (Value & ~Constants.FILE_MASKS[(int)File.H]) << 1;
       }
 
       public static Bitboard operator &(Bitboard a, ulong b) => new(a.Value & b);
