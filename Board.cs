@@ -715,7 +715,7 @@ namespace Puffin
 
             if (move.HasType(MoveType.Capture))
             {
-               return Mailbox[move.To].Type != PieceType.Null && (Attacks.PawnAttacks[(int)piece.Color][move.From] & Constants.SquareBB[move.To]) != 0;
+               return Mailbox[move.To].Type != PieceType.Null && (PawnAttacks[(int)piece.Color][move.From] & SquareBB[move.To]) != 0;
             }
 
             // Non-captures should remain on the same file
@@ -765,12 +765,12 @@ namespace Puffin
             if (move.Flag == MoveFlag.KingCastle)
             {
                // no castle square
-               if (piece.Color == Color.White ? (CastleSquares & Constants.SquareBB[(int)Square.H1]) == 0 : (CastleSquares & Constants.SquareBB[(int)Square.H8]) == 0)
+               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.H1]) == 0 : (CastleSquares & SquareBB[(int)Square.H8]) == 0)
                {
                   return false;
                }
 
-               ulong path = piece.Color == Color.White ? Constants.BetweenBB[move.From][(int)Square.H1] : Constants.BetweenBB[move.From][(int)Square.H8];
+               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.H1] : BetweenBB[move.From][(int)Square.H8];
 
 #if DEBUG
                MoveList castleMoves = new();
@@ -793,12 +793,12 @@ namespace Puffin
             else
             {
                // no castle square
-               if (piece.Color == Color.White ? (CastleSquares & Constants.SquareBB[(int)Square.A1]) == 0 : (CastleSquares & Constants.SquareBB[(int)Square.A8]) == 0)
+               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.A1]) == 0 : (CastleSquares & SquareBB[(int)Square.A8]) == 0)
                {
                   return false;
                }
 
-               ulong path = piece.Color == Color.White ? Constants.BetweenBB[move.From][(int)Square.A1] : Constants.BetweenBB[move.From][(int)Square.A8];
+               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.A1] : BetweenBB[move.From][(int)Square.A8];
 
 #if DEBUG
                MoveList castleMoves = new();
@@ -830,11 +830,11 @@ namespace Puffin
 
          Bitboard moves = Mailbox[move.From].Type switch
          {
-            PieceType.Knight => new(Attacks.KnightAttacks[move.From]),
-            PieceType.Bishop => new(Attacks.GetBishopAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
-            PieceType.Rook => new(Attacks.GetRookAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
-            PieceType.Queen => new(Attacks.GetQueenAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
-            PieceType.King => new(Attacks.KingAttacks[move.From]),
+            PieceType.Knight => new(KnightAttacks[move.From]),
+            PieceType.Bishop => new(GetBishopAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
+            PieceType.Rook => new(GetRookAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
+            PieceType.Queen => new(GetQueenAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
+            PieceType.King => new(KingAttacks[move.From]),
             _ => throw new Exception($"Unable to get attacks for piece {Mailbox[move.From].Type}"),
          };
 
@@ -849,10 +849,10 @@ namespace Puffin
             }
          }
 
-         Debug.Assert(found == ((moves.Value & Constants.SquareBB[move.To]) != 0));
+         Debug.Assert(found == ((moves.Value & SquareBB[move.To]) != 0));
 #endif
 
-         return (moves.Value & Constants.SquareBB[move.To]) != 0;
+         return (moves.Value & SquareBB[move.To]) != 0;
       }
 
       private int VerifyPhase()
