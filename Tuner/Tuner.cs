@@ -31,6 +31,8 @@ namespace Puffin.Tuner
          public double[][] bishopMobility = new double[14][];
          public double[][] rookMobility = new double[15][];
          public double[][] queenMobility = new double[28][];
+         public double[] kingOpenFile = new double[2];
+         public double[] kingHalfOpenFile = new double[2];
          public double[][] kingAttackWeights = new double[5][];
          public double[][] pawnShield = new double[4][];
          public double[][] passedPawn = new double[7][];
@@ -140,7 +142,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[499];
+      private ParameterWeight[] Parameters = new ParameterWeight[501];
 
       public Tuner()
       {
@@ -152,6 +154,8 @@ namespace Puffin.Tuner
 
          Evaluation.FriendlyKingPawnDistance = new();
          Evaluation.EnemyKingPawnDistance = new();
+         Evaluation.KingOpenFile = new();
+         Evaluation.KingHalfOpenFile = new();
 
          for (int i = 0; i < 384; i++)
          {
@@ -371,6 +375,8 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.BishopMobility, ref index);
          AddParameters(Evaluation.RookMobility, ref index);
          AddParameters(Evaluation.QueenMobility, ref index);
+         AddSingleParameter(Evaluation.KingOpenFile, ref index);
+         AddSingleParameter(Evaluation.KingHalfOpenFile, ref index);
          AddParameters(Evaluation.KingAttackWeights, ref index);
          AddParameters(Evaluation.PawnShield, ref index);
          AddParameters(Evaluation.PassedPawn, ref index);
@@ -609,6 +615,20 @@ namespace Puffin.Tuner
                Bitboard pawns = new(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & pawnSquares);
                score += Evaluation.PawnShield[Math.Min(pawns.CountBits(), 3)] * (1 - 2 * (int)color);
                trace.pawnShield[Math.Min(pawns.CountBits(), 3)][(int)color]++;
+
+               if ((board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & FILE_MASKS[kingSq & 7]) == 0)
+               {
+                  if ((board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color ^ 1].Value & FILE_MASKS[kingSq & 7]) == 0)
+                  {
+                     score -= Evaluation.KingOpenFile * (1 - 2 * (int)color);
+                     trace.kingOpenFile[(int)color]--;
+                  }
+                  else
+                  {
+                     score -= Evaluation.KingHalfOpenFile * (1 - 2 * (int)color);
+                     trace.kingHalfOpenFile[(int)color]--;
+                  }
+               }
             }
 
             if (kingAttacksCount[(int)color ^ 1] >= 2)
@@ -682,6 +702,8 @@ namespace Puffin.Tuner
          AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28, ref currentIndex);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingOpenFile, ref currentIndex);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingHalfOpenFile, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7, ref currentIndex);
@@ -752,6 +774,8 @@ namespace Puffin.Tuner
          PrintArray("bishop mobility", ref index, 14, sw);
          PrintArray("rook mobility", ref index, 15, sw);
          PrintArray("queen mobility", ref index, 28, sw);
+         PrintSingle("king open file", ref index, sw);
+         PrintSingle("king half open file", ref index, sw);
          PrintArray("king attack weights", ref index, 5, sw);
          PrintArray("pawn shield", ref index, 4, sw);
          PrintArray("passed pawn", ref index, 7, sw);
