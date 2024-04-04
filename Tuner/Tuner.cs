@@ -31,6 +31,8 @@ namespace Puffin.Tuner
          public double[][] bishopMobility = new double[14][];
          public double[][] rookMobility = new double[15][];
          public double[][] queenMobility = new double[28][];
+         public double[] rookHalfOpenFile = new double[2];
+         public double[] rookOpenFile = new double[2];
          public double[] kingOpenFile = new double[2];
          public double[] kingHalfOpenFile = new double[2];
          public double[][] kingAttackWeights = new double[5][];
@@ -142,7 +144,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[501];
+      private ParameterWeight[] Parameters = new ParameterWeight[503];
 
       public Tuner()
       {
@@ -156,6 +158,8 @@ namespace Puffin.Tuner
          Evaluation.EnemyKingPawnDistance = new();
          Evaluation.KingOpenFile = new();
          Evaluation.KingHalfOpenFile = new();
+         Evaluation.RookHalfOpenFile = new();
+         Evaluation.RookOpenFile = new();
 
          for (int i = 0; i < 384; i++)
          {
@@ -375,6 +379,8 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.BishopMobility, ref index);
          AddParameters(Evaluation.RookMobility, ref index);
          AddParameters(Evaluation.QueenMobility, ref index);
+         AddSingleParameter(Evaluation.RookHalfOpenFile, ref index);
+         AddSingleParameter(Evaluation.RookOpenFile, ref index);
          AddSingleParameter(Evaluation.KingOpenFile, ref index);
          AddSingleParameter(Evaluation.KingHalfOpenFile, ref index);
          AddParameters(Evaluation.KingAttackWeights, ref index);
@@ -567,6 +573,20 @@ namespace Puffin.Tuner
             score += Evaluation.RookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.rookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
+            if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value) == 0)
+            {
+               if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color ^ 1].Value) == 0)
+               {
+                  score += Evaluation.RookOpenFile * (1 - 2 * (int)color);
+                  trace.rookOpenFile[(int)color]++;
+               }
+               else
+               {
+                  score += Evaluation.RookHalfOpenFile * (1 - 2 * (int)color);
+                  trace.rookHalfOpenFile[(int)color]++;
+               }
+            }
+
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
                kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Rook] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
@@ -702,6 +722,8 @@ namespace Puffin.Tuner
          AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28, ref currentIndex);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookHalfOpenFile, ref currentIndex);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookOpenFile, ref currentIndex);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingOpenFile, ref currentIndex);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingHalfOpenFile, ref currentIndex);
          AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5, ref currentIndex);
@@ -774,6 +796,8 @@ namespace Puffin.Tuner
          PrintArray("bishop mobility", ref index, 14, sw);
          PrintArray("rook mobility", ref index, 15, sw);
          PrintArray("queen mobility", ref index, 28, sw);
+         PrintSingle("rook half open file", ref index, sw);
+         PrintSingle("rook open file", ref index, sw);
          PrintSingle("king open file", ref index, sw);
          PrintSingle("king half open file", ref index, sw);
          PrintArray("king attack weights", ref index, 5, sw);
