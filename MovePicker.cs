@@ -18,24 +18,18 @@
       private readonly bool NoisyOnly = false;
       public readonly SearchInfo SearchInfo;
       public readonly int Ply;
-      private Move HashMove = new();
-      TranspositionTable TTable;
+      private Move HashMove;
       public Stage Stage;
       public Move Move;
 
-      public MovePicker(Board board, SearchInfo info, int ply, TranspositionTable tTable, bool noisyOnly = false)
+      public MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly = false)
       {
          Stage = Stage.HashMove;
          Board = board;
          SearchInfo = info;
          Ply = ply;
-         TTable = tTable;
-
-         if (noisyOnly)
-         {
-            NoisyOnly = true;
-            Stage = Stage.GenNoisy;
-         }
+         HashMove = hashMove;
+         NoisyOnly = noisyOnly;
       }
 
       public bool Next()
@@ -44,7 +38,6 @@
          {
             case Stage.HashMove:
                {
-                  HashMove = new Move(TTable.GetHashMove(Board.Hash));
                   Stage++;
 
                   if (Board.IsPseudoLegal(HashMove))

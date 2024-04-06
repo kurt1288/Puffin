@@ -243,7 +243,7 @@ namespace Puffin
             depth--;
          }
 
-         MovePicker moves = new(Board, ThreadInfo, ply, TTable);
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove));
 
          while (moves.Next())
          {
@@ -402,10 +402,11 @@ namespace Puffin
             return 0;
          }
 
+         TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
+         ushort ttMove = entry.HasValue ? entry.Value.Move : (ushort)0;
+
          if (!isPVNode)
          {
-            TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
-
             if (entry.HasValue
                && (entry.Value.Flag == HashFlag.Exact
                || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
@@ -429,7 +430,7 @@ namespace Puffin
 
          Move bestMove = new();
          HashFlag flag = HashFlag.Alpha;
-         MovePicker moves = new(Board, ThreadInfo, ply, TTable, true);
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), true);
 
          while (moves.Next())
          {
