@@ -473,7 +473,7 @@ namespace Puffin.Tuner
          ];
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
 
-         Pawns(board, kingSquares, ref mobilitySquares, ref score, ref trace);
+         Pawns(board, kingSquares, ref mobilitySquares, occupied, ref score, ref trace);
          Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, ref trace);
          Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
          Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
@@ -527,7 +527,7 @@ namespace Puffin.Tuner
             Color color = board.Mailbox[square].Color;
             // * (1 - 2 * (int)color) evaluates to 1 when color is white and to -1 when color is black (so that black score is subtracted)
             score += Evaluation.KnightMobility[new Bitboard(KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.knightMobility[new Bitboard(KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            trace.knightMobility[new Bitboard(KnightAttacks[square] & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((KnightAttacks[square] & kingZones[(int)color ^ 1]) != 0)
             {
@@ -548,8 +548,8 @@ namespace Puffin.Tuner
             bishopBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetBishopAttacks(square, occupied);
-            score += Evaluation.BishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.bishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            score += Evaluation.BishopMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            trace.bishopMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
@@ -571,7 +571,7 @@ namespace Puffin.Tuner
             Color color = board.Mailbox[square].Color;
             ulong moves = GetRookAttacks(square, occupied);
             score += Evaluation.RookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.rookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            trace.rookMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value) == 0)
             {
@@ -606,7 +606,7 @@ namespace Puffin.Tuner
             Color color = board.Mailbox[square].Color;
             ulong moves = GetQueenAttacks(square, occupied);
             score += Evaluation.QueenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.queenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            trace.queenMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
@@ -658,7 +658,7 @@ namespace Puffin.Tuner
          }
       }
 
-      private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ref Score score, ref Trace trace)
+      private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ulong occupied, ref Score score, ref Trace trace)
       {
          Bitboard pawns = board.PieceBB[(int)PieceType.Pawn];
          Bitboard[] colorPawns = [pawns & board.ColorBB[(int)Color.White], pawns & board.ColorBB[(int)Color.Black]];
@@ -674,6 +674,11 @@ namespace Puffin.Tuner
             Color color = board.Mailbox[square].Color;
             pawns.ClearLSB();
             mobilitySquares[(int)color ^ 1] |= PawnAttacks[(int)color][square];
+
+            if ((SquareBB[square + (color == Color.White ? -8 : 8)] & occupied) != 0)
+            {
+               mobilitySquares[(int)color] ^= SquareBB[square];
+            }
 
             // Passed pawns
             if ((PassedPawnMasks[(int)color][square] & colorPawns[(int)color ^ 1].Value) == 0)
