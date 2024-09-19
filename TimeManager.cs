@@ -6,7 +6,7 @@ namespace Puffin
    internal class TimeManager : ICloneable
    {
       readonly Stopwatch StopWatch = new();
-      readonly int Overhead = 15;
+      readonly int Overhead = 20;
       bool Stopped = false;
       double SoftTime = 0;
       double MaxTime = 0;
@@ -42,9 +42,8 @@ namespace Puffin
          }
          else if (time != 0)
          {
-            int optimal = (time / movesToGo) + inc - Overhead;
-            SoftTime = Math.Min(optimal, (time - Overhead) * 0.2);
-            MaxTime = (time * 0.75) - Overhead;
+            SoftTime = (0.75 * ((time / movesToGo) + (inc * 0.8))) - Overhead;
+            MaxTime = Math.Min((time * 0.75) + inc, time) - Overhead;
          }
       }
 
@@ -92,7 +91,15 @@ namespace Puffin
             return true;
          }
 
-         if (SoftTime != 0 && MaxTime != 0 && ((StopWatch.ElapsedMilliseconds >= SoftTime && newIteration) || StopWatch.ElapsedMilliseconds >= MaxTime))
+         long elapsedTime = StopWatch.ElapsedMilliseconds;
+
+         if (SoftTime != 0 && newIteration && elapsedTime >= SoftTime)
+         {
+            Stop();
+            return true;
+         }
+
+         if (MaxTime != 0 && elapsedTime >= MaxTime)
          {
             Stop();
             return true;

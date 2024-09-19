@@ -109,39 +109,32 @@ namespace Puffin
                beta = Math.Min(score + margin, INFINITY);
             }
 
-            while (true)
+            try
             {
-               if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
-               {
-                  stop = true;
-                  break;
-               }
-
-               try
+               while (true)
                {
                   score = ThreadInfo.Score = NegaScout(alpha, beta, i, 0, false);
-               }
-               catch (TimeoutException)
-               {
-                  stop = true;
-                  break;
-               }
 
-               if (score <= alpha)
-               {
-                  alpha = Math.Max(score - margin, -INFINITY);
-                  beta = (alpha + beta) / 2;
-               }
-               else if (score >= beta)
-               {
-                  beta = Math.Min(score + margin, INFINITY);
-               }
-               else
-               {
-                  break;
-               }
+                  if (score <= alpha)
+                  {
+                     alpha = Math.Max(score - margin, -INFINITY);
+                     beta = (alpha + beta) / 2;
+                  }
+                  else if (score >= beta)
+                  {
+                     beta = Math.Min(score + margin, INFINITY);
+                  }
+                  else
+                  {
+                     break;
+                  }
 
-               margin += margin / 2;
+                  margin += margin / 2;
+               }
+            }
+            catch (TimeoutException)
+            {
+               stop = true;
             }
 
             if (!stop)
@@ -317,11 +310,6 @@ namespace Puffin
 
             Board.UndoMove(moves.Move);
 
-            if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
-            {
-               throw new TimeoutException();
-            }
-
             if (score > bestScore)
             {
                bestScore = score;
@@ -451,11 +439,6 @@ namespace Puffin
             int score = -Quiescence(-beta, -alpha, ply + 1, isPVNode);
 
             Board.UndoMove(moves.Move);
-
-            if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
-            {
-               throw new TimeoutException();
-            }
 
             if (score > bestScore)
             {
