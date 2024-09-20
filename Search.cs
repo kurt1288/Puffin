@@ -201,7 +201,7 @@ namespace Puffin
             // Reverse futility pruning
             if (depth <= RFP_Depth && staticEval - RFP_Margin * depth >= beta)
             {
-               return staticEval;
+               return (staticEval + beta) / 2;
             }
 
             // Null move pruning
