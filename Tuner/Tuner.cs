@@ -101,6 +101,18 @@ namespace Puffin.Tuner
          }
       }
 
+      private struct PotentialKingAttacks
+      {
+         public int[] Count;
+         public int[] Weight;
+
+         public PotentialKingAttacks(int pieceTypeCount)
+         {
+            Count = new int[pieceTypeCount];
+            Weight = new int[pieceTypeCount];
+         }
+      }
+
       private struct ParameterWeight
       {
          public double Mg;
@@ -119,10 +131,10 @@ namespace Puffin.Tuner
 
       private readonly struct CoefficientEntry
       {
-         public readonly short Value;
+         public readonly double Value;
          public readonly int Index;
 
-         public CoefficientEntry(short value, int index)
+         public CoefficientEntry(double value, int index)
          {
             Index = index;
             Value = value;
@@ -134,17 +146,19 @@ namespace Puffin.Tuner
          public readonly List<CoefficientEntry> Coefficients;
          public readonly double Phase;
          public readonly double Result;
+         public readonly string Fen;
 
-         public Entry(List<CoefficientEntry> coefficients, double phase, double result)
+         public Entry(List<CoefficientEntry> coefficients, double phase, double result, string fen)
          {
             Coefficients = coefficients;
             Phase = phase;
             Result = result;
+            Fen = fen;
          }
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[503];
+      private readonly ParameterWeight[] Parameters = new ParameterWeight[503];
 
       public Tuner()
       {
@@ -278,6 +292,33 @@ namespace Puffin.Tuner
          timer.Stop();
          Console.WriteLine("Completed");
          Environment.Exit(100);
+      }
+
+      public void Test()
+      {
+         LoadParameters();
+         Console.WriteLine($"Loading positions...");
+         Entry[] entries = LoadPositions();
+         Board board = new();
+         Console.WriteLine($"\r\nRunning evaluation test...");
+
+         foreach (Entry entry in entries) {
+            board.SetPosition(entry.Fen);
+            var tunerEval = Evaluate(entry);
+            var boardEval = Evaluation.Evaluate(board);
+
+            if (board.SideToMove == Color.Black)
+            {
+               tunerEval *= -1;
+            }
+
+            if (Math.Abs(boardEval - tunerEval) > 1.5)
+            {
+               Console.WriteLine($"Position {entry.Fen} got {boardEval} from the engine evaluation but {tunerEval} from the tuner evaluation");
+            }
+         }
+
+         Console.WriteLine($"Test complete");
       }
 
       private void ComputeGradient(ref ParameterWeight[] gradients, Entry[] entries, double K)
@@ -423,7 +464,7 @@ namespace Puffin.Tuner
 
                (Trace trace, double phase) = GetEval(board);
 
-               entries[lines++] = new(GetCoefficients(trace), phase, GetEntryResult(line));
+               entries[lines++] = new(GetCoefficientEntries(GetCoefficients(trace)), phase, GetEntryResult(line), line.Split("\"")[0].Trim());
 
                Console.Write($"\rPositions loaded: {lines}/{totalLines} {100 * (long)lines / totalLines}% | {sw.Elapsed}");
 
@@ -473,12 +514,18 @@ namespace Puffin.Tuner
          ];
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
 
+         PotentialKingAttacks[] potentialKingAttacks =
+         [
+            new PotentialKingAttacks(6),
+            new PotentialKingAttacks(6),
+         ];
+
          Pawns(board, kingSquares, ref mobilitySquares, occupied, ref score, ref trace);
-         Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, ref trace);
-         Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
-         Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
-         Queens(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
-         Kings(board, ref score, ref kingAttacks, ref kingAttacksCount, ref trace);
+         Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, ref trace, potentialKingAttacks);
+         Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace, potentialKingAttacks);
+         Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace, potentialKingAttacks);
+         Queens(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace, potentialKingAttacks);
+         Kings(board, ref score, ref kingAttacks, ref kingAttacksCount, ref trace, potentialKingAttacks);
 
          if (board.SideToMove == Color.Black)
          {
@@ -516,7 +563,9 @@ namespace Puffin.Tuner
          return score;
       }
 
-      private static void Knights(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace)
+      private static void Knights(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard knightsBB = board.PieceBB[(int)PieceType.Knight];
 
@@ -531,14 +580,19 @@ namespace Puffin.Tuner
 
             if ((KnightAttacks[square] & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Knight][(int)color] += new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Knight]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Knight] += attackCount;
             }
          }
       }
 
-      private static void Bishops(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace)
+      private static void Bishops(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
 
@@ -548,19 +602,24 @@ namespace Puffin.Tuner
             bishopBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetBishopAttacks(square, occupied);
-            score += Evaluation.BishopMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            score += Evaluation.BishopMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.bishopMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Bishop] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Bishop][(int)color] += new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Bishop]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Bishop] += attackCount;
             }
          }
       }
 
-      private static void Rooks(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace)
+      private static void Rooks(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard rookBB = board.PieceBB[(int)PieceType.Rook];
 
@@ -570,7 +629,7 @@ namespace Puffin.Tuner
             rookBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetRookAttacks(square, occupied);
-            score += Evaluation.RookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            score += Evaluation.RookMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.rookMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value) == 0)
@@ -589,13 +648,18 @@ namespace Puffin.Tuner
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Rook] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Rook] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Rook][(int)color] += new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Rook]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Rook] += attackCount;
             }
          }
       }
-      private static void Queens(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace)
+      private static void Queens(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard queenBB = board.PieceBB[(int)PieceType.Queen];
 
@@ -605,19 +669,22 @@ namespace Puffin.Tuner
             queenBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetQueenAttacks(square, occupied);
-            score += Evaluation.QueenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            score += Evaluation.QueenMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
             trace.queenMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Queen] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Queen] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Queen][(int)color] += new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Queen]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Queen] += attackCount;
             }
          }
       }
 
-      private static void Kings(Board board, ref Score score, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace)
+      private static void Kings(Board board, ref Score score, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace, PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard kingBB = board.PieceBB[(int)PieceType.King];
 
@@ -654,6 +721,15 @@ namespace Puffin.Tuner
             if (kingAttacksCount[(int)color ^ 1] >= 2)
             {
                score -= kingAttacks[(int)color ^ 1] * (1 - 2 * (int)color);
+
+               // Update trace with each piece attacks
+               for (int pieceType = 0; pieceType < potentialKingAttacks[(int)color ^ 1].Count.Length; pieceType++)
+               {
+                  if (potentialKingAttacks[(int)color ^ 1].Count[pieceType] > 0)
+                  {
+                     trace.kingAttackWeights[pieceType][(int)color ^ 1] += potentialKingAttacks[(int)color ^ 1].Weight[pieceType];
+                  }
+               }
             }
          }
       }
@@ -716,52 +792,65 @@ namespace Puffin.Tuner
          mobilitySquares[(int)Color.Black] = ~mobilitySquares[(int)Color.Black];
       }
 
-      private List<CoefficientEntry> GetCoefficients(Trace trace)
+      private Dictionary<int, double> GetCoefficients(Trace trace)
       {
-         List<CoefficientEntry> entryCoefficients = new();
-         int currentIndex = 0;
+         Dictionary<int, double> entryCoefficients = [];
 
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.material, 6, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.pst, 384, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.knightMobility, 9, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookHalfOpenFile, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookOpenFile, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingOpenFile, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingHalfOpenFile, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.defendedPawn, 8, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.connectedPawn, 9, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.isolatedPawn, 8, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.material, 6);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.pst, 384);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.knightMobility, 9);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookHalfOpenFile);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookOpenFile);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingOpenFile);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingHalfOpenFile);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.defendedPawn, 8);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.connectedPawn, 9);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.isolatedPawn, 8);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance);
 
          return entryCoefficients;
       }
 
-      private void AddSingleCoefficientAndEntry(ref List<CoefficientEntry> entryCoefficients, double[] trace, ref int currentIndex)
+      private void AddSingleCoefficientAndEntry(ref Dictionary<int, double> entryCoefficients, double[] trace)
       {
-         if ((short)(trace[0] - trace[1]) != 0)
-         {
-            entryCoefficients.Add(new CoefficientEntry((short)(trace[0] - trace[1]), currentIndex));
-         }
-         currentIndex++;
+         entryCoefficients.Add(entryCoefficients.Count, trace[0] - trace[1]);
       }
 
-      private void AddCoefficientsAndEntries(ref List<CoefficientEntry> entryCoefficients, double[][] trace, int size, ref int currentIndex)
+      private void AddCoefficientsAndEntries(ref Dictionary<int, double> entryCoefficients, double[][] trace, int size)
       {
-         foreach (var item in trace)
+         for (int i = 0; i < size; i++)
          {
-            if ((short)(item[0] - item[1]) != 0)
-            {
-               entryCoefficients.Add(new CoefficientEntry((short)(item[0] - item[1]), currentIndex));
-            }
-            currentIndex++;
+            AddSingleCoefficientAndEntry(ref entryCoefficients, trace[i]);
          }
+      }
+
+      private List<CoefficientEntry> GetCoefficientEntries(Dictionary<int, double> coefficients)
+      {
+         List<CoefficientEntry> coefficientEntries = [];
+
+         if (coefficients.Count != Parameters.Length)
+         {
+            throw new Exception("Counts of coefficients and parameters don't match");
+         }
+
+         for (int i = 0; i < coefficients.Count(); i++)
+         {
+            if (coefficients[i] == 0)
+            {
+               continue;
+            }
+
+            coefficientEntries.Add(new CoefficientEntry(coefficients[i], i));
+         }
+
+         return coefficientEntries;
       }
 
       private double Sigmoid(double factor, double score)

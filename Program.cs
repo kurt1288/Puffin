@@ -49,6 +49,11 @@ if (args.Length != 0)
          Environment.Exit(100);
          break;
       }
+      else if (arg == "tunetest")
+      {
+         Tuner tuner = new();
+         tuner.Test();
+      }
    }
 }
 
