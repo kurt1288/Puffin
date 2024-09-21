@@ -113,7 +113,7 @@ namespace Puffin
             {
                while (true)
                {
-                  score = ThreadInfo.Score = NegaScout(alpha, beta, i, 0, false);
+                  score = ThreadInfo.Score = NegaScout(alpha, beta, i, 0, false, new());
 
                   if (score <= alpha)
                   {
@@ -152,7 +152,7 @@ namespace Puffin
          }
       }
 
-      private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull = true)
+      private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull, Move previousMove)
       {
          if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
          {
@@ -212,7 +212,7 @@ namespace Puffin
                | Board.PieceBB[(int)PieceType.Rook].Value | Board.PieceBB[(int)PieceType.Queen].Value)) != 0)
             {
                Board.MakeNullMove();
-               int score = -NegaScout(-beta, -beta + 1, depth - 1 - (3 + depth / 6), ply + 1, false);
+               int score = -NegaScout(-beta, -beta + 1, depth - 1 - (3 + depth / 6), ply + 1, false, new());
                Board.UnmakeNullMove();
 
                if (score >= beta)
@@ -236,7 +236,7 @@ namespace Puffin
             depth--;
          }
 
-         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove));
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), false, ThreadInfo.GetCountermove(previousMove));
 
          while (moves.Next())
          {
@@ -291,7 +291,7 @@ namespace Puffin
                int reduction = Math.Clamp(depth - 1 + E - R, 1, depth - 1 + E + 1);
 
                // Moves that do not beat the current best value (alpha) are cut-off. Moves that do will be researched below
-               if (-NegaScout(-alpha - 1, -alpha, reduction, ply + 1) <= alpha)
+               if (-NegaScout(-alpha - 1, -alpha, reduction, ply + 1, true, moves.Move) <= alpha)
                {
                   Board.UndoMove(moves.Move);
                   continue;
@@ -300,12 +300,12 @@ namespace Puffin
 
             // First move of leftmost nodes get searched with a full window (because b = beta)
             // Subsequent moves get searched with a null window (b = alpha + 1)
-            int score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1);
+            int score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1, true, moves.Move);
 
             // After the first legal move, if the intial search (above) fails high or low, research with the full window
             if (score > alpha && score < beta && legalMoves > 1)
             {
-               score = -NegaScout(-beta, -alpha, depth - 1 + E, ply + 1);
+               score = -NegaScout(-beta, -alpha, depth - 1 + E, ply + 1, true, moves.Move);
             }
 
             Board.UndoMove(moves.Move);
@@ -335,6 +335,7 @@ namespace Puffin
                      ThreadInfo.KillerMoves[ply][0] = moves.Move;
                   }
 
+                  ThreadInfo.UpdateCountermove(previousMove, moves.Move);
                   ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, depth * depth);
 
                   // Reduce history score for other quiet moves
@@ -418,7 +419,7 @@ namespace Puffin
 
          Move bestMove = new();
          HashFlag flag = HashFlag.Alpha;
-         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), true);
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), true, bestMove);
 
          while (moves.Next())
          {

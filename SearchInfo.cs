@@ -9,6 +9,7 @@ namespace Puffin
       int[] PvLength;
       public int Nodes;
       public readonly Move[][] KillerMoves = new Move[MAX_PLY][];
+      readonly Move[] CounterMoves = new Move[64 * 64];
       public readonly int[] HistoryScores = new int[2 * 64 * 64];
       public int Score = -INFINITY;
 
@@ -72,6 +73,18 @@ namespace Puffin
             Pv[ply][i] = Pv[ply + 1][i];
          }
          PvLength[ply] = PvLength[ply + 1];
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdateCountermove(Move previousMove, Move currentMove)
+      {
+         CounterMoves[previousMove.From * 64 + previousMove.To] = currentMove;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public Move GetCountermove(Move previousMove)
+      {
+         return (previousMove.From < 64 && previousMove.To < 64) ? CounterMoves[previousMove.From * 64 + previousMove.To] : new();
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]

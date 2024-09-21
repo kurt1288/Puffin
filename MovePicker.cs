@@ -6,6 +6,7 @@
       GenNoisy,
       Noisy,
       Killers,
+      Counter,
       GenQuiet,
       Quiet,
    }
@@ -18,17 +19,19 @@
       private readonly bool NoisyOnly = false;
       public readonly SearchInfo SearchInfo;
       public readonly int Ply;
-      private Move HashMove;
+      private readonly Move HashMove;
+      private readonly Move CounterMove;
       public Stage Stage;
       public Move Move;
 
-      public MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly = false)
+      public MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly, Move counterMove)
       {
          Stage = Stage.HashMove;
          Board = board;
          SearchInfo = info;
          Ply = ply;
          HashMove = hashMove;
+         CounterMove = counterMove;
          NoisyOnly = noisyOnly;
       }
 
@@ -88,6 +91,19 @@
                   }
 
                   Stage++;
+                  goto case Stage.Counter;
+               }
+            case Stage.Counter:
+               {
+                  Stage++;
+
+                  if (Board.IsPseudoLegal(CounterMove) && CounterMove != HashMove
+                     && CounterMove != SearchInfo.KillerMoves[Ply][0] && CounterMove != SearchInfo.KillerMoves[Ply][1])
+                  {
+                     Move = CounterMove;
+                     return true;
+                  }
+
                   goto case Stage.GenQuiet;
                }
             case Stage.GenQuiet:
@@ -140,7 +156,7 @@
          {
             Move move = moves[i];
 
-            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1])
+            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1] || move == CounterMove)
             {
                moves.RemoveAt(i);
             }
