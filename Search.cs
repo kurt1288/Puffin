@@ -172,6 +172,7 @@ namespace Puffin
          }
 
          bool isPVNode = beta != alpha + 1;
+         bool isRoot = ply == 0;
 
          if (depth <= 0)
          {
@@ -181,7 +182,7 @@ namespace Puffin
          TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
          ushort ttMove = entry.HasValue ? entry.Value.Move : (ushort)0;
 
-         if (!isPVNode && ply > 0)
+         if (!isPVNode && !isRoot)
          {
             if (entry.HasValue && entry.Value.Depth >= depth
                && (entry.Value.Flag == HashFlag.Exact
@@ -246,15 +247,13 @@ namespace Puffin
                // Late move pruning
                if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth)
                {
-                  // Skip all other quiet moves
-                  moves.Stage++;
-                  continue;
+                  moves.NoisyOnly = true;
                }
 
                // Futility pruning
                if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
-                  continue;
+                  moves.NoisyOnly = true;
                }
             }
 

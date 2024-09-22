@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using System.Diagnostics;
+
+namespace Puffin
 {
    enum Stage
    {
@@ -16,7 +18,7 @@
       private readonly MoveList _moveList = new();
       private readonly Board Board;
       private int Index;
-      private readonly bool NoisyOnly = false;
+      public bool NoisyOnly = false;
       public readonly SearchInfo SearchInfo;
       public readonly int Ply;
       private readonly Move HashMove;
@@ -108,6 +110,11 @@
                }
             case Stage.GenQuiet:
                {
+                  if (NoisyOnly)
+                  {
+                     return false;
+                  }
+
                   _moveList.Clear();
                   MoveGen.GenerateQuiet(_moveList, Board);
                   ScoreMoves(_moveList);
@@ -117,6 +124,11 @@
                }
             case Stage.Quiet:
                {
+                  if (NoisyOnly)
+                  {
+                     return false;
+                  }
+
                   if (Index < _moveList.Count)
                   {
                      Move = NextMove(_moveList, Index++);
