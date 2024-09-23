@@ -43,6 +43,7 @@ namespace Puffin.Tuner
          public double[][] isolatedPawn = new double[8][];
          public double[] friendlyKingPawnDistance = new double[2];
          public double[] enemyKingPawnDistance = new double[2];
+         public double[] bishopPair = new double[2];
          public double score = 0;
 
          public Trace()
@@ -158,7 +159,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private readonly ParameterWeight[] Parameters = new ParameterWeight[503];
+      private readonly ParameterWeight[] Parameters = new ParameterWeight[504];
 
       public Tuner()
       {
@@ -174,6 +175,7 @@ namespace Puffin.Tuner
          Evaluation.KingHalfOpenFile = new();
          Evaluation.RookHalfOpenFile = new();
          Evaluation.RookOpenFile = new();
+         Evaluation.BishopPair = new();
 
          for (int i = 0; i < 384; i++)
          {
@@ -432,6 +434,7 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.IsolatedPawn, ref index);
          AddSingleParameter(Evaluation.FriendlyKingPawnDistance, ref index);
          AddSingleParameter(Evaluation.EnemyKingPawnDistance, ref index);
+         AddSingleParameter(Evaluation.BishopPair, ref index);
       }
 
       private void AddSingleParameter(Score value, ref int index)
@@ -595,6 +598,18 @@ namespace Puffin.Tuner
          PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
+
+
+         if ((bishopBB & board.ColorBB[(int)Color.White]).CountBits() >= 2)
+         {
+            score += Evaluation.BishopPair;
+            trace.bishopPair[(int)Color.White]++;
+         }
+         if ((bishopBB & board.ColorBB[(int)Color.Black]).CountBits() >= 2)
+         {
+            score -= Evaluation.BishopPair;
+            trace.bishopPair[(int)Color.Black]++;
+         }
 
          while (bishopBB)
          {
@@ -814,6 +829,7 @@ namespace Puffin.Tuner
          AddCoefficientsAndEntries(ref entryCoefficients, trace.isolatedPawn, 8);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.bishopPair);
 
          return entryCoefficients;
       }
@@ -902,6 +918,7 @@ namespace Puffin.Tuner
          PrintArray("isolated pawn", ref index, 8, sw);
          PrintSingle("friendly king pawn distance", ref index, sw);
          PrintSingle("enemy king pawn distance", ref index, sw);
+         PrintSingle("bishop pair", ref index, sw);
       }
 
       private void PrintSingle(string name, ref int index, StreamWriter writer)

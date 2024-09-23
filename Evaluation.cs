@@ -94,6 +94,15 @@ namespace Puffin
       private static void Bishops(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied)
       {
          Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
+         
+         if ((bishopBB & board.ColorBB[(int)Color.White]).CountBits() >= 2)
+         {
+            score += BishopPair;
+         }
+         if ((bishopBB & board.ColorBB[(int)Color.Black]).CountBits() >= 2)
+         {
+            score -= BishopPair;
+         }
 
          while (bishopBB)
          {
@@ -245,148 +254,148 @@ namespace Puffin
 
       public static readonly Score[] PieceValues = [
          new(62, 108),
-         new(295, 341),
-         new(328, 356),
-         new(406, 627),
-         new(836, 1164),
+         new(297, 339),
+         new(310, 351),
+         new(406, 629),
+         new(850, 1157),
          new(0, 0),
       ];
 
       public static readonly Score[] PST =
       [
          new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0),
-         new( 24, 110), new( 35,  99), new( 22, 101), new( 58,  50), new( 30,  51), new( 18,  57), new(-78, 104), new(-95, 126),
-         new(  7,  36), new(  1,  42), new( 29,   1), new( 35, -34), new( 47, -40), new( 75, -26), new( 38,  16), new( 17,  23),
-         new(-15,  18), new( -8,  10), new( -6,  -6), new( -1, -23), new( 17, -20), new( 20, -21), new(  2,   0), new(  3,   0),
-         new(-19,   0), new(-16,   0), new( -7, -14), new(  2, -21), new(  4, -18), new(  8, -20), new( -5,  -9), new( -5, -13),
-         new(-26,  -6), new(-18,  -7), new(-15, -13), new(-10, -12), new(  0,  -9), new(-25,  -9), new(-15, -11), new(-28, -11),
-         new(-19,  -2), new(-13,  -3), new( -8,  -8), new( -3, -10), new(  0,   1), new(  1,  -5), new(  0, -11), new(-26,  -9),
+         new( 24, 110), new( 36,  98), new( 22, 102), new( 59,  51), new( 30,  52), new( 17,  58), new(-78, 104), new(-96, 126),
+         new(  7,  36), new(  1,  43), new( 29,   2), new( 35, -33), new( 45, -39), new( 75, -25), new( 38,  17), new( 17,  23),
+         new(-15,  18), new( -8,  10), new( -5,  -6), new( -1, -22), new( 16, -20), new( 20, -21), new(  2,   0), new(  3,   0),
+         new(-19,  -1), new(-17,   0), new( -7, -14), new(  3, -21), new(  4, -17), new(  9, -21), new( -5,  -9), new( -5, -13),
+         new(-26,  -6), new(-19,  -7), new(-15, -13), new(-10, -12), new(  0,  -9), new(-25, -10), new(-15, -11), new(-28, -11),
+         new(-19,  -2), new(-13,  -3), new( -8,  -8), new( -3,  -9), new(  0,   1), new(  1,  -6), new(  0, -11), new(-26,  -9),
          new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0), new(  0,   0),
 
-         new(-117, -34), new(-111,  -2), new(-73,  11), new(-40,   1), new(-16,   5), new(-67, -16), new(-87,   2), new(-80, -50),
-         new(-15,   0), new( -5,   6), new( 15,   1), new( 33,   0), new( 18,  -4), new( 58, -16), new(  4,   2), new( 15, -12),
-         new( -4,   0), new( 16,   1), new( 24,  15), new( 31,  16), new( 56,   5), new( 72,  -6), new( 29,  -5), new( 16,  -5),
-         new(  1,  13), new(  2,  13), new( 19,  24), new( 42,  26), new( 20,  26), new( 41,  22), new(  6,  17), new( 30,   5),
-         new( -1,  14), new( -3,   7), new(  2,  25), new(  9,  26), new( 15,  29), new( 14,  17), new( 24,   6), new( 11,  13),
-         new(-19,   1), new(-12,   2), new( -9,   5), new( -8,  21), new(  5,  18), new( -4,   1), new( 10,  -1), new( -2,   4),
-         new(-22,   3), new(-17,   6), new(-15,   0), new( -1,   1), new( -2,   0), new(  0,  -2), new(  2,   2), new(  0,  17),
-         new(-54,  10), new(-14,  -4), new(-30,  -3), new(-13,  -1), new( -9,   2), new( -5,  -5), new(-10,   1), new(-25,  10),
+         new(-115, -31), new(-109,  -2), new(-71,  10), new(-38,   0), new(-13,   4), new(-65, -17), new(-87,   1), new(-76, -49),
+         new(-15,   0), new( -5,   6), new( 16,   2), new( 32,   0), new( 18,  -4), new( 58, -17), new(  4,   2), new( 15, -13),
+         new( -4,   0), new( 16,   2), new( 23,  16), new( 31,  17), new( 56,   5), new( 71,  -6), new( 30,  -6), new( 15,  -6),
+         new(  1,  13), new(  2,  14), new( 18,  24), new( 42,  26), new( 20,  26), new( 40,  22), new(  6,  18), new( 30,   5),
+         new( -2,  15), new( -3,   9), new(  2,  26), new(  9,  27), new( 15,  30), new( 13,  18), new( 24,   6), new( 11,  13),
+         new(-19,   3), new(-12,   4), new(-10,   7), new( -9,  22), new(  4,  20), new( -4,   4), new(  9,   0), new( -2,   5),
+         new(-23,   4), new(-17,   7), new(-15,   1), new( -2,   3), new( -2,   2), new( -1,   0), new(  1,   2), new(  0,  17),
+         new(-55,  10), new(-14,  -2), new(-30,  -1), new(-13,   0), new( -9,   4), new( -5,  -4), new(-10,   3), new(-25,   9),
 
-         new(-31,   5), new(-67,  11), new(-60,   7), new(-100,  17), new(-93,  15), new(-81,   1), new(-48,   3), new(-66,   0),
-         new(-28,  -5), new( -8,  -2), new(-17,   0), new(-28,   3), new(-11,  -6), new(-17,  -3), new(-29,   1), new(-35,  -3),
-         new(-15,  11), new(  0,   0), new(  1,   4), new( 11,  -4), new(  0,   0), new( 32,   3), new( 10,   0), new(  4,   8),
-         new(-23,   6), new( -2,   8), new(  0,   3), new( 17,  16), new( 11,   8), new(  4,   8), new(  0,   4), new(-23,   9),
-         new( -6,   1), new(-18,   7), new( -6,  13), new( 12,  12), new(  8,  10), new( -5,   7), new(-13,   8), new( 14, -11),
-         new( -5,   4), new(  8,   6), new(  0,  10), new(  1,  12), new(  6,  15), new(  5,   8), new(  9,   0), new( 13,  -2),
-         new( 14,   9), new(  1,  -4), new( 12,  -7), new( -7,   5), new( -1,   8), new( 10,  -3), new( 23,   0), new( 12,  -2),
-         new(  1,   1), new( 17,   7), new(  1,   0), new(-11,   3), new( -1,  -1), new( -6,  14), new(  9,  -4), new( 19, -10),
+         new(-31,   7), new(-65,  11), new(-61,   7), new(-102,  16), new(-93,  15), new(-82,   1), new(-50,   5), new(-66,  -1),
+         new(-29,  -6), new( -9,  -3), new(-19,  -1), new(-29,   3), new(-11,  -7), new(-18,  -2), new(-31,   1), new(-36,  -2),
+         new(-16,   9), new( -1,   0), new(  0,   4), new(  9,  -5), new( -1,   0), new( 30,   3), new(  9,   0), new(  2,   7),
+         new(-24,   5), new( -4,   8), new( -1,   3), new( 16,  18), new(  9,   7), new(  3,   9), new(  0,   3), new(-24,   8),
+         new( -7,   0), new(-20,   7), new( -8,  13), new( 10,  12), new(  7,  11), new( -6,   6), new(-13,   7), new( 13, -12),
+         new( -6,   2), new(  7,   6), new( -1,   9), new(  0,  12), new(  5,  14), new(  4,   8), new(  8,   0), new( 12,  -2),
+         new( 13,  10), new(  0,  -5), new( 11,  -8), new( -9,   3), new( -2,   6), new(  9,  -3), new( 22,   0), new( 11,  -2),
+         new(  0,   0), new( 16,   6), new(  0,  -1), new(-11,   0), new( -3,  -2), new( -7,  12), new(  8,  -4), new( 17, -11),
 
-         new(-14,  29), new(-22,  33), new(-27,  41), new(-31,  37), new(-17,  31), new(  3,  27), new(  5,  29), new( 17,  24),
-         new(-25,  27), new(-26,  38), new(-12,  40), new(  1,  30), new(-11,  31), new( 12,  21), new( 15,  16), new( 32,   9),
-         new(-30,  25), new( -6,  23), new( -6,  24), new( -5,  21), new( 22,  10), new( 26,   4), new( 62,   0), new( 32,   0),
-         new(-29,  27), new(-16,  23), new(-14,  27), new(-10,  22), new( -6,  11), new(  3,   5), new( 11,  10), new(  4,   4),
-         new(-34,  19), new(-38,  22), new(-27,  19), new(-23,  16), new(-22,  15), new(-24,  12), new( -1,   6), new(-11,   4),
-         new(-36,  13), new(-30,  10), new(-27,   6), new(-25,   7), new(-15,   2), new( -8,  -5), new( 20, -17), new(  0, -13),
-         new(-33,   3), new(-30,   7), new(-17,   4), new(-15,   2), new( -9,  -4), new(  0, -11), new( 13, -17), new(-18,  -8),
-         new(-16,   7), new(-16,   5), new(-12,  10), new( -3,   2), new(  2,  -3), new(  0,   0), new(  2,  -5), new( -8,  -5),
+         new(-13,  29), new(-22,  33), new(-28,  41), new(-31,  37), new(-18,  31), new(  3,  27), new(  3,  29), new( 17,  23),
+         new(-25,  26), new(-25,  37), new(-12,  39), new(  0,  30), new(-11,  30), new( 12,  20), new( 16,  16), new( 32,   8),
+         new(-30,  25), new( -5,  23), new( -7,  24), new( -5,  21), new( 21,   9), new( 25,   4), new( 62,   0), new( 32,  -1),
+         new(-30,  27), new(-15,  22), new(-14,  26), new(-10,  22), new( -6,  10), new(  5,   5), new( 13,   9), new(  5,   4),
+         new(-33,  19), new(-37,  21), new(-27,  18), new(-22,  16), new(-21,  14), new(-23,  11), new( -1,   6), new(-10,   3),
+         new(-35,  13), new(-30,   9), new(-27,   6), new(-25,   7), new(-15,   1), new( -7,  -5), new( 21, -18), new(  0, -13),
+         new(-33,   3), new(-29,   6), new(-17,   4), new(-15,   1), new( -8,  -4), new(  0, -12), new( 15, -18), new(-17,  -9),
+         new(-16,   7), new(-16,   5), new(-11,   9), new( -3,   2), new(  2,  -3), new(  0,   0), new(  3,  -5), new( -8,  -6),
 
-         new(-36,  32), new(-48,  53), new(-32,  74), new(-10,  67), new(-11,  66), new( -5,  63), new( 43,   8), new(-14,  45),
-         new(-13,  13), new(-39,  45), new(-40,  80), new(-52, 104), new(-48, 118), new( -8,  74), new(-16,  63), new( 39,  46),
-         new(-12,  24), new(-18,  32), new(-20,  67), new(-15,  75), new( -3,  87), new( 31,  70), new( 39,  40), new( 35,  44),
-         new(-23,  33), new(-16,  42), new(-19,  50), new(-24,  76), new(-22,  88), new( -8,  77), new(  1,  75), new(  0,  62),
-         new( -8,  18), new(-23,  46), new(-19,  49), new(-16,  64), new(-16,  66), new(-13,  60), new( -3,  53), new(  8,  46),
-         new( -6,   2), new( -3,  21), new(-11,  36), new(-12,  36), new( -8,  40), new(  0,  33), new( 13,  18), new( 11,  12),
-         new( -5,  -1), new( -7,   0), new(  0,   2), new(  2,   7), new(  1,  11), new(  9, -14), new( 13, -37), new( 24, -54),
-         new(-10,  -7), new( -8,  -5), new( -2,  -4), new(  3,   8), new(  3,  -8), new( -9,  -8), new( -5, -14), new(  3, -33),
+         new(-34,  30), new(-48,  53), new(-33,  75), new(-11,  67), new(-13,  66), new( -7,  63), new( 43,   7), new(-12,  43),
+         new(-12,  13), new(-39,  45), new(-39,  80), new(-52, 103), new(-47, 118), new( -7,  73), new(-15,  62), new( 40,  44),
+         new(-11,  23), new(-17,  32), new(-20,  66), new(-15,  75), new( -3,  87), new( 30,  70), new( 40,  38), new( 37,  42),
+         new(-22,  32), new(-15,  41), new(-19,  51), new(-24,  74), new(-21,  87), new( -7,  77), new(  2,  74), new(  0,  60),
+         new( -7,  19), new(-22,  46), new(-18,  48), new(-16,  64), new(-15,  64), new(-12,  58), new( -2,  52), new(  9,  45),
+         new( -5,   2), new( -3,  21), new(-11,  37), new(-11,  34), new( -6,  39), new(  1,  33), new( 14,  18), new( 13,  11),
+         new( -4,  -2), new( -5,   1), new(  0,   2), new(  4,   7), new(  3,  10), new( 10, -14), new( 15, -37), new( 25, -54),
+         new(-10,  -5), new( -7,  -5), new( -1,  -4), new(  4,   8), new(  3,  -8), new( -9,  -7), new( -4, -14), new(  4, -32),
 
-         new( -4, -76), new( 12, -39), new( 17, -27), new(-75,   8), new(-32,  -7), new( -2,  -2), new( 43,  -5), new( 61, -85),
-         new(-75,  -6), new(-25,  16), new(-67,  25), new( 27,  11), new(-20,  26), new(-15,  41), new( 22,  32), new( 10,   8),
-         new(-93,   0), new( 12,  15), new(-52,  30), new(-79,  41), new(-34,  41), new( 44,  33), new( 26,  32), new(-14,   5),
-         new(-54, -17), new(-55,  10), new(-86,  31), new(-136,  44), new(-127,  45), new(-77,  39), new(-65,  28), new(-101,   7),
-         new(-60, -27), new(-52,  -1), new(-73,  19), new(-119,  37), new(-110,  36), new(-66,  23), new(-70,  13), new(-119,   4),
-         new(-12, -30), new( 21, -14), new(-34,   5), new(-47,  17), new(-39,  17), new(-39,  11), new( -7,  -2), new(-38,  -8),
-         new( 50, -18), new( 21,   0), new( 22,  -8), new( -7,  -1), new( -6,   1), new(  8,  -3), new( 29,   3), new( 25,  -5),
-         new(  9, -33), new( 34, -20), new( 13,  -4), new(-30, -19), new(  4, -13), new(  4, -23), new( 34, -18), new( 30, -44),
+         new( -4, -75), new( 12, -39), new( 17, -27), new(-75,   8), new(-33,  -8), new( -3,  -2), new( 43,  -5), new( 61, -85),
+         new(-78,  -5), new(-25,  16), new(-65,  25), new( 26,  10), new(-19,  25), new(-16,  41), new( 22,  32), new( 10,   8),
+         new(-93,   0), new( 12,  15), new(-52,  29), new(-79,  41), new(-36,  41), new( 43,  33), new( 24,  32), new(-14,   5),
+         new(-55, -17), new(-57,  10), new(-86,  31), new(-137,  44), new(-128,  45), new(-79,  39), new(-66,  28), new(-102,   7),
+         new(-59, -27), new(-52,  -1), new(-73,  18), new(-118,  37), new(-110,  36), new(-66,  22), new(-70,  13), new(-120,   4),
+         new(-12, -30), new( 22, -14), new(-33,   5), new(-46,  17), new(-38,  17), new(-38,  11), new( -7,  -2), new(-38,  -8),
+         new( 51, -18), new( 21,   0), new( 22,  -8), new( -6,  -1), new( -5,   1), new(  7,  -3), new( 30,   3), new( 26,  -5),
+         new(  9, -33), new( 34, -20), new( 13,  -4), new(-31, -18), new(  3, -13), new(  4, -23), new( 34, -18), new( 30, -44),
       ];
 
       public static readonly Score[] KnightMobility =
       [
-         new(-96, -117),
-         new(-46, -48),
-         new(-24, -13),
-         new(-14, 5),
-         new(-3, 17),
-         new(1, 28),
-         new(12, 30),
-         new(20, 33),
-         new(34, 27),
+         new(-96, -118),
+         new(-46, -45),
+         new(-24, -11),
+         new(-14, 7),
+         new(-3, 18),
+         new(1, 30),
+         new(12, 31),
+         new(20, 34),
+         new(33, 28),
       ];
 
       public static readonly Score[] BishopMobility =
       [
-         new(-54, -97),
-         new(-37, -67),
-         new(-23, -20),
-         new(-13, 0),
-         new(-2, 9),
-         new(6, 20),
-         new(12, 29),
-         new(17, 33),
-         new(18, 38),
-         new(22, 38),
-         new(25, 40),
-         new(33, 35),
-         new(37, 39),
-         new(43, 28),
+         new(-54, -112),
+         new(-39, -71),
+         new(-25, -21),
+         new(-15, 0),
+         new(-4, 9),
+         new(4, 20),
+         new(10, 29),
+         new(15, 33),
+         new(16, 38),
+         new(20, 39),
+         new(23, 40),
+         new(31, 35),
+         new(35, 39),
+         new(42, 27),
       ];
 
       public static readonly Score[] RookMobility =
       [
-         new(-106, -162),
-         new(-30, -85),
+         new(-108, -162),
+         new(-29, -87),
          new(-27, -25),
-         new(-21, -5),
+         new(-21, -6),
          new(-15, 2),
-         new(-11, 9),
-         new(-9, 17),
-         new(-6, 21),
+         new(-10, 9),
+         new(-9, 16),
+         new(-5, 21),
          new(-2, 23),
          new(2, 27),
          new(6, 31),
-         new(6, 36),
-         new(10, 38),
-         new(16, 37),
-         new(20, 36),
+         new(6, 35),
+         new(10, 37),
+         new(15, 37),
+         new(19, 35),
       ];
 
       public static readonly Score[] QueenMobility =
       [
-         new(-18, -1),
-         new(-80, -25),
-         new(-60, -57),
-         new(-56, -108),
-         new(-36, -52),
-         new(-36, 13),
-         new(-24, 9),
-         new(-21, 29),
-         new(-19, 45),
-         new(-14, 61),
-         new(-10, 60),
-         new(-7, 67),
-         new(-4, 75),
-         new(0, 75),
-         new(1, 81),
-         new(2, 86),
-         new(3, 91),
-         new(3, 97),
-         new(2, 107),
-         new(7, 104),
-         new(14, 106),
-         new(19, 101),
-         new(31, 103),
-         new(59, 83),
-         new(49, 103),
-         new(148, 45),
+         new(-19, -1),
+         new(-81, -25),
+         new(-59, -57),
+         new(-55, -108),
+         new(-34, -54),
+         new(-35, 13),
+         new(-23, 8),
+         new(-20, 28),
+         new(-18, 44),
+         new(-13, 60),
+         new(-8, 59),
+         new(-6, 66),
+         new(-3, 74),
+         new(0, 74),
+         new(2, 80),
+         new(4, 85),
+         new(4, 90),
+         new(5, 96),
+         new(4, 105),
+         new(9, 102),
+         new(15, 105),
+         new(20, 100),
+         new(32, 102),
+         new(59, 82),
+         new(48, 103),
+         new(145, 46),
          new(64, 85),
          new(37, 79),
       ];
@@ -399,18 +408,18 @@ namespace Puffin
       public static Score[] KingAttackWeights =
       [
          new(0, 0),
-         new(10, -6),
-         new(12, 1),
-         new(26, -10),
-         new(17, 12),
+         new(9, -4),
+         new(13, -1),
+         new(26, -9),
+         new(17, 13),
       ];
 
       public static Score[] PawnShield =
       [
-         new(-28, -5),
+         new(-27, -5),
          new(5, -19),
-         new(39, -28),
-         new(72, -43),
+         new(40, -28),
+         new(72, -42),
       ];
 
       // bonus/penalty depending on the rank of the pawn
@@ -418,10 +427,10 @@ namespace Puffin
       [
          new(0, 0),
          new(33, -27),
-         new(16, -6),
-         new(2, 30),
+         new(17, -6),
+         new(3, 30),
          new(10, 67),
-         new(-9, 144),
+         new(-8, 144),
          new(14, 121),
       ];
 
@@ -430,9 +439,9 @@ namespace Puffin
          new(-8, -13),
          new(6, -2),
          new(18, 13),
-         new(29, 31),
-         new(41, 38),
-         new(35, 21),
+         new(29, 32),
+         new(41, 39),
+         new(35, 26),
          new(0, 0),
       ];
 
@@ -440,27 +449,28 @@ namespace Puffin
          new(-15, -8),
          new(-4, 2),
          new(4, 4),
-         new(13, 13),
-         new(21, 11),
-         new(24, 55),
-         new(41, -4),
-         new(-7, 0),
+         new(13, 14),
+         new(21, 12),
+         new(24, 64),
+         new(40, -5),
+         new(-8, 0),
          new(0, 0),
       ];
 
       public static Score[] IsolatedPawn =
       [
-         new(2, 5),
-         new(3, 11),
+         new(2, 4),
+         new(4, 11),
          new(10, 11),
-         new(8, 17),
+         new(8, 16),
          new(13, 18),
          new(5, 11),
          new(3, 10),
-         new(6, 9),
+         new(5, 9),
       ];
 
       public static Score FriendlyKingPawnDistance = new(6, -9);
       public static Score EnemyKingPawnDistance = new(-7, 9);
+      public static Score BishopPair = new(23, 65);
    }
 }
