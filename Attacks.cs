@@ -327,6 +327,14 @@ namespace Puffin
 #endif
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public static ulong PawnAnyAttacks(ulong pawns, Color color)
+      {
+         return color == Color.White ?
+            ((pawns >> 7) & ~FILE_MASKS[(int)File.A]) | ((pawns >> 9) & ~FILE_MASKS[(int)File.H])
+            : ((pawns << 7) & ~FILE_MASKS[(int)File.H]) | ((pawns << 9) & ~FILE_MASKS[(int)File.A]);
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public static ulong WhitePawnAttacks(ulong pawns)
       {
          return ((pawns >> 7) & ~FILE_MASKS[(int)File.A]) | ((pawns >> 9) & ~FILE_MASKS[(int)File.H]);

@@ -751,6 +751,10 @@ namespace Puffin.Tuner
 
       private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ulong occupied, ref Score score, ref Trace trace)
       {
+         // Set mobility squares to all squares NOT attacked by pawns
+         mobilitySquares[(int)Color.White] = ~PawnAnyAttacks(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)Color.Black].Value, Color.Black);
+         mobilitySquares[(int)Color.Black] = ~PawnAnyAttacks(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)Color.White].Value, Color.White);
+
          Bitboard pawns = board.PieceBB[(int)PieceType.Pawn];
          Bitboard[] colorPawns = [pawns & board.ColorBB[(int)Color.White], pawns & board.ColorBB[(int)Color.Black]];
          int[] defended = [
@@ -764,7 +768,6 @@ namespace Puffin.Tuner
             int square = pawns.GetLSB();
             Color color = board.Mailbox[square].Color;
             pawns.ClearLSB();
-            mobilitySquares[(int)color ^ 1] |= PawnAttacks[(int)color][square];
 
             if ((SquareBB[square + (color == Color.White ? -8 : 8)] & occupied) != 0)
             {
@@ -803,8 +806,6 @@ namespace Puffin.Tuner
          score += Evaluation.ConnectedPawn[connected[(int)Color.White]] - Evaluation.ConnectedPawn[connected[(int)Color.Black]];
          trace.connectedPawn[connected[(int)Color.White]][(int)Color.White]++;
          trace.connectedPawn[connected[(int)Color.Black]][(int)Color.Black]++;
-         mobilitySquares[(int)Color.White] = ~mobilitySquares[(int)Color.White];
-         mobilitySquares[(int)Color.Black] = ~mobilitySquares[(int)Color.Black];
       }
 
       private Dictionary<int, double> GetCoefficients(Trace trace)
