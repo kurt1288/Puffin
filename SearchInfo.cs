@@ -5,15 +5,24 @@ namespace Puffin
 {
    internal class SearchInfo
    {
-      Move[][] Pv;
-      int[] PvLength;
-      public int Nodes;
+      Move[][] Pv = new Move[MAX_PLY][];
+      int[] PvLength = new int[MAX_PLY];
       public readonly Move[][] KillerMoves = new Move[MAX_PLY][];
       readonly Move[] CounterMoves = new Move[64 * 64];
       public readonly int[] HistoryScores = new int[2 * 64 * 64];
+      public int Nodes = 0;
       public int Score = -INFINITY;
 
       public SearchInfo()
+      {
+         for (int i = 0; i < MAX_PLY; i++)
+         {
+            Pv[i] = new Move[MAX_PLY];
+            KillerMoves[i] = new Move[2];
+         }
+      }
+
+      public void ResetAll()
       {
          Array.Clear(HistoryScores, 0, HistoryScores.Length);
          Pv = new Move[MAX_PLY][];
@@ -28,9 +37,8 @@ namespace Puffin
          }
       }
 
-      public void Reset()
+      public void ResetForSearch()
       {
-         Pv = new Move[MAX_PLY][];
          PvLength = new int[MAX_PLY];
          Nodes = 0;
          Score = -INFINITY;
@@ -38,6 +46,7 @@ namespace Puffin
          for (int i = 0; i < MAX_PLY; i++)
          {
             Pv[i] = new Move[MAX_PLY];
+            KillerMoves[i] = new Move[2];
          }
       }
 

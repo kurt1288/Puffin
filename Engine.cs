@@ -8,6 +8,7 @@ namespace Puffin
       readonly TimeManager Timer = new();
       readonly TranspositionTable TTable = new();
       int Threads = 1;
+      ThreadManager SearchManager;
 
       public Engine()
       {
@@ -19,6 +20,8 @@ namespace Puffin
 
          // Initializes the Zobirst table static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
+
+         SearchManager = new(Threads, TTable);
       }
 
       public void NewGame()
@@ -26,6 +29,7 @@ namespace Puffin
          Board.Reset();
          TTable.Reset();
          Timer.Reset();
+         SearchManager.Reset();
       }
 
       public void SetPosition(string fen)
@@ -195,7 +199,7 @@ namespace Puffin
 
          Timer.SetLimits(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, movetime, depth, nodes);
 
-         Search.StartSearch(Timer, Threads, Board, TTable);
+         SearchManager.StartSearches(Timer, Board);
       }
 
       public void StopSearch()
@@ -218,6 +222,8 @@ namespace Puffin
             case "threads":
                {
                   Threads = value;
+                  SearchManager.Shutdown();
+                  SearchManager = new(value, TTable);
                   break;
                }
             case "ASP_Depth":

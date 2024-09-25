@@ -170,7 +170,7 @@ namespace Puffin
          CancellationTokenSource cts = new(TimeSpan.FromMinutes(4)); // This should spend, at most, 4 minutes on a single game
          timeManager.MaxDepth = 8;
          SearchInfo info = new();
-         Search search = new(board, timeManager, table, info);
+         ThreadManager searchManager = new(1, table);
 
          while (true)
          {
@@ -183,7 +183,7 @@ namespace Puffin
 
             // Do a quick search of the position, and if the score is too large (for either side), discard the position entirely
             timeManager.Restart();
-            search.Run();
+            searchManager.StartSearches(timeManager, board);
             timeManager.Stop();
 
             // Get a new position if this one is too lopsided
@@ -206,7 +206,7 @@ namespace Puffin
             }
 
             timeManager.Restart();
-            search.Run();
+            searchManager.StartSearches(timeManager, board);
             timeManager.Stop();
             Move bestMove = info.GetBestMove();
 
@@ -251,11 +251,11 @@ namespace Puffin
             }
             
             // Adjudicate draws
-            if ((board.Fullmoves > 40 && board.Halfmoves > 5 && (info.Score is >= -20 and <= 20)) || board.Halfmoves >= 100 || search.IsDraw())
-            {
-               positions.WDL = 0.5;
-               break;
-            }
+            //if ((board.Fullmoves > 40 && board.Halfmoves > 5 && (info.Score is >= -20 and <= 20)) || board.Halfmoves >= 100 || search.IsDraw())
+            //{
+            //   positions.WDL = 0.5;
+            //   break;
+            //}
          }
       }
 

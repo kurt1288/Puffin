@@ -6,9 +6,9 @@ namespace Puffin
    {
       readonly Board Board;
       readonly TimeManager Time;
-      readonly SearchInfo ThreadInfo;
+      public readonly SearchInfo ThreadInfo;
       readonly TranspositionTable TTable;
-      static SearchInfo[] infos;
+      private readonly ThreadManager _manager;
 
       internal static int ASP_Depth = 4;
       internal static int ASP_Margin = 10;
@@ -23,36 +23,13 @@ namespace Puffin
       internal static int LMP_Margin = 5;
       internal static int IIR_Depth = 5;
 
-      public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info)
+      public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info, ThreadManager manager)
       {
          Board = board;
          Time = time;
          TTable = tTable;
          ThreadInfo = info;
-      }
-
-      public static void StartSearch(TimeManager time, int threadCount, Board board, TranspositionTable tTable)
-      {
-         time.Start();
-
-         Thread[] threads = new Thread[threadCount];
-         infos = new SearchInfo[threadCount];
-
-         // Initialize search info for each thread
-         for (int i = 0; i < threadCount; i++)
-         {
-            infos[i] = new SearchInfo();
-         }
-
-         // Start each thread
-         for (int i = 0; i < threadCount; i++)
-         {
-            (threads[i] = new Thread(new Search((Board)board.Clone(), time, tTable, infos[i]).Run)
-            {
-               IsBackground = true,
-               Name = $"Thread {i}",
-            }).Start();
-         }
+         _manager = manager;
       }
 
       static string FormatScore(int score)
@@ -71,20 +48,9 @@ namespace Puffin
          }
       }
 
-      static int GetNodesInfo()
-      {
-         int nodes = 0;
-         for (int i = 0; i < infos.Length; i++)
-         {
-            nodes += infos[i].Nodes;
-         }
-
-         return nodes;
-      }
-
       public void Run()
       {
-         ThreadInfo.Reset();
+         ThreadInfo.ResetForSearch();
 
          int alpha = -INFINITY;
          int beta = INFINITY;
@@ -141,7 +107,7 @@ namespace Puffin
             {
                if (Thread.CurrentThread.Name == "Thread 0")
                {
-                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {GetNodesInfo()} nps {Math.Round((double)((long)GetNodesInfo() * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {Time.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
+                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {_manager.GetTotalNodes()} nps {Math.Round((double)((long)_manager.GetTotalNodes() * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {Time.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
                }
             }
          }
