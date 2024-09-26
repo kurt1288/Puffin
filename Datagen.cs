@@ -170,7 +170,7 @@ namespace Puffin
          CancellationTokenSource cts = new(TimeSpan.FromMinutes(4)); // This should spend, at most, 4 minutes on a single game
          timeManager.MaxDepth = 8;
          SearchInfo info = new();
-         ThreadManager searchManager = new(1, table);
+         ThreadManager searchManager = new(1, ref table);
 
          while (true)
          {

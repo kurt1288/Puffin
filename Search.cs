@@ -7,7 +7,7 @@ namespace Puffin
       readonly Board Board;
       readonly TimeManager Time;
       public readonly SearchInfo ThreadInfo;
-      readonly TranspositionTable TTable;
+      TranspositionTable TTable;
       private readonly ThreadManager _manager;
 
       internal static int ASP_Depth = 4;
@@ -23,7 +23,7 @@ namespace Puffin
       internal static int LMP_Margin = 5;
       internal static int IIR_Depth = 5;
 
-      public Search(Board board, TimeManager time, TranspositionTable tTable, SearchInfo info, ThreadManager manager)
+      public Search(Board board, TimeManager time, ref TranspositionTable tTable, SearchInfo info, ThreadManager manager)
       {
          Board = board;
          Time = time;

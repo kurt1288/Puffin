@@ -6,7 +6,7 @@ namespace Puffin
    {
       public readonly Board Board = new();
       readonly TimeManager Timer = new();
-      readonly TranspositionTable TTable = new();
+      TranspositionTable TTable = new();
       int Threads = 1;
       ThreadManager SearchManager;
 
@@ -21,7 +21,7 @@ namespace Puffin
          // Initializes the Zobirst table static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
 
-         SearchManager = new(Threads, TTable);
+         SearchManager = new(Threads, ref TTable);
       }
 
       public void NewGame()
@@ -223,7 +223,7 @@ namespace Puffin
                {
                   Threads = value;
                   SearchManager.Shutdown();
-                  SearchManager = new(value, TTable);
+                  SearchManager = new(value, ref TTable);
                   break;
                }
             case "ASP_Depth":

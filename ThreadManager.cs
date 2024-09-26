@@ -8,11 +8,11 @@ namespace Puffin
       readonly SearchInfo[] _infos;
       readonly BlockingCollection<SearchTask> _searchQueue;
       volatile bool _isRunning = true;
-      readonly TranspositionTable _tTable;
+      TranspositionTable _tTable;
       readonly ConcurrentBag<Search> _activeSearches;
       readonly int _threadCount;
 
-      public ThreadManager(int threadCount, TranspositionTable tTable)
+      public ThreadManager(int threadCount, ref TranspositionTable tTable)
       {
          _threadCount = threadCount;
          _threads = new Thread[threadCount];
@@ -42,7 +42,7 @@ namespace Puffin
          {
             if (_searchQueue.TryTake(out SearchTask task, Timeout.Infinite))
             {
-               Search search = new((Board)task.Board.Clone(), task.Time, _tTable, _infos[threadIndex], this);
+               Search search = new((Board)task.Board.Clone(), task.Time, ref _tTable, _infos[threadIndex], this);
                _activeSearches.Add(search);
                search.Run();
                _activeSearches.TryTake(out _);
