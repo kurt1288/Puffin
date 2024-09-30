@@ -394,6 +394,11 @@ namespace Puffin
                continue;
             }
 
+            if (!SEE_GE(moves.Move, -50))
+            {
+               continue;
+            }
+
             if (!Board.MakeMove(moves.Move))
             {
                Board.UndoMove(moves.Move);
@@ -453,6 +458,114 @@ namespace Puffin
          }
 
          return false;
+      }
+
+      /// <summary>
+      /// Static Exchange Evaluation Greater or Equal. Is <paramref name="move"/> better than <paramref name="threshold"/>?
+      /// </summary>
+      public bool SEE_GE(Move move, int threshold)
+      {
+         if (move.IsCastle() || move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.EPCapture)
+         {
+            return threshold <= 0;
+         }
+
+         int from = move.From;
+         int to = move.To;
+
+         int swap = SEE_VALUES[(int)Board.Mailbox[to].Type] - threshold;
+         if (swap < 0)
+         {
+            return false;
+         }
+
+         swap = SEE_VALUES[(int)Board.Mailbox[from].Type] - swap;
+         if (swap <= 0)
+         {
+            return true;
+         }
+
+         ulong occupied = ((Board.ColorBB[(int)Color.White] | Board.ColorBB[(int)Color.Black]).Value ^ SquareBB[from]) | SquareBB[to];
+
+         ulong attackers = Board.AttackersTo(to, occupied);
+         int stm = (int)Board.SideToMove;
+         int res = 1;
+         ulong stmAttackers, bb;
+
+         while (true)
+         {
+            stm ^= 1;
+            attackers &= occupied;
+
+            stmAttackers = attackers & Board.ColorBB[stm].Value;
+            if (stmAttackers == 0)
+            {
+               break;
+            }
+
+            res ^= 1;
+
+            if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Pawn].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Pawn] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= Attacks.GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Knight].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Knight] - swap) < res)
+               {
+                  break;
+               }
+            }
+            else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Bishop].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Bishop] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= Attacks.GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Rook].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Rook] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= Attacks.GetRookAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Rook] | Board.PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Queen].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Queen] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= (Attacks.GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value)
+                  | (Attacks.GetRookAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Rook] | Board.PieceBB[(int)PieceType.Queen]).Value);
+            }
+            else
+            {
+               return ((attackers & ~Board.ColorBB[stm].Value) != 0) ? (res ^ 1) != 0 : res != 0;
+            }
+         }
+
+         return res != 0;
       }
    }
 }

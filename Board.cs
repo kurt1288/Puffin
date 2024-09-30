@@ -571,6 +571,16 @@ namespace Puffin
          return false;
       }
 
+      public ulong AttackersTo(int square, ulong occupied)
+      {
+         return (PawnAttacks[(int)Color.Black][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[(int)Color.White].Value)
+            | (PawnAttacks[(int)Color.White][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[(int)Color.Black].Value)
+            | (KnightAttacks[square] & PieceBB[(int)PieceType.Knight].Value)
+            | (GetBishopAttacks(square, occupied) & (PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Queen].Value))
+            | (GetRookAttacks(square, occupied) & (PieceBB[(int)PieceType.Rook].Value | PieceBB[(int)PieceType.Queen].Value))
+            | (KingAttacks[square] & PieceBB[(int)PieceType.King].Value);
+      }
+
       // Determines if there is a draw by insufficient material
       public bool IsDrawn()
       {
