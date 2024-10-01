@@ -210,6 +210,12 @@ namespace Puffin
             bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
             if (!isPVNode && !inCheck && isQuiet)
             {
+               // SEE pruning
+               if (!SEE_GE(moves.Move, -75 * depth))
+               {
+                  continue;
+               }
+
                // Late move pruning
                if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth)
                {
