@@ -4,7 +4,7 @@ using static Puffin.Constants;
 using System.Runtime.Intrinsics.X86;
 
 const string Name = "Puffin";
-const string Version = "3.0";
+const string Version = "4.0";
 const string Author = "Kurt Peters";
 
 // These intrinsics aren't required. If they're not supported BitOperations will fall back to whatever is.
@@ -48,6 +48,11 @@ if (args.Length != 0)
          Datagen.Run(int.Parse(args[i + 1]));
          Environment.Exit(100);
          break;
+      }
+      else if (arg == "tunetest")
+      {
+         Tuner tuner = new();
+         tuner.Test();
       }
    }
 }

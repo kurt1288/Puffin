@@ -31,6 +31,10 @@ namespace Puffin.Tuner
          public double[][] bishopMobility = new double[14][];
          public double[][] rookMobility = new double[15][];
          public double[][] queenMobility = new double[28][];
+         public double[] rookHalfOpenFile = new double[2];
+         public double[] rookOpenFile = new double[2];
+         public double[] kingOpenFile = new double[2];
+         public double[] kingHalfOpenFile = new double[2];
          public double[][] kingAttackWeights = new double[5][];
          public double[][] pawnShield = new double[4][];
          public double[][] passedPawn = new double[7][];
@@ -39,6 +43,7 @@ namespace Puffin.Tuner
          public double[][] isolatedPawn = new double[8][];
          public double[] friendlyKingPawnDistance = new double[2];
          public double[] enemyKingPawnDistance = new double[2];
+         public double[] bishopPair = new double[2];
          public double score = 0;
 
          public Trace()
@@ -97,6 +102,18 @@ namespace Puffin.Tuner
          }
       }
 
+      private struct PotentialKingAttacks
+      {
+         public int[] Count;
+         public int[] Weight;
+
+         public PotentialKingAttacks(int pieceTypeCount)
+         {
+            Count = new int[pieceTypeCount];
+            Weight = new int[pieceTypeCount];
+         }
+      }
+
       private struct ParameterWeight
       {
          public double Mg;
@@ -115,10 +132,10 @@ namespace Puffin.Tuner
 
       private readonly struct CoefficientEntry
       {
-         public readonly short Value;
+         public readonly double Value;
          public readonly int Index;
 
-         public CoefficientEntry(short value, int index)
+         public CoefficientEntry(double value, int index)
          {
             Index = index;
             Value = value;
@@ -130,17 +147,19 @@ namespace Puffin.Tuner
          public readonly List<CoefficientEntry> Coefficients;
          public readonly double Phase;
          public readonly double Result;
+         public readonly string Fen;
 
-         public Entry(List<CoefficientEntry> coefficients, double phase, double result)
+         public Entry(List<CoefficientEntry> coefficients, double phase, double result, string fen)
          {
             Coefficients = coefficients;
             Phase = phase;
             Result = result;
+            Fen = fen;
          }
       }
 
       // readonly Engine Engine;
-      private ParameterWeight[] Parameters = new ParameterWeight[499];
+      private readonly ParameterWeight[] Parameters = new ParameterWeight[504];
 
       public Tuner()
       {
@@ -152,6 +171,11 @@ namespace Puffin.Tuner
 
          Evaluation.FriendlyKingPawnDistance = new();
          Evaluation.EnemyKingPawnDistance = new();
+         Evaluation.KingOpenFile = new();
+         Evaluation.KingHalfOpenFile = new();
+         Evaluation.RookHalfOpenFile = new();
+         Evaluation.RookOpenFile = new();
+         Evaluation.BishopPair = new();
 
          for (int i = 0; i < 384; i++)
          {
@@ -272,6 +296,33 @@ namespace Puffin.Tuner
          Environment.Exit(100);
       }
 
+      public void Test()
+      {
+         LoadParameters();
+         Console.WriteLine($"Loading positions...");
+         Entry[] entries = LoadPositions();
+         Board board = new();
+         Console.WriteLine($"\r\nRunning evaluation test...");
+
+         foreach (Entry entry in entries) {
+            board.SetPosition(entry.Fen);
+            var tunerEval = Evaluate(entry);
+            var boardEval = Evaluation.Evaluate(board);
+
+            if (board.SideToMove == Color.Black)
+            {
+               tunerEval *= -1;
+            }
+
+            if (Math.Abs(boardEval - tunerEval) > 1.5)
+            {
+               Console.WriteLine($"Position {entry.Fen} got {boardEval} from the engine evaluation but {tunerEval} from the tuner evaluation");
+            }
+         }
+
+         Console.WriteLine($"Test complete");
+      }
+
       private void ComputeGradient(ref ParameterWeight[] gradients, Entry[] entries, double K)
       {
          ConcurrentBag<ParameterWeight[]> newGradients = new();
@@ -371,6 +422,10 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.BishopMobility, ref index);
          AddParameters(Evaluation.RookMobility, ref index);
          AddParameters(Evaluation.QueenMobility, ref index);
+         AddSingleParameter(Evaluation.RookHalfOpenFile, ref index);
+         AddSingleParameter(Evaluation.RookOpenFile, ref index);
+         AddSingleParameter(Evaluation.KingOpenFile, ref index);
+         AddSingleParameter(Evaluation.KingHalfOpenFile, ref index);
          AddParameters(Evaluation.KingAttackWeights, ref index);
          AddParameters(Evaluation.PawnShield, ref index);
          AddParameters(Evaluation.PassedPawn, ref index);
@@ -379,6 +434,7 @@ namespace Puffin.Tuner
          AddParameters(Evaluation.IsolatedPawn, ref index);
          AddSingleParameter(Evaluation.FriendlyKingPawnDistance, ref index);
          AddSingleParameter(Evaluation.EnemyKingPawnDistance, ref index);
+         AddSingleParameter(Evaluation.BishopPair, ref index);
       }
 
       private void AddSingleParameter(Score value, ref int index)
@@ -411,7 +467,7 @@ namespace Puffin.Tuner
 
                (Trace trace, double phase) = GetEval(board);
 
-               entries[lines++] = new(GetCoefficients(trace), phase, GetEntryResult(line));
+               entries[lines++] = new(GetCoefficientEntries(GetCoefficients(trace)), phase, GetEntryResult(line), line.Split("\"")[0].Trim());
 
                Console.Write($"\rPositions loaded: {lines}/{totalLines} {100 * (long)lines / totalLines}% | {sw.Elapsed}");
 
@@ -461,12 +517,18 @@ namespace Puffin.Tuner
          ];
          ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
 
-         Pawns(board, kingSquares, ref mobilitySquares, ref score, ref trace);
-         Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, ref trace);
-         Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
-         Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
-         Queens(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace);
-         Kings(board, ref score, ref kingAttacks, ref kingAttacksCount, ref trace);
+         PotentialKingAttacks[] potentialKingAttacks =
+         [
+            new PotentialKingAttacks(6),
+            new PotentialKingAttacks(6),
+         ];
+
+         Pawns(board, kingSquares, ref mobilitySquares, occupied, ref score, ref trace);
+         Knights(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, ref trace, potentialKingAttacks);
+         Bishops(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace, potentialKingAttacks);
+         Rooks(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace, potentialKingAttacks);
+         Queens(board, ref score, ref mobilitySquares, kingZones, ref kingAttacks, ref kingAttacksCount, occupied, ref trace, potentialKingAttacks);
+         Kings(board, ref score, ref kingAttacks, ref kingAttacksCount, ref trace, potentialKingAttacks);
 
          if (board.SideToMove == Color.Black)
          {
@@ -504,7 +566,9 @@ namespace Puffin.Tuner
          return score;
       }
 
-      private static void Knights(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace)
+      private static void Knights(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard knightsBB = board.PieceBB[(int)PieceType.Knight];
 
@@ -515,20 +579,37 @@ namespace Puffin.Tuner
             Color color = board.Mailbox[square].Color;
             // * (1 - 2 * (int)color) evaluates to 1 when color is white and to -1 when color is black (so that black score is subtracted)
             score += Evaluation.KnightMobility[new Bitboard(KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.knightMobility[new Bitboard(KnightAttacks[square] & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            trace.knightMobility[new Bitboard(KnightAttacks[square] & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((KnightAttacks[square] & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Knight] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Knight][(int)color] += new Bitboard(KnightAttacks[square] & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Knight]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Knight] += attackCount;
             }
          }
       }
 
-      private static void Bishops(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace)
+      private static void Bishops(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop];
+
+
+         if ((bishopBB & board.ColorBB[(int)Color.White]).CountBits() >= 2)
+         {
+            score += Evaluation.BishopPair;
+            trace.bishopPair[(int)Color.White]++;
+         }
+         if ((bishopBB & board.ColorBB[(int)Color.Black]).CountBits() >= 2)
+         {
+            score -= Evaluation.BishopPair;
+            trace.bishopPair[(int)Color.Black]++;
+         }
 
          while (bishopBB)
          {
@@ -536,19 +617,24 @@ namespace Puffin.Tuner
             bishopBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetBishopAttacks(square, occupied);
-            score += Evaluation.BishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.bishopMobility[new Bitboard(moves & ~(board.ColorBB[(int)color].Value & board.PieceBB[(int)PieceType.Pawn].Value) & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            score += Evaluation.BishopMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            trace.bishopMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Bishop] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Bishop][(int)color] += new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Bishop]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Bishop] += attackCount;
             }
          }
       }
 
-      private static void Rooks(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace)
+      private static void Rooks(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard rookBB = board.PieceBB[(int)PieceType.Rook];
 
@@ -558,18 +644,37 @@ namespace Puffin.Tuner
             rookBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetRookAttacks(square, occupied);
-            score += Evaluation.RookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.rookMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            score += Evaluation.RookMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            trace.rookMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+
+            if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value) == 0)
+            {
+               if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color ^ 1].Value) == 0)
+               {
+                  score += Evaluation.RookOpenFile * (1 - 2 * (int)color);
+                  trace.rookOpenFile[(int)color]++;
+               }
+               else
+               {
+                  score += Evaluation.RookHalfOpenFile * (1 - 2 * (int)color);
+                  trace.rookHalfOpenFile[(int)color]++;
+               }
+            }
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Rook] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Rook] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Rook][(int)color] += new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Rook]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Rook] += attackCount;
             }
          }
       }
-      private static void Queens(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones, ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace)
+      private static void Queens(Board board, ref Score score, ref ulong[] mobilitySquares, ulong[] kingZones,
+         ref Score[] kingAttacks, ref int[] kingAttacksCount, ulong occupied, ref Trace trace,
+         PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard queenBB = board.PieceBB[(int)PieceType.Queen];
 
@@ -579,19 +684,22 @@ namespace Puffin.Tuner
             queenBB.ClearLSB();
             Color color = board.Mailbox[square].Color;
             ulong moves = GetQueenAttacks(square, occupied);
-            score += Evaluation.QueenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
-            trace.queenMobility[new Bitboard(moves & ~board.ColorBB[(int)color].Value & mobilitySquares[(int)color]).CountBits()][(int)color]++;
+            score += Evaluation.QueenMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()] * (1 - 2 * (int)color);
+            trace.queenMobility[new Bitboard(moves & mobilitySquares[(int)color]).CountBits()][(int)color]++;
 
             if ((moves & kingZones[(int)color ^ 1]) != 0)
             {
-               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Queen] * new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               int attackCount = new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+               kingAttacks[(int)color] += Evaluation.KingAttackWeights[(int)PieceType.Queen] * attackCount;
                kingAttacksCount[(int)color]++;
-               trace.kingAttackWeights[(int)PieceType.Queen][(int)color] += new Bitboard(moves & kingZones[(int)color ^ 1]).CountBits();
+
+               potentialKingAttacks[(int)color].Count[(int)PieceType.Queen]++;
+               potentialKingAttacks[(int)color].Weight[(int)PieceType.Queen] += attackCount;
             }
          }
       }
 
-      private static void Kings(Board board, ref Score score, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace)
+      private static void Kings(Board board, ref Score score, ref Score[] kingAttacks, ref int[] kingAttacksCount, ref Trace trace, PotentialKingAttacks[] potentialKingAttacks)
       {
          Bitboard kingBB = board.PieceBB[(int)PieceType.King];
 
@@ -604,25 +712,55 @@ namespace Puffin.Tuner
 
             if ((kingSquares & SquareBB[kingSq]) != 0)
             {
-               ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x007000000000000 : 0x000E0000000000000) : (ulong)(kingSq % 8 < 3 ? 0x700 : 0xE000);
+               ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x7070000000000 : 0xe0e00000000000) : (ulong)(kingSq % 8 < 3 ? 0x70700 : 0xe0e000);
 
                Bitboard pawns = new(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & pawnSquares);
                score += Evaluation.PawnShield[Math.Min(pawns.CountBits(), 3)] * (1 - 2 * (int)color);
                trace.pawnShield[Math.Min(pawns.CountBits(), 3)][(int)color]++;
+
+               if ((board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & FILE_MASKS[kingSq & 7]) == 0)
+               {
+                  if ((board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color ^ 1].Value & FILE_MASKS[kingSq & 7]) == 0)
+                  {
+                     score -= Evaluation.KingOpenFile * (1 - 2 * (int)color);
+                     trace.kingOpenFile[(int)color]--;
+                  }
+                  else
+                  {
+                     score -= Evaluation.KingHalfOpenFile * (1 - 2 * (int)color);
+                     trace.kingHalfOpenFile[(int)color]--;
+                  }
+               }
             }
 
             if (kingAttacksCount[(int)color ^ 1] >= 2)
             {
                score -= kingAttacks[(int)color ^ 1] * (1 - 2 * (int)color);
+
+               // Update trace with each piece attacks
+               for (int pieceType = 0; pieceType < potentialKingAttacks[(int)color ^ 1].Count.Length; pieceType++)
+               {
+                  if (potentialKingAttacks[(int)color ^ 1].Count[pieceType] > 0)
+                  {
+                     trace.kingAttackWeights[pieceType][(int)color ^ 1] += potentialKingAttacks[(int)color ^ 1].Weight[pieceType];
+                  }
+               }
             }
          }
       }
 
-      private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ref Score score, ref Trace trace)
+      private static void Pawns(Board board, int[] kingSquares, ref ulong[] mobilitySquares, ulong occupied, ref Score score, ref Trace trace)
       {
+         // Set mobility squares to all squares NOT attacked by pawns
+         mobilitySquares[(int)Color.White] = ~PawnAnyAttacks(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)Color.Black].Value, Color.Black);
+         mobilitySquares[(int)Color.Black] = ~PawnAnyAttacks(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)Color.White].Value, Color.White);
+
          Bitboard pawns = board.PieceBB[(int)PieceType.Pawn];
          Bitboard[] colorPawns = [pawns & board.ColorBB[(int)Color.White], pawns & board.ColorBB[(int)Color.Black]];
-         int[] defender = [0, 0];
+         int[] defended = [
+            (colorPawns[(int)Color.White] & WhitePawnAttacks(colorPawns[(int)Color.White].Value)).CountBits(),
+            (colorPawns[(int)Color.Black] & BlackPawnAttacks(colorPawns[(int)Color.Black].Value)).CountBits(),
+         ];
          int[] connected = [0, 0];
 
          while (pawns)
@@ -630,7 +768,11 @@ namespace Puffin.Tuner
             int square = pawns.GetLSB();
             Color color = board.Mailbox[square].Color;
             pawns.ClearLSB();
-            mobilitySquares[(int)color ^ 1] |= PawnAttacks[(int)color][square];
+
+            if ((SquareBB[square + (color == Color.White ? -8 : 8)] & occupied) != 0)
+            {
+               mobilitySquares[(int)color] ^= SquareBB[square];
+            }
 
             // Passed pawns
             if ((PassedPawnMasks[(int)color][square] & colorPawns[(int)color ^ 1].Value) == 0)
@@ -641,12 +783,6 @@ namespace Puffin.Tuner
                score += TaxiDistance[square][kingSquares[(int)color ^ 1]] * Evaluation.EnemyKingPawnDistance * (1 - 2 * (int)color);
                trace.friendlyKingPawnDistance[(int)color] += TaxiDistance[square][kingSquares[(int)color]];
                trace.enemyKingPawnDistance[(int)color] += TaxiDistance[square][kingSquares[(int)color ^ 1]];
-            }
-
-            // Defending pawn
-            if ((PawnAttacks[(int)color][square] & colorPawns[(int)color].Value) != 0)
-            {
-               defender[(int)color]++;
             }
 
             // Connected pawn
@@ -664,58 +800,74 @@ namespace Puffin.Tuner
             }
          }
 
-         score += Evaluation.DefendedPawn[defender[(int)Color.White]] - Evaluation.DefendedPawn[defender[(int)Color.Black]];
-         trace.defendedPawn[defender[(int)Color.White]][(int)Color.White]++;
-         trace.defendedPawn[defender[(int)Color.Black]][(int)Color.Black]++;
+         score += Evaluation.DefendedPawn[defended[(int)Color.White]] - Evaluation.DefendedPawn[defended[(int)Color.Black]];
+         trace.defendedPawn[defended[(int)Color.White]][(int)Color.White]++;
+         trace.defendedPawn[defended[(int)Color.Black]][(int)Color.Black]++;
          score += Evaluation.ConnectedPawn[connected[(int)Color.White]] - Evaluation.ConnectedPawn[connected[(int)Color.Black]];
          trace.connectedPawn[connected[(int)Color.White]][(int)Color.White]++;
          trace.connectedPawn[connected[(int)Color.Black]][(int)Color.Black]++;
-         mobilitySquares[(int)Color.White] = ~mobilitySquares[(int)Color.White];
-         mobilitySquares[(int)Color.Black] = ~mobilitySquares[(int)Color.Black];
       }
 
-      private List<CoefficientEntry> GetCoefficients(Trace trace)
+      private Dictionary<int, double> GetCoefficients(Trace trace)
       {
-         List<CoefficientEntry> entryCoefficients = new();
-         int currentIndex = 0;
+         Dictionary<int, double> entryCoefficients = [];
 
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.material, 6, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.pst, 384, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.knightMobility, 9, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.defendedPawn, 8, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.connectedPawn, 9, ref currentIndex);
-         AddCoefficientsAndEntries(ref entryCoefficients, trace.isolatedPawn, 8, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance, ref currentIndex);
-         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance, ref currentIndex);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.material, 6);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.pst, 384);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.knightMobility, 9);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.bishopMobility, 14);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.rookMobility, 15);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.queenMobility, 28);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookHalfOpenFile);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.rookOpenFile);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingOpenFile);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.kingHalfOpenFile);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.kingAttackWeights, 5);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.pawnShield, 4);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.passedPawn, 7);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.defendedPawn, 8);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.connectedPawn, 9);
+         AddCoefficientsAndEntries(ref entryCoefficients, trace.isolatedPawn, 8);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.bishopPair);
 
          return entryCoefficients;
       }
 
-      private void AddSingleCoefficientAndEntry(ref List<CoefficientEntry> entryCoefficients, double[] trace, ref int currentIndex)
+      private void AddSingleCoefficientAndEntry(ref Dictionary<int, double> entryCoefficients, double[] trace)
       {
-         if ((short)(trace[0] - trace[1]) != 0)
-         {
-            entryCoefficients.Add(new CoefficientEntry((short)(trace[0] - trace[1]), currentIndex));
-         }
-         currentIndex++;
+         entryCoefficients.Add(entryCoefficients.Count, trace[0] - trace[1]);
       }
 
-      private void AddCoefficientsAndEntries(ref List<CoefficientEntry> entryCoefficients, double[][] trace, int size, ref int currentIndex)
+      private void AddCoefficientsAndEntries(ref Dictionary<int, double> entryCoefficients, double[][] trace, int size)
       {
-         foreach (var item in trace)
+         for (int i = 0; i < size; i++)
          {
-            if ((short)(item[0] - item[1]) != 0)
-            {
-               entryCoefficients.Add(new CoefficientEntry((short)(item[0] - item[1]), currentIndex));
-            }
-            currentIndex++;
+            AddSingleCoefficientAndEntry(ref entryCoefficients, trace[i]);
          }
+      }
+
+      private List<CoefficientEntry> GetCoefficientEntries(Dictionary<int, double> coefficients)
+      {
+         List<CoefficientEntry> coefficientEntries = [];
+
+         if (coefficients.Count != Parameters.Length)
+         {
+            throw new Exception("Counts of coefficients and parameters don't match");
+         }
+
+         for (int i = 0; i < coefficients.Count(); i++)
+         {
+            if (coefficients[i] == 0)
+            {
+               continue;
+            }
+
+            coefficientEntries.Add(new CoefficientEntry(coefficients[i], i));
+         }
+
+         return coefficientEntries;
       }
 
       private double Sigmoid(double factor, double score)
@@ -755,6 +907,10 @@ namespace Puffin.Tuner
          PrintArray("bishop mobility", ref index, 14, sw);
          PrintArray("rook mobility", ref index, 15, sw);
          PrintArray("queen mobility", ref index, 28, sw);
+         PrintSingle("rook half open file", ref index, sw);
+         PrintSingle("rook open file", ref index, sw);
+         PrintSingle("king open file", ref index, sw);
+         PrintSingle("king half open file", ref index, sw);
          PrintArray("king attack weights", ref index, 5, sw);
          PrintArray("pawn shield", ref index, 4, sw);
          PrintArray("passed pawn", ref index, 7, sw);
@@ -763,6 +919,7 @@ namespace Puffin.Tuner
          PrintArray("isolated pawn", ref index, 8, sw);
          PrintSingle("friendly king pawn distance", ref index, sw);
          PrintSingle("enemy king pawn distance", ref index, sw);
+         PrintSingle("bishop pair", ref index, sw);
       }
 
       private void PrintSingle(string name, ref int index, StreamWriter writer)

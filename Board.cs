@@ -571,6 +571,16 @@ namespace Puffin
          return false;
       }
 
+      public ulong AttackersTo(int square, ulong occupied)
+      {
+         return (PawnAttacks[(int)Color.Black][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[(int)Color.White].Value)
+            | (PawnAttacks[(int)Color.White][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[(int)Color.Black].Value)
+            | (KnightAttacks[square] & PieceBB[(int)PieceType.Knight].Value)
+            | (GetBishopAttacks(square, occupied) & (PieceBB[(int)PieceType.Bishop].Value | PieceBB[(int)PieceType.Queen].Value))
+            | (GetRookAttacks(square, occupied) & (PieceBB[(int)PieceType.Rook].Value | PieceBB[(int)PieceType.Queen].Value))
+            | (KingAttacks[square] & PieceBB[(int)PieceType.King].Value);
+      }
+
       // Determines if there is a draw by insufficient material
       public bool IsDrawn()
       {
@@ -667,52 +677,192 @@ namespace Puffin
          return false;
       }
 
-      public bool MoveIsValid(Move move)
+      public bool IsPseudoLegal(Move move)
       {
-         if (move == 0)
+         // Null move?
+         // No piece on the from square?
+         // Piece on the from square isn't the correct color?
+         if (move == 0 || Mailbox[move.From].Type == PieceType.Null || Mailbox[move.From].Color != SideToMove)
          {
             return false;
          }
 
          Piece piece = Mailbox[move.From];
+         int up = (piece.Color == Color.White) ? -8 : 8;
 
          // there's no piece to move?
-         if (piece.Type == PieceType.Null)
-         {
-            return false;
-         }
-
          // moving an opponent's piece?
-         if (piece.Color != SideToMove)
+         // trying to capture a king
+         if (piece.Type == PieceType.Null || piece.Color != SideToMove || Mailbox[move.To].Type == PieceType.King)
          {
             return false;
          }
 
-         // capturing our own piece?
-         if (Mailbox[move.To].Color == SideToMove)
+         // trying to capture our own piece in a non-castle move?
+         if (Mailbox[move.To].Type != PieceType.Null && Mailbox[move.To].Color == SideToMove && !move.IsCastle())
          {
             return false;
          }
 
-         // sliding piece trying to slide through pieces?
-         if (piece.Type == PieceType.Bishop || piece.Type == PieceType.Rook || piece.Type == PieceType.Queen)
+         if (piece.Type == PieceType.Pawn)
          {
-            if ((BetweenBB[move.From][move.To] & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
-            {
-               return false;
-            }
-         }
-
-         MoveList moves = MoveGen.GenerateAll(this);
-         for (int i = 0; i < moves.Count; i++)
-         {
-            if (moves[i] == move)
+            if (move.Flag == MoveFlag.EPCapture && En_Passant != Square.Null && Mailbox[move.To - up].Type == PieceType.Pawn && Mailbox[move.To - up].Color != piece.Color)
             {
                return true;
             }
+
+            // moving backwards
+            if (piece.Color == Color.White ? (move.To >> 3) > (move.From >> 3) : (move.To >> 3) < (move.From >> 3))
+            {
+               return false;
+            }
+
+            // move to backrank that isn't a promotion
+            if (!move.HasType(MoveType.Promotion) && (move.To >> 3) == (piece.Color == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8))
+            {
+               return false;
+            }
+
+            if (move.HasType(MoveType.Capture))
+            {
+               return Mailbox[move.To].Type != PieceType.Null && (PawnAttacks[(int)piece.Color][move.From] & SquareBB[move.To]) != 0;
+            }
+
+            // Non-captures should remain on the same file
+            if ((move.From & 7) != (move.To & 7))
+            {
+               return false;
+            }
+
+            // double push
+            if ((move.From ^ move.To) == 16)
+            {
+               // Can't double push from a non-starting rank
+               if (move.From >> 3 != (piece.Color == Color.White ? (int)Rank.Rank_7 : (int)Rank.Rank_2) || move.Flag != MoveFlag.DoublePawnPush)
+               {
+                  return false;
+               }
+
+               return Mailbox[move.To].Type == PieceType.Null && Mailbox[move.To - up].Type == PieceType.Null;
+            }
+            // single push or attack
+            else
+            {
+               // Can't push a pawn more than 1 rank at this point
+               if (Math.Abs((move.From >> 3) - (move.To >> 3)) > 1)
+               {
+                  return false;
+               }
+
+               return Mailbox[move.To].Type == PieceType.Null;
+            }
          }
 
-         return false;
+         if (move.IsCastle())
+         {
+            if (piece.Type != PieceType.King)
+            {
+               return false;
+            }
+
+            int homeRank = piece.Color == Color.White ? 7 : 0;
+
+            if (move.To >> 3 != homeRank || move.From >> 3 != homeRank)
+            {
+               return false;
+            }
+
+            if (move.Flag == MoveFlag.KingCastle)
+            {
+               // no castle square
+               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.H1]) == 0 : (CastleSquares & SquareBB[(int)Square.H8]) == 0)
+               {
+                  return false;
+               }
+
+               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.H1] : BetweenBB[move.From][(int)Square.H8];
+
+#if DEBUG
+               MoveList castleMoves = new();
+               MoveGen.GenerateCastling(castleMoves, this);
+               bool foundCastle = false;
+               for (int i = 0; i < castleMoves.Count; i++)
+               {
+                  if (castleMoves[i] == move)
+                  {
+                     foundCastle = true;
+                  }
+               }
+
+               Debug.Assert(foundCastle == ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0));
+#endif
+
+               // true if path between is empty, otherwise false
+               return (path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0;
+            }
+            else
+            {
+               // no castle square
+               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.A1]) == 0 : (CastleSquares & SquareBB[(int)Square.A8]) == 0)
+               {
+                  return false;
+               }
+
+               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.A1] : BetweenBB[move.From][(int)Square.A8];
+
+#if DEBUG
+               MoveList castleMoves = new();
+               MoveGen.GenerateCastling(castleMoves, this);
+               bool foundCastle = false;
+               for (int i = 0; i < castleMoves.Count; i++)
+               {
+                  if (castleMoves[i] == move)
+                  {
+                     foundCastle = true;
+                  }
+               }
+
+               Debug.Assert(foundCastle == ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0));
+#endif
+
+               // true if path between is empty, otherwise false
+               return (path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0;
+            }
+         }
+
+         // At this point, pawn moves, quiet moves to an occupied space, and capture moves to an unoccupied space are all invalid
+         if (move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.DoublePawnPush || move.Flag == MoveFlag.EPCapture
+            || (move.Flag == MoveFlag.Quiet && Mailbox[move.To].Type != PieceType.Null)
+            || (move.Flag == MoveFlag.Capture && Mailbox[move.To].Type == PieceType.Null))
+         {
+            return false;
+         }
+
+         Bitboard moves = Mailbox[move.From].Type switch
+         {
+            PieceType.Knight => new(KnightAttacks[move.From]),
+            PieceType.Bishop => new(GetBishopAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
+            PieceType.Rook => new(GetRookAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
+            PieceType.Queen => new(GetQueenAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
+            PieceType.King => new(KingAttacks[move.From]),
+            _ => throw new Exception($"Unable to get attacks for piece {Mailbox[move.From].Type}"),
+         };
+
+#if DEBUG
+         MoveList moveGen = MoveGen.GenerateAll(this);
+         bool found = false;
+         for (int i = 0; i < moveGen.Count; i++)
+         {
+            if (moveGen[i] == move)
+            {
+               found = true;
+            }
+         }
+
+         Debug.Assert(found == ((moves.Value & SquareBB[move.To]) != 0));
+#endif
+
+         return (moves.Value & SquareBB[move.To]) != 0;
       }
 
       private int VerifyPhase()

@@ -58,6 +58,18 @@ namespace Puffin
          return BitOperations.PopCount(Value);
       }
 
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public ulong RightShift()
+      {
+         return (Value & ~Constants.FILE_MASKS[(int)File.H]) << 1;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public static int LSB(ulong value)
+      {
+         return BitOperations.TrailingZeroCount(value);
+      }
+
       public static Bitboard operator &(Bitboard a, ulong b) => new(a.Value & b);
       public static Bitboard operator &(Bitboard a, Bitboard b) => new(a.Value & b.Value);
       public static Bitboard operator |(Bitboard a, Bitboard b) => new(a.Value | b.Value);

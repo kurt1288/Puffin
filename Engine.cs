@@ -6,8 +6,9 @@ namespace Puffin
    {
       public readonly Board Board = new();
       readonly TimeManager Timer = new();
-      readonly TranspositionTable TTable = new();
+      TranspositionTable TTable = new();
       int Threads = 1;
+      ThreadManager SearchManager;
 
       public Engine()
       {
@@ -19,6 +20,8 @@ namespace Puffin
 
          // Initializes the Zobirst table static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Zobrist).TypeHandle);
+
+         SearchManager = new(Threads, ref TTable);
       }
 
       public void NewGame()
@@ -26,6 +29,7 @@ namespace Puffin
          Board.Reset();
          TTable.Reset();
          Timer.Reset();
+         SearchManager.Reset();
       }
 
       public void SetPosition(string fen)
@@ -139,8 +143,10 @@ namespace Puffin
          int btime = 0;
          int winc = 0;
          int binc = 0;
-         int movestogo = 40;
-         bool movetime = false;
+         int movestogo = 0;
+         int movetime = 0;
+         int depth = 0;
+         int nodes = 0;
 
          for (int i = 0; i < command.Length; i += 2)
          {
@@ -175,28 +181,25 @@ namespace Puffin
                   }
                case "movetime":
                   {
-                     Timer.SetTimeLimit(int.Parse(command[i + 1]), 0, 1, movetime = true);
+                     movetime = int.Parse(command[i + 1]);
                      break;
                   }
                case "depth":
                   {
-                     Timer.MaxDepth = Math.Clamp(int.Parse(command[1]), 1, MAX_PLY - 1);
+                     depth = Math.Clamp(int.Parse(command[1]), 1, MAX_PLY - 1);
                      break;
                   }
                case "nodes":
                   {
-                     Timer.SetNodeLimit(int.Parse(command[1]));
+                     nodes = int.Parse(command[1]);
                      break;
                   }
             }
          }
 
-         if (!movetime && Timer.MaxDepth == MAX_PLY - 1 && Timer.NodeLimit == 0)
-         {
-            Timer.SetTimeLimit(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, false);
-         }
+         Timer.SetLimits(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, movetime, depth, nodes);
 
-         Search.StartSearch(Timer, Threads, Board, TTable);
+         SearchManager.StartSearches(Timer, Board);
       }
 
       public void StopSearch()
@@ -219,6 +222,8 @@ namespace Puffin
             case "threads":
                {
                   Threads = value;
+                  SearchManager.Shutdown();
+                  SearchManager = new(value, ref TTable);
                   break;
                }
             case "ASP_Depth":

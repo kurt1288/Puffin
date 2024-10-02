@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using System.Diagnostics;
+
+namespace Puffin
 {
    enum Stage
    {
@@ -6,6 +8,7 @@
       GenNoisy,
       Noisy,
       Killers,
+      Counter,
       GenQuiet,
       Quiet,
    }
@@ -15,27 +18,23 @@
       private readonly MoveList _moveList = new();
       private readonly Board Board;
       private int Index;
-      private readonly bool NoisyOnly = false;
+      public bool NoisyOnly = false;
       public readonly SearchInfo SearchInfo;
       public readonly int Ply;
-      private ushort HashMove = 0;
-      TranspositionTable TTable;
+      private readonly Move HashMove;
+      private readonly Move CounterMove;
       public Stage Stage;
       public Move Move;
 
-      public MovePicker(Board board, SearchInfo info, int ply, TranspositionTable tTable, bool noisyOnly = false)
+      public MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly, Move counterMove)
       {
          Stage = Stage.HashMove;
          Board = board;
          SearchInfo = info;
          Ply = ply;
-         TTable = tTable;
-
-         if (noisyOnly)
-         {
-            NoisyOnly = true;
-            Stage = Stage.GenNoisy;
-         }
+         HashMove = hashMove;
+         CounterMove = counterMove;
+         NoisyOnly = noisyOnly;
       }
 
       public bool Next()
@@ -44,12 +43,11 @@
          {
             case Stage.HashMove:
                {
-                  HashMove = TTable.GetHashMove(Board.Hash);
                   Stage++;
 
-                  if (HashMove != 0)
+                  if (Board.IsPseudoLegal(HashMove))
                   {
-                     Move = new Move(HashMove);
+                     Move = HashMove;
                      return true;
                   }
 
@@ -84,7 +82,7 @@
                {
                   if (Index < 2)
                   {
-                     if (Board.MoveIsValid(SearchInfo.KillerMoves[Ply][Index]))
+                     if (Board.IsPseudoLegal(SearchInfo.KillerMoves[Ply][Index]))
                      {
                         Move = SearchInfo.KillerMoves[Ply][Index++];
                         return true;
@@ -95,10 +93,28 @@
                   }
 
                   Stage++;
+                  goto case Stage.Counter;
+               }
+            case Stage.Counter:
+               {
+                  Stage++;
+
+                  if (Board.IsPseudoLegal(CounterMove) && CounterMove != HashMove
+                     && CounterMove != SearchInfo.KillerMoves[Ply][0] && CounterMove != SearchInfo.KillerMoves[Ply][1])
+                  {
+                     Move = CounterMove;
+                     return true;
+                  }
+
                   goto case Stage.GenQuiet;
                }
             case Stage.GenQuiet:
                {
+                  if (NoisyOnly)
+                  {
+                     return false;
+                  }
+
                   _moveList.Clear();
                   MoveGen.GenerateQuiet(_moveList, Board);
                   ScoreMoves(_moveList);
@@ -108,6 +124,11 @@
                }
             case Stage.Quiet:
                {
+                  if (NoisyOnly)
+                  {
+                     return false;
+                  }
+
                   if (Index < _moveList.Count)
                   {
                      Move = NextMove(_moveList, Index++);
@@ -147,7 +168,7 @@
          {
             Move move = moves[i];
 
-            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1])
+            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1] || move == CounterMove)
             {
                moves.RemoveAt(i);
             }

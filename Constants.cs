@@ -21,6 +21,8 @@ namespace Puffin
 
       public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
 
+      public readonly static int[] SEE_VALUES = [100, 325, 350, 500, 1000, 0, 0];
+
       public readonly static ImmutableArray<ulong> FILE_MASKS = ImmutableArray.Create<ulong>(
          0x101010101010101,
          0x202020202020202,
