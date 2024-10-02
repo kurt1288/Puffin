@@ -4,7 +4,7 @@ using static Puffin.Constants;
 using System.Runtime.Intrinsics.X86;
 
 const string Name = "Puffin";
-const string Version = "3.0";
+const string Version = "4.0";
 const string Author = "Kurt Peters";
 
 // These intrinsics aren't required. If they're not supported BitOperations will fall back to whatever is.
