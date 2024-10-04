@@ -66,4 +66,12 @@
       RookPromotionCapture,
       QueenPromotionCapture,
    }
+
+   enum Direction
+   {
+      Up = 8,
+      Down = -Up,
+      Right = 1,
+      Left = -Right,
+   }
 }
