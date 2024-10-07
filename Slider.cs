@@ -1,13 +1,8 @@
 ﻿namespace Puffin
 {
-   internal struct Slider
+   internal readonly struct Slider(Bitboard mask)
    {
-      public List<ulong> Attacks = new();
-      public Bitboard Mask;
-
-      public Slider(Bitboard mask)
-      {
-         Mask = mask;
-      }
+      public List<ulong> Attacks { get; } = [];
+      public Bitboard Mask { get; } = mask;
    }
 }

@@ -2,13 +2,14 @@
 
 namespace Puffin
 {
-   internal class Search
+   internal class Search(Board board, TimeManager time, ref TranspositionTable tTable, SearchInfo info, ThreadManager manager)
    {
-      readonly Board Board;
-      readonly TimeManager Time;
-      public readonly SearchInfo ThreadInfo;
-      TranspositionTable TTable;
-      private readonly ThreadManager _manager;
+      private readonly Board Board = board;
+      private readonly TimeManager TimeManager = time;
+      private TranspositionTable TTable = tTable;
+      private readonly ThreadManager ThreadManager = manager;
+
+      public SearchInfo ThreadInfo { get; } = info;
 
       internal static int ASP_Depth = 4;
       internal static int ASP_Margin = 10;
@@ -22,15 +23,6 @@ namespace Puffin
       internal static int LMP_Depth = 8;
       internal static int LMP_Margin = 5;
       internal static int IIR_Depth = 5;
-
-      public Search(Board board, TimeManager time, ref TranspositionTable tTable, SearchInfo info, ThreadManager manager)
-      {
-         Board = board;
-         Time = time;
-         TTable = tTable;
-         ThreadInfo = info;
-         _manager = manager;
-      }
 
       static string FormatScore(int score)
       {
@@ -58,11 +50,11 @@ namespace Puffin
          bool stop;
 
          // Iterative deepening
-         for (int i = 1; i <= Time.MaxDepth && (stop = Time.LimitReached(true)) != true; i++)
+         for (int i = 1; i <= TimeManager.MaxDepth && (stop = TimeManager.LimitReached(true)) != true; i++)
          {
-            if (Time.NodeLimit > 0 && ThreadInfo.Nodes >= Time.NodeLimit)
+            if (TimeManager.NodeLimit > 0 && ThreadInfo.Nodes >= TimeManager.NodeLimit)
             {
-               Time.Stop();
+               TimeManager.Stop();
                break;
             }
 
@@ -107,7 +99,7 @@ namespace Puffin
             {
                if (Thread.CurrentThread.Name == "Thread 0")
                {
-                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {_manager.GetTotalNodes()} nps {Math.Round((double)((long)_manager.GetTotalNodes() * 1000 / Math.Max(Time.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {Time.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
+                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {ThreadManager.GetTotalNodes()} nps {Math.Round((double)((long)ThreadManager.GetTotalNodes() * 1000 / Math.Max(TimeManager.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {TimeManager.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
                }
             }
          }
@@ -120,7 +112,7 @@ namespace Puffin
 
       private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull, Move previousMove)
       {
-         if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 1024 == 0 && TimeManager.LimitReached(false))
          {
             throw new TimeoutException();
          }
@@ -347,7 +339,7 @@ namespace Puffin
 
       private int Quiescence(int alpha, int beta, int ply, bool isPVNode)
       {
-         if (ThreadInfo.Nodes % 1024 == 0 && Time.LimitReached(false))
+         if (ThreadInfo.Nodes % 1024 == 0 && TimeManager.LimitReached(false))
          {
             throw new TimeoutException();
          }

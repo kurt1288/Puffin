@@ -4,12 +4,12 @@ namespace Puffin
 {
    internal static class Zobrist
    {
-      static ulong RandomSeed = 14674941981828548931;
+      private static ulong RandomSeed = 14674941981828548931;
 
-      static readonly ulong[][] Pieces = new ulong[13][];
-      static readonly ulong[] EnPassant = new ulong[64];
-      static readonly ulong[] Castle = new ulong[4];
-      static readonly ulong SideToMove;
+      private static readonly ulong[][] Pieces = new ulong[13][];
+      private static readonly ulong[] EnPassant = new ulong[64];
+      private static readonly ulong[] Castle = new ulong[4];
+      private static readonly ulong SideToMove;
 
       static Zobrist()
       {

@@ -2,14 +2,9 @@
 
 namespace Puffin
 {
-   internal class Perft
+   internal class Perft(Board board)
    {
-      readonly Board Board;
-
-      public Perft(Board board)
-      {
-         Board = board;
-      }
+      private readonly Board Board = board;
 
       public void Run(int depth)
       {

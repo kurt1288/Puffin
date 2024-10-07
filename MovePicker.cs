@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Puffin
+﻿namespace Puffin
 {
    enum Stage
    {
@@ -13,29 +11,19 @@ namespace Puffin
       Quiet,
    }
 
-   internal sealed class MovePicker
+   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly, Move counterMove)
    {
-      private readonly MoveList _moveList = new();
-      private readonly Board Board;
-      private int Index;
-      public bool NoisyOnly = false;
-      public readonly SearchInfo SearchInfo;
-      public readonly int Ply;
-      private readonly Move HashMove;
-      private readonly Move CounterMove;
-      public Stage Stage;
-      public Move Move;
+      private readonly MoveList MoveList = new();
+      private readonly Board Board = board;
+      private readonly Move HashMove = hashMove;
+      private readonly Move CounterMove = counterMove;
+      private int Index = 0;
+      private readonly SearchInfo SearchInfo = info;
+      private readonly int Ply = ply;
 
-      public MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly, Move counterMove)
-      {
-         Stage = Stage.HashMove;
-         Board = board;
-         SearchInfo = info;
-         Ply = ply;
-         HashMove = hashMove;
-         CounterMove = counterMove;
-         NoisyOnly = noisyOnly;
-      }
+      public bool NoisyOnly { get; set; } = noisyOnly;
+      public Stage Stage { get; private set; } = Stage.HashMove;
+      public Move Move { get; private set; }
 
       public bool Next()
       {
@@ -55,17 +43,17 @@ namespace Puffin
                }
             case Stage.GenNoisy:
                {
-                  MoveGen.GenerateNoisy(_moveList, Board);
-                  ScoreMoves(_moveList);
+                  MoveGen.GenerateNoisy(MoveList, Board);
+                  ScoreMoves(MoveList);
                   Stage++;
                   Index = 0;
                   goto case Stage.Noisy;
                }
             case Stage.Noisy:
                {
-                  if (Index < _moveList.Count)
+                  if (Index < MoveList.Count)
                   {
-                     Move = NextMove(_moveList, Index++);
+                     Move = NextMove(MoveList, Index++);
                      return true;
                   }
 
@@ -115,9 +103,9 @@ namespace Puffin
                      return false;
                   }
 
-                  _moveList.Clear();
-                  MoveGen.GenerateQuiet(_moveList, Board);
-                  ScoreMoves(_moveList);
+                  MoveList.Clear();
+                  MoveGen.GenerateQuiet(MoveList, Board);
+                  ScoreMoves(MoveList);
                   Stage++;
                   Index = 0;
                   goto case Stage.Quiet;
@@ -129,9 +117,9 @@ namespace Puffin
                      return false;
                   }
 
-                  if (Index < _moveList.Count)
+                  if (Index < MoveList.Count)
                   {
-                     Move = NextMove(_moveList, Index++);
+                     Move = NextMove(MoveList, Index++);
                      return true;
                   }
 

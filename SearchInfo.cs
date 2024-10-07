@@ -5,13 +5,14 @@ namespace Puffin
 {
    internal class SearchInfo
    {
-      Move[][] Pv = new Move[MAX_PLY][];
-      int[] PvLength = new int[MAX_PLY];
-      public readonly Move[][] KillerMoves = new Move[MAX_PLY][];
-      readonly Move[] CounterMoves = new Move[64 * 64];
-      public readonly int[] HistoryScores = new int[2 * 64 * 64];
-      public int Nodes = 0;
-      public int Score = -INFINITY;
+      private Move[][] Pv = new Move[MAX_PLY][];
+      private int[] PvLength = new int[MAX_PLY];
+      private readonly Move[] CounterMoves = new Move[64 * 64];
+
+      public Move[][] KillerMoves { get; set; } = new Move[MAX_PLY][];
+      public int[] HistoryScores { get; private set; } = new int[2 * 64 * 64];
+      public int Nodes { get; set; } = 0;
+      public int Score { get; set; } = -INFINITY;
 
       public SearchInfo()
       {

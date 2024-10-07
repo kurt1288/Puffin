@@ -4,48 +4,48 @@ namespace Puffin
 {
    internal class ThreadManager
    {
-      readonly Thread[] _threads;
-      readonly SearchInfo[] _infos;
-      readonly BlockingCollection<SearchTask> _searchQueue;
-      volatile bool _isRunning = true;
-      TranspositionTable _tTable;
-      readonly ConcurrentBag<Search> _activeSearches;
-      readonly int _threadCount;
+      private readonly Thread[] Threads;
+      private readonly SearchInfo[] Infos;
+      private readonly BlockingCollection<SearchTask> SearchQueue;
+      private volatile bool IsRunning = true;
+      private TranspositionTable tTable;
+      private readonly ConcurrentBag<Search> ActiveSearches;
+      private readonly int ThreadCount;
 
       public ThreadManager(int threadCount, ref TranspositionTable tTable)
       {
-         _threadCount = threadCount;
-         _threads = new Thread[threadCount];
-         _infos = new SearchInfo[threadCount];
-         _searchQueue = [];
-         _tTable = tTable;
-         _activeSearches = [];
+         ThreadCount = threadCount;
+         Threads = new Thread[threadCount];
+         Infos = new SearchInfo[threadCount];
+         SearchQueue = [];
+         this.tTable = tTable;
+         ActiveSearches = [];
 
          for (int i = 0; i < threadCount; i++)
          {
-            _infos[i] = new SearchInfo();
+            Infos[i] = new SearchInfo();
             int threadIndex = i;
 
-            _threads[i] = new Thread(() => ThreadWork(threadIndex))
+            Threads[i] = new Thread(() => ThreadWork(threadIndex))
             {
                IsBackground = true,
                Name = $"Thread {i}"
             };
 
-            _threads[i].Start();
+            Threads[i].Start();
          }
       }
 
       private void ThreadWork(int threadIndex)
       {
-         while (_isRunning)
+         while (IsRunning)
          {
-            if (_searchQueue.TryTake(out SearchTask task, Timeout.Infinite))
+            if (SearchQueue.TryTake(out SearchTask task, Timeout.Infinite))
             {
-               Search search = new((Board)task.Board.Clone(), task.Time, ref _tTable, _infos[threadIndex], this);
-               _activeSearches.Add(search);
+               Search search = new((Board)task.Board.Clone(), task.Time, ref tTable, Infos[threadIndex], this);
+               ActiveSearches.Add(search);
                search.Run();
-               _activeSearches.TryTake(out _);
+               ActiveSearches.TryTake(out _);
                task.CompletionSource.SetResult(true);
             }
          }
@@ -54,13 +54,13 @@ namespace Puffin
       public Task[] StartSearches(TimeManager time, Board board)
       {
          time.Start();
-         var tasks = new Task[_threadCount];
+         var tasks = new Task[ThreadCount];
 
-         for (int i = 0; i < _threadCount; i++)
+         for (int i = 0; i < ThreadCount; i++)
          {
             TaskCompletionSource<bool> completionSource = new();
             SearchTask searchTask = new((Board)board.Clone(), time, completionSource);
-            _searchQueue.Add(searchTask);
+            SearchQueue.Add(searchTask);
             tasks[i] = completionSource.Task;
          }
 
@@ -69,10 +69,10 @@ namespace Puffin
 
       public void Shutdown()
       {
-         _isRunning = false;
-         _searchQueue.CompleteAdding();
+         IsRunning = false;
+         SearchQueue.CompleteAdding();
 
-         foreach (Thread thread in _threads)
+         foreach (Thread thread in Threads)
          {
             thread.Join();
          }
@@ -80,15 +80,15 @@ namespace Puffin
 
       public void Reset()
       {
-         for (int i = 0; i < _threadCount; i++)
+         for (int i = 0; i < ThreadCount; i++)
          {
-            _infos[i].ResetAll();
+            Infos[i].ResetAll();
          }
       }
 
       public int GetTotalNodes()
       {
-         return _activeSearches.Sum(s => s.ThreadInfo.Nodes);
+         return ActiveSearches.Sum(s => s.ThreadInfo.Nodes);
       }
 
       private class SearchTask(Board board, TimeManager time, TaskCompletionSource<bool> completionSource)

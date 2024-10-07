@@ -10,22 +10,13 @@ namespace Puffin
       Beta
    }
 
-   public struct TTEntry
+   public struct TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
    {
-      internal readonly ulong Hash; // 8 bytes
-      internal int Score; // 4
-      internal readonly ushort Move; // 2
-      internal readonly byte Depth; // 1
-      internal readonly HashFlag Flag; // 1
-
-      public TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
-      {
-         Hash = hash;
-         Depth = depth;
-         Move = move;
-         Flag = flag;
-         Score = score;
-      }
+      public readonly ulong Hash { get; } = hash; // 8 bytes
+      public int Score { get; set; } = score; // 4 bytes
+      public readonly ushort Move { get; } = move; // 2 bytes
+      public readonly byte Depth { get; } = depth; // 1 byte
+      public readonly HashFlag Flag { get; } = flag; // 1 byte
    }
 
    public struct TranspositionTable
@@ -92,12 +83,6 @@ namespace Puffin
          }
 
          entry = new TTEntry(hash, depth, move, flag, score);
-      }
-
-      public readonly ushort GetHashMove(ulong hash)
-      {
-         TTEntry entry = Table[hash % (ulong)Table.Length];
-         return entry.Hash == hash ? entry.Move : (ushort)0;
       }
 
       public readonly ulong GetUsed()

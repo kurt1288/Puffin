@@ -2,53 +2,47 @@
 
 namespace Puffin
 {
-   internal class MoveList
+   internal class MoveList()
    {
-      private readonly (Move Move, int Score)[] _moves = new (Move, int)[218];
-      private int _count;
+      private readonly (Move Move, int Score)[] Moves = new (Move, int)[218];
 
-      public MoveList()
-      {
-         _count = 0;
-      }
+      public int Count { get; private set; } = 0;
 
       public Move this[int index]
       {
-         get => _moves[index].Move;
-         set => _moves[index] = (value, _moves[index].Score);
+         get => Moves[index].Move;
+         set => Moves[index] = (value, Moves[index].Score);
       }
 
       public void Shuffle()
       {
          Random rnd = new();
-         rnd.Shuffle(_moves);
+         rnd.Shuffle(Moves);
       }
 
-      public int Count => _count;
-
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public int GetScore(int index) => _moves[index].Score;
+      public int GetScore(int index) => Moves[index].Score;
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public void SetScore(int index, int score) => _moves[index].Score = score;
+      public void SetScore(int index, int score) => Moves[index].Score = score;
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public void Add(Move move) => _moves[_count++] = (move, 0);
+      public void Add(Move move) => Moves[Count++] = (move, 0);
 
       public void RemoveAt(int index)
       {
-         Array.Copy(_moves, index + 1, _moves, index, _moves.Length - index - 1);
-         _count--;
+         Array.Copy(Moves, index + 1, Moves, index, Moves.Length - index - 1);
+         Count--;
       }
 
       public void Clear()
       {
-         _count = 0;
+         Count = 0;
       }
 
       public void SwapMoves(int index1, int index2)
       {
-         var temp = _moves[index1];
-         _moves[index1] = _moves[index2];
-         _moves[index2] = temp;
+         var temp = Moves[index1];
+         Moves[index1] = Moves[index2];
+         Moves[index2] = temp;
       }
    }
 }

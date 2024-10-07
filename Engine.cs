@@ -4,11 +4,11 @@ namespace Puffin
 {
    internal class Engine
    {
-      public readonly Board Board = new();
-      readonly TimeManager Timer = new();
-      TranspositionTable TTable = new();
-      int Threads = 1;
-      ThreadManager SearchManager;
+      private readonly Board Board = new();
+      private readonly TimeManager Timer = new();
+      private TranspositionTable TTable = new();
+      private int Threads = 1;
+      private ThreadManager SearchManager;
 
       public Engine()
       {

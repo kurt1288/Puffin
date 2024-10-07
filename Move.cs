@@ -4,7 +4,8 @@ namespace Puffin
 {
    internal readonly struct Move
    {
-      readonly ushort Encoded;
+      private readonly ushort Encoded;
+
       public readonly int To => Encoded & 0x3F;
       public readonly int From => (Encoded >> 6) & 0x3F;
       public readonly MoveFlag Flag => (MoveFlag)(Encoded >> 12 & 0xF);
