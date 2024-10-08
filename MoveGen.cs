@@ -27,14 +27,14 @@ namespace Puffin
             int from = nonPawns.GetLSB();
             nonPawns.ClearLSB();
 
-            Bitboard quiets = board.Mailbox[from].Type switch
+            Bitboard quiets = board.Squares[from].Type switch
             {
                PieceType.Knight => new(KnightAttacks[from]),
                PieceType.Bishop => new(GetBishopAttacks(from, occupied)),
                PieceType.Rook => new(GetRookAttacks(from, occupied)),
                PieceType.Queen => new(GetQueenAttacks(from, occupied)),
                PieceType.King => new(KingAttacks[from]),
-               _ => throw new Exception($"Unable to get moves for piece {board.Mailbox[from].Type}"),
+               _ => throw new Exception($"Unable to get moves for piece {board.Squares[from].Type}"),
             };
 
             quiets &= ~occupied;
@@ -60,14 +60,14 @@ namespace Puffin
             int from = nonPawns.GetLSB();
             nonPawns.ClearLSB();
 
-            Bitboard attacks = board.Mailbox[from].Type switch
+            Bitboard attacks = board.Squares[from].Type switch
             {
                PieceType.Knight => new(KnightAttacks[from]),
                PieceType.Bishop => new(GetBishopAttacks(from, occupied)),
                PieceType.Rook => new(GetRookAttacks(from, occupied)),
                PieceType.Queen => new(GetQueenAttacks(from, occupied)),
                PieceType.King => new(KingAttacks[from]),
-               _ => throw new Exception($"Unable to get attacks for piece {board.Mailbox[from].Type}"),
+               _ => throw new Exception($"Unable to get attacks for piece {board.Squares[from].Type}"),
             };
 
             attacks &= board.ColorBB[(int)board.SideToMove ^ 1];
@@ -188,8 +188,8 @@ namespace Puffin
 
       public static void GenerateEnPassant(MoveList moveList, Board board)
       {
-         Bitboard attackers = board.En_Passant != Square.Null
-            ? new(PawnAttacks[(int)board.SideToMove ^ 1][(int)board.En_Passant]
+         Bitboard attackers = board.EnPassant != Square.Null
+            ? new(PawnAttacks[(int)board.SideToMove ^ 1][(int)board.EnPassant]
                & board.PieceBB[(int)PieceType.Pawn].Value
                & board.ColorBB[(int)board.SideToMove].Value)
             : new();
@@ -198,7 +198,7 @@ namespace Puffin
          {
             int square = attackers.GetLSB();
             attackers.ClearLSB();
-            moveList.Add(new Move(square, (int)board.En_Passant, MoveFlag.EPCapture));
+            moveList.Add(new Move(square, (int)board.EnPassant, MoveFlag.EPCapture));
          }
       }
 

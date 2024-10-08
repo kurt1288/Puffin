@@ -19,7 +19,7 @@ namespace Puffin
          EvalInfo info = InitEval(board);
          
          // Material and PST score
-         Score score = board.MaterialValue[(int)Color.White] - board.MaterialValue[(int)Color.Black];
+         Score score = board.MaterialScore[(int)Color.White] - board.MaterialScore[(int)Color.Black];
          
          // Piece evaluation
          score += EvaluatePieces(board, info);
@@ -104,7 +104,7 @@ namespace Puffin
          {
             int square = us.GetLSB();
             us.ClearLSB();
-            Piece piece = board.Mailbox[square];
+            Piece piece = board.Squares[square];
             score += PieceValues[(int)piece.Type];
             score += GetPSTScore(piece, square);
          }

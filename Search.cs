@@ -387,7 +387,7 @@ namespace Puffin
          while (moves.Next())
          {
             // Delta pruning
-            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Mailbox[moves.Move.To].Type, Board) + 200 < alpha)
+            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Squares[moves.Move.To].Type, Board) + 200 < alpha)
             {
                continue;
             }
@@ -440,16 +440,16 @@ namespace Puffin
 
       private bool IsRepeated()
       {
-         if (Board.Halfmoves < 4 || Board.GameHistory.Count <= 1)
+         if (Board.Halfmoves < 4 || Board.History.Count <= 1)
          {
             return false;
          }
 
-         int last = Math.Max(Board.GameHistory.Count - Board.Halfmoves, 0);
+         int last = Math.Max(Board.History.Count - Board.Halfmoves, 0);
 
-         for (int i = Board.GameHistory.Count - 4; i >= last; i -= 2)
+         for (int i = Board.History.Count - 4; i >= last; i -= 2)
          {
-            if (Board.GameHistory.Stack[i].Hash == Board.Hash)
+            if (Board.History.Stack[i].Hash == Board.Hash)
             {
                return true;
             }
@@ -471,13 +471,13 @@ namespace Puffin
          int from = move.From;
          int to = move.To;
 
-         int swap = SEE_VALUES[(int)Board.Mailbox[to].Type] - threshold;
+         int swap = SEE_VALUES[(int)Board.Squares[to].Type] - threshold;
          if (swap < 0)
          {
             return false;
          }
 
-         swap = SEE_VALUES[(int)Board.Mailbox[from].Type] - swap;
+         swap = SEE_VALUES[(int)Board.Squares[from].Type] - swap;
          if (swap <= 0)
          {
             return true;

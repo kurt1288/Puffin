@@ -47,14 +47,14 @@ namespace Puffin
          {
             int square = pieces.GetLSB();
             pieces.ClearLSB();
-            Piece piece = board.Mailbox[square];
+            Piece piece = board.Squares[square];
 
             hash ^= Pieces[(int)piece.Type + 6 * (int)piece.Color][square];
          }
 
-         if (board.En_Passant != Square.Null)
+         if (board.EnPassant != Square.Null)
          {
-            hash ^= EnPassant[(int)board.En_Passant];
+            hash ^= EnPassant[(int)board.EnPassant];
          }
 
          UpdateCastle(ref hash, board.CastleSquares);

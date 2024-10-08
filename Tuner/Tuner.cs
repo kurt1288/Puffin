@@ -788,7 +788,7 @@ namespace Puffin.Tuner
          {
             int square = us.GetLSB();
             us.ClearLSB();
-            Piece piece = board.Mailbox[square];
+            Piece piece = board.Squares[square];
 
             score += Evaluation.PieceValues[(int)piece.Type];
             trace.material[(int)piece.Type][(int)piece.Color]++;

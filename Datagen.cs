@@ -319,7 +319,7 @@ namespace Puffin
             for (int file = 0; file < 8; file++)
             {
                int square = 8 * rank + file;
-               Piece piece = board.Mailbox[square];
+               Piece piece = board.Squares[square];
 
                if (piece.Type == PieceType.Null)
                {

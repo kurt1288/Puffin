@@ -22,6 +22,7 @@ namespace Puffin
       public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
 
       public readonly static int[] SEE_VALUES = [100, 325, 350, 500, 1000, 0, 0];
+      public readonly static ImmutableArray<int> PHASE_VALUES = [0, 1, 1, 2, 4, 0]; // Pawns do not contribute to the phase value
 
       public readonly static ImmutableArray<ulong> FILE_MASKS =
       [

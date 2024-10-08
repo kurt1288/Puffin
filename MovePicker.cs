@@ -162,20 +162,20 @@
             }
             else if (move.HasType(MoveType.Capture))
             {
-               Piece captured = Board.Mailbox[move.To];
+               Piece captured = Board.Squares[move.To];
 
                if (move.Flag == MoveFlag.EPCapture)
                {
                   captured = new Piece(PieceType.Pawn, Color.White); // color doesn't matter here
                }
 
-               Piece moving = Board.Mailbox[move.From];
+               Piece moving = Board.Squares[move.From];
 
                moves.SetScore(i, 150000 + (50 * Evaluation.PieceValues[(int)captured.Type].Mg - Evaluation.PieceValues[(int)moving.Type].Mg));
             }
             else
             {
-               moves.SetScore(i, SearchInfo.GetHistory(Board.Mailbox[move.From].Color, move));
+               moves.SetScore(i, SearchInfo.GetHistory(Board.Squares[move.From].Color, move));
             }
          }
       }

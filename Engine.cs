@@ -42,21 +42,21 @@ namespace Puffin
          foreach (string move in moves)
          {
             MoveFlag flag = MoveFlag.Quiet;
-            int from = (int)Enum.Parse(typeof(Square), move.Substring(0, 2).ToUpper());
-            int to = (int)Enum.Parse(typeof(Square), move.Substring(2, 2).ToUpper());
-            Piece piece = Board.Mailbox[from];
+            int from = (byte)Enum.Parse(typeof(Square), move.Substring(0, 2).ToUpper());
+            int to = (byte)Enum.Parse(typeof(Square), move.Substring(2, 2).ToUpper());
+            Piece piece = Board.Squares[from];
 
             if (piece.Type == PieceType.Pawn && Math.Abs((from >> 3) - (to >> 3)) == 2)
             {
                flag = MoveFlag.DoublePawnPush;
             }
 
-            if (Board.Mailbox[to].Type != PieceType.Null)
+            if (Board.Squares[to].Type != PieceType.Null)
             {
                flag = MoveFlag.Capture;
             }
 
-            if (to == (int)Board.En_Passant && piece.Type == PieceType.Pawn)
+            if (to == (int)Board.EnPassant && piece.Type == PieceType.Pawn)
             {
                flag = MoveFlag.EPCapture;
             }
@@ -77,7 +77,7 @@ namespace Puffin
             {
                if (char.ToLower(move[4]) == 'n')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.KnightPromotionCapture;
                   }
@@ -88,7 +88,7 @@ namespace Puffin
                }
                else if (char.ToLower(move[4]) == 'b')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.BishopPromotionCapture;
                   }
@@ -99,7 +99,7 @@ namespace Puffin
                }
                else if (char.ToLower(move[4]) == 'r')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.RookPromotionCapture;
                   }
@@ -110,7 +110,7 @@ namespace Puffin
                }
                else if (char.ToLower(move[4]) == 'q')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.QueenPromotionCapture;
                   }
