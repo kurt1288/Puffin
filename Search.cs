@@ -200,22 +200,22 @@ namespace Puffin
          while (moves.Next())
          {
             bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
-            if (!isPVNode && !inCheck)
+            // SEE pruning
+            if (!SEE_GE(moves.Move, -75 * depth))
             {
-               // SEE pruning
-               if (!SEE_GE(moves.Move, -75 * depth))
-               {
-                  continue;
-               }
+               continue;
+            }
 
+            if (isQuiet)
+            {
                // Late move pruning
-               if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth && isQuiet)
+               if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth)
                {
                   moves.NoisyOnly = true;
                }
 
                // Futility pruning
-               if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha && isQuiet)
+               if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
                   moves.NoisyOnly = true;
                }
