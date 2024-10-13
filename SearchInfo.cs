@@ -100,7 +100,8 @@ namespace Puffin
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void UpdateHistory(Color color, Move move, int value)
       {
-         HistoryScores[(int)color * 4096 + move.From * 64 + move.To] += value;
+         ref int history = ref HistoryScores[(int)color * 4096 + move.From * 64 + move.To];
+         history += value - history * Math.Abs(value) / 12000;
       }
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetHistory(Color color, Move move)
