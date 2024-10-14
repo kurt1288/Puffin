@@ -44,6 +44,8 @@ namespace Puffin.Tuner
          public double[] friendlyKingPawnDistance = new double[2];
          public double[] enemyKingPawnDistance = new double[2];
          public double[] bishopPair = new double[2];
+         public double[] pawnPushThreats = new double[2];
+         public double[] pawnAttacks = new double[2];
          public double score = 0;
 
          public Trace()
@@ -159,7 +161,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private readonly ParameterWeight[] Parameters = new ParameterWeight[504];
+      private readonly ParameterWeight[] Parameters = new ParameterWeight[506];
 
       public Tuner()
       {
@@ -176,6 +178,8 @@ namespace Puffin.Tuner
          Evaluation.RookHalfOpenFile = new();
          Evaluation.RookOpenFile = new();
          Evaluation.BishopPair = new();
+         Evaluation.PawnPushThreats = new();
+         Evaluation.PawnAttacks = new();
 
          for (int i = 0; i < 384; i++)
          {
@@ -435,6 +439,8 @@ namespace Puffin.Tuner
          AddSingleParameter(Evaluation.FriendlyKingPawnDistance, ref index);
          AddSingleParameter(Evaluation.EnemyKingPawnDistance, ref index);
          AddSingleParameter(Evaluation.BishopPair, ref index);
+         AddSingleParameter(Evaluation.PawnPushThreats, ref index);
+         AddSingleParameter(Evaluation.PawnAttacks, ref index);
       }
 
       private void AddSingleParameter(Score value, ref int index)
@@ -580,6 +586,16 @@ namespace Puffin.Tuner
          score += Evaluation.ConnectedPawn[(pawns & pawns.RightShift()).CountBits()];
          trace.defendedPawn[(pawns & PawnAnyAttacks(pawns.Value, color)).CountBits()][(int)color]++;
          trace.connectedPawn[(pawns & pawns.RightShift()).CountBits()][(int)color]++;
+
+         // Enemy non-pawn pieces that can be attacked with a pawn push
+         ulong pawnShift = (pawns.Shift(color == Color.White ? Direction.Down : Direction.Up) & ~(board.ColorBB[(int)color] | board.ColorBB[(int)color ^ 1]).Value).Value;
+         ulong enemyPieces = (board.ColorBB[(int)color ^ 1] ^ (board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1])).Value;
+         score += Evaluation.PawnPushThreats * new Bitboard(PawnAnyAttacks(pawnShift, color) & enemyPieces).CountBits();
+         trace.pawnPushThreats[(int)color] += new Bitboard(PawnAnyAttacks(pawnShift, color) & enemyPieces).CountBits();
+
+         // Enemy non-pawn pieces that are attacked
+         score += Evaluation.PawnAttacks * new Bitboard(PawnAnyAttacks(pawns.Value, color) & enemyPieces).CountBits();
+         trace.pawnAttacks[(int)color] += new Bitboard(PawnAnyAttacks(pawns.Value, color) & enemyPieces).CountBits();
 
          while (pawns)
          {
@@ -828,6 +844,8 @@ namespace Puffin.Tuner
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.friendlyKingPawnDistance);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.enemyKingPawnDistance);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.bishopPair);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.pawnPushThreats);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.pawnAttacks);
 
          return entryCoefficients;
       }
@@ -917,6 +935,8 @@ namespace Puffin.Tuner
          PrintSingle("friendly king pawn distance", ref index, sw);
          PrintSingle("enemy king pawn distance", ref index, sw);
          PrintSingle("bishop pair", ref index, sw);
+         PrintSingle("pawn push threats", ref index, sw);
+         PrintSingle("pawn attacks", ref index, sw);
       }
 
       private void PrintSingle(string name, ref int index, StreamWriter writer)
