@@ -94,7 +94,7 @@ namespace Puffin
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public Move GetCountermove(Move previousMove)
       {
-         return (previousMove.From < 64 && previousMove.To < 64) ? CounterMoves[previousMove.From * 64 + previousMove.To] : new();
+         return CounterMoves[previousMove.From * 64 + previousMove.To];
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]

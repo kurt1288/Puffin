@@ -20,6 +20,7 @@ namespace Puffin
       public int Phase { get; private set; } = 0;
       public History History { get; } = new();
       public Score[] MaterialScore { get; } = [new(0, 0), new(0, 0)];
+      public (Move Move, Piece Piece)[] MoveStack { get; private set; } = new (Move Move, Piece Piece)[1000]; // arbitrary 1000 moves max
 
       public ulong Hash => UniqueHash;
 

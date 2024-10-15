@@ -11,12 +11,12 @@
       Quiet,
    }
 
-   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly, Move counterMove)
+   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly)
    {
       private readonly MoveList MoveList = new();
       private readonly Board Board = board;
       private readonly Move HashMove = hashMove;
-      private readonly Move CounterMove = counterMove;
+      private readonly Move CounterMove = ply > 0 ? info.GetCountermove(board.MoveStack[ply - 1].Move) : new();
       private int Index = 0;
       private readonly SearchInfo SearchInfo = info;
       private readonly int Ply = ply;
