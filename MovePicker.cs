@@ -175,7 +175,11 @@
             }
             else
             {
-               moves.SetScore(i, SearchInfo.GetHistory(Board.Squares[move.From].Color, move));
+               moves.SetScore(i,
+                  SearchInfo.GetHistory(Board.Squares[move.From].Color, move)
+                  + SearchInfo.GetContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 1)
+                  + SearchInfo.GetContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 2)
+               );
             }
          }
       }

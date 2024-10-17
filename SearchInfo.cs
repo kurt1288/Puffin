@@ -8,6 +8,7 @@ namespace Puffin
       private Move[][] Pv = new Move[MAX_PLY][];
       private int[] PvLength = new int[MAX_PLY];
       private readonly Move[] CounterMoves = new Move[64 * 64];
+      private readonly int[] ContinuationHistory = new int[12 * 64 * 12 * 64]; // [prev piece * prev to square * curr piece * curr to square]
 
       public Move[][] KillerMoves { get; set; } = new Move[MAX_PLY][];
       public int[] HistoryScores { get; private set; } = new int[2 * 64 * 64];
@@ -26,6 +27,7 @@ namespace Puffin
       public void ResetAll()
       {
          Array.Clear(HistoryScores, 0, HistoryScores.Length);
+         Array.Clear(ContinuationHistory, 0, ContinuationHistory.Length);
          Pv = new Move[MAX_PLY][];
          PvLength = new int[MAX_PLY];
          Nodes = 0;
@@ -100,13 +102,46 @@ namespace Puffin
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void UpdateHistory(Color color, Move move, int value)
       {
-         ref int history = ref HistoryScores[(int)color * 4096 + move.From * 64 + move.To];
-         history += value - history * Math.Abs(value) / 12000;
+         AddToHistory(ref HistoryScores[(int)color * 4096 + move.From * 64 + move.To], value, 5000);
       }
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetHistory(Color color, Move move)
       {
          return HistoryScores[(int)color * 4096 + move.From * 64 + move.To];
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdateContHistory(Piece currPiece, Move currMove, (Move Move, Piece Piece)[] moveStack, int ply, int offset, int value)
+      {
+         if (ply > offset)
+         {
+            int currIndex = ((int)currPiece.Color * 6 * 64) + ((int)currPiece.Type * 64) + currMove.To;
+            (Move Move, Piece Piece) prev = moveStack[ply - offset];
+            int prevIndex = ((int)prev.Piece.Color * 6 * 64) + ((int)prev.Piece.Type * 64) + prev.Move.To;
+
+            AddToHistory(ref ContinuationHistory[(prevIndex * 12 * 64) + currIndex], value, 15000);
+         }
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public int GetContHistory(Piece currPiece, Move currMove, (Move Move, Piece Piece)[] moveStack, int ply, int offset)
+      {
+         if (ply > offset)
+         {
+            int currIndex = ((int)currPiece.Color * 6 * 64) + ((int)currPiece.Type * 64) + currMove.To;
+            (Move Move, Piece Piece) prev = moveStack[ply - offset];
+            int prevIndex = ((int)prev.Piece.Color * 6 * 64) + ((int)prev.Piece.Type * 64) + prev.Move.To;
+
+            return ContinuationHistory[(prevIndex * 12 * 64) + currIndex];
+         }
+
+         return 0;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      private static void AddToHistory(ref int history, int value, int maxValue)
+      {
+         history += value - history * Math.Abs(value) / maxValue;
       }
    }
 }

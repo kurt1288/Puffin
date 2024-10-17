@@ -299,11 +299,15 @@ namespace Puffin
                      ThreadInfo.KillerMoves[ply][0] = moves.Move;
                   }
 
-                  ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, depth * depth);
+                  int bonus = depth * depth;
+
+                  ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, bonus);
 
                   if (!isRoot)
                   {
                      ThreadInfo.UpdateCountermove(Board.MoveStack[ply - 1].Move, moves.Move);
+                     ThreadInfo.UpdateContHistory(Board.Squares[moves.Move.From], moves.Move, Board.MoveStack, ply, 1, bonus);
+                     ThreadInfo.UpdateContHistory(Board.Squares[moves.Move.From], moves.Move, Board.MoveStack, ply, 2, bonus);
                   }
 
                   // Reduce history score for other quiet moves
@@ -314,7 +318,13 @@ namespace Puffin
                         continue;
                      }
 
-                     ThreadInfo.UpdateHistory(Board.SideToMove, quietMoves[i], -depth * depth);
+                     ThreadInfo.UpdateHistory(Board.SideToMove, quietMoves[i], -bonus);
+
+                     if (!isRoot)
+                     {
+                        ThreadInfo.UpdateContHistory(Board.Squares[quietMoves[i].From], quietMoves[i], Board.MoveStack, ply, 1, -bonus);
+                        ThreadInfo.UpdateContHistory(Board.Squares[quietMoves[i].From], quietMoves[i], Board.MoveStack, ply, 2, -bonus);
+                     }
                   }
                }
 
