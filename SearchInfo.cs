@@ -9,9 +9,9 @@ namespace Puffin
       private int[] PvLength = new int[MAX_PLY];
       private readonly Move[] CounterMoves = new Move[64 * 64];
       private readonly int[] ContinuationHistory = new int[12 * 64 * 12 * 64]; // [prev piece * prev to square * curr piece * curr to square]
+      private readonly int[] QuietHistory = new int[2 * 64 * 64]; // [side to move * from square * to square]
 
       public Move[][] KillerMoves { get; set; } = new Move[MAX_PLY][];
-      public int[] HistoryScores { get; private set; } = new int[2 * 64 * 64];
       public int Nodes { get; set; } = 0;
       public int Score { get; set; } = -INFINITY;
 
@@ -26,10 +26,10 @@ namespace Puffin
 
       public void ResetAll()
       {
-         Array.Clear(HistoryScores, 0, HistoryScores.Length);
-         Array.Clear(ContinuationHistory, 0, ContinuationHistory.Length);
+         Array.Clear(QuietHistory);
+         Array.Clear(ContinuationHistory);
+         Array.Clear(PvLength);
          Pv = new Move[MAX_PLY][];
-         PvLength = new int[MAX_PLY];
          Nodes = 0;
          Score = -INFINITY;
 
@@ -42,7 +42,7 @@ namespace Puffin
 
       public void ResetForSearch()
       {
-         PvLength = new int[MAX_PLY];
+         Array.Clear(PvLength);
          Nodes = 0;
          Score = -INFINITY;
 
@@ -102,12 +102,12 @@ namespace Puffin
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void UpdateHistory(Color color, Move move, int value)
       {
-         AddToHistory(ref HistoryScores[(int)color * 4096 + move.From * 64 + move.To], value, 5000);
+         AddToHistory(ref QuietHistory[(int)color * 4096 + move.From * 64 + move.To], value, 5000);
       }
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public int GetHistory(Color color, Move move)
       {
-         return HistoryScores[(int)color * 4096 + move.From * 64 + move.To];
+         return QuietHistory[(int)color * 4096 + move.From * 64 + move.To];
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
