@@ -46,7 +46,7 @@ if (args.Length != 0)
       {
          Datagen datagen = new();
          Datagen.Run(int.Parse(args[i + 1]));
-         Environment.Exit(100);
+         Environment.Exit(0);
          break;
       }
       else if (arg == "tunetest")
@@ -101,7 +101,7 @@ while (true)
          }
       case "quit":
          {
-            Environment.Exit(100);
+            Environment.Exit(0);
             break;
          }
       case "ucinewgame":
