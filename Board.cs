@@ -23,6 +23,7 @@ namespace Puffin
       public (Move Move, Piece Piece)[] MoveStack { get; private set; } = new (Move Move, Piece Piece)[1000]; // arbitrary 1000 moves max
 
       public ulong Hash => UniqueHash;
+      public bool InCheck => IsAttacked(GetSquareByPiece(PieceType.King, SideToMove), (int)SideToMove ^ 1);
 
       public Board()
       {
@@ -250,19 +251,6 @@ namespace Puffin
                   int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
                   SetPiece(Squares[rFrom], rTo);
                   RemovePiece(Squares[rFrom], rFrom);
-
-                  // Check the path of the king to make sure it isn't moving from check or moving through check
-                  Bitboard kingPath = new(BetweenBB[from][to] | SquareBB[to] | SquareBB[from]);
-                  while (kingPath)
-                  {
-                     int square = kingPath.GetLSB();
-                     kingPath.ClearLSB();
-                     if (IsAttacked(square, (int)piece.Color ^ 1))
-                     {
-                        return false;
-                     }
-                  }
-
                   break;
                }
             case MoveFlag.QueenCastle:
@@ -276,19 +264,6 @@ namespace Puffin
                   int rTo = SideToMove == Color.White ? (int)Square.D1 : (int)Square.D8;
                   SetPiece(Squares[rFrom], rTo);
                   RemovePiece(Squares[rFrom], rFrom);
-
-                  // Check the path of the king to make sure it isn't moving from check or doesn't moving through check
-                  Bitboard kingPath = new(BetweenBB[from][to] | SquareBB[to] | SquareBB[from]);
-                  while (kingPath)
-                  {
-                     int square = kingPath.GetLSB();
-                     kingPath.ClearLSB();
-                     if (IsAttacked(square, (int)piece.Color ^ 1))
-                     {
-                        return false;
-                     }
-                  }
-
                   break;
                }
             case MoveFlag.KnightPromotion:
@@ -350,24 +325,24 @@ namespace Puffin
          }
 
          // update castling
-         if (piece.Type == PieceType.King)
+         ulong homeRank = RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
+         ulong affectedSquares = SquareBB[move.From] | SquareBB[move.To];
+         ulong castleRightsToRemove = 0;
+
+         // Update castling rights if the king moves
+         if (piece.Type == PieceType.King && (CastleSquares & homeRank) != 0)
          {
-            // If the king moves, remove the castle squares from the home rank
-            Zobrist.UpdateCastle(ref UniqueHash, CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
-            CastleSquares &= ~RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
+            castleRightsToRemove |= CastleSquares & homeRank;
          }
 
-         // if a piece is moving either to or from a rook square, either the rook is moving, being captured, or just not on that square. either way, castling rights
-         // on that side are gone.
-         if ((SquareBB[move.From] & CastleSquares) != 0)
+         // Update castling rights if a rook moves or is captured
+         castleRightsToRemove |= CastleSquares & affectedSquares;
+
+         // Apply the updates
+         if (castleRightsToRemove != 0)
          {
-            Zobrist.UpdateCastle(ref UniqueHash, CastleSquares & SquareBB[move.From]);
-            CastleSquares &= ~SquareBB[move.From];
-         }
-         if ((SquareBB[move.To] & CastleSquares) != 0)
-         {
-            Zobrist.UpdateCastle(ref UniqueHash, CastleSquares & SquareBB[move.To]);
-            CastleSquares &= ~SquareBB[move.To];
+            Zobrist.UpdateCastle(ref UniqueHash, castleRightsToRemove);
+            CastleSquares &= ~castleRightsToRemove;
          }
 
          SideToMove = (Color)((int)SideToMove ^ 1);
@@ -744,74 +719,53 @@ namespace Puffin
 
          if (move.IsCastle())
          {
-            if (piece.Type != PieceType.King)
+            if (piece.Type != PieceType.King || InCheck)
             {
                return false;
             }
 
             int homeRank = piece.Color == Color.White ? 7 : 0;
-
             if (move.To >> 3 != homeRank || move.From >> 3 != homeRank)
             {
                return false;
             }
 
-            if (move.Flag == MoveFlag.KingCastle)
-            {
-               // no castle square
-               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.H1]) == 0 : (CastleSquares & SquareBB[(int)Square.H8]) == 0)
-               {
-                  return false;
-               }
+            bool isKingSide = move.Flag == MoveFlag.KingCastle;
+            int castleSquare = isKingSide ?
+                (piece.Color == Color.White ? (int)Square.H1 : (int)Square.H8) :
+                (piece.Color == Color.White ? (int)Square.A1 : (int)Square.A8);
 
-               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.H1] : BetweenBB[move.From][(int)Square.H8];
+            if ((CastleSquares & SquareBB[castleSquare]) == 0)
+            {
+               return false;
+            }
+
+            ulong path = BetweenBB[move.From][castleSquare];
+            if ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
+            {
+               return false;
+            }
+
+            int pathSquare = isKingSide ?
+                (piece.Color == Color.White ? (int)Square.G1 : (int)Square.G8) - 1 :
+                (piece.Color == Color.White ? (int)Square.C1 : (int)Square.C8) + 1;
 
 #if DEBUG
-               MoveList castleMoves = new();
-               MoveGen.GenerateCastling(castleMoves, this);
-               bool foundCastle = false;
-               for (int i = 0; i < castleMoves.Count; i++)
-               {
-                  if (castleMoves[i] == move)
-                  {
-                     foundCastle = true;
-                  }
-               }
-
-               Debug.Assert(foundCastle == ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0));
-#endif
-
-               // true if path between is empty, otherwise false
-               return (path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0;
-            }
-            else
+            MoveList castleMoves = new();
+            MoveGen.GenerateCastling(castleMoves, this);
+            bool foundCastle = false;
+            for (int i = 0; i < castleMoves.Count; i++)
             {
-               // no castle square
-               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.A1]) == 0 : (CastleSquares & SquareBB[(int)Square.A8]) == 0)
+               if (castleMoves[i] == move)
                {
-                  return false;
+                  foundCastle = true;
                }
+            }
 
-               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.A1] : BetweenBB[move.From][(int)Square.A8];
-
-#if DEBUG
-               MoveList castleMoves = new();
-               MoveGen.GenerateCastling(castleMoves, this);
-               bool foundCastle = false;
-               for (int i = 0; i < castleMoves.Count; i++)
-               {
-                  if (castleMoves[i] == move)
-                  {
-                     foundCastle = true;
-                  }
-               }
-
-               Debug.Assert(foundCastle == ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0));
+            Debug.Assert(foundCastle == !IsAttacked(pathSquare, (int)piece.Color ^ 1));
 #endif
 
-               // true if path between is empty, otherwise false
-               return (path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0;
-            }
+            return !IsAttacked(pathSquare, (int)piece.Color ^ 1);
          }
 
          // At this point, pawn moves, quiet moves to an occupied space, and capture moves to an unoccupied space are all invalid

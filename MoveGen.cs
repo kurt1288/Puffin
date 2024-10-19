@@ -1,5 +1,6 @@
 ﻿using static Puffin.Constants;
 using static Puffin.Attacks;
+using System.Diagnostics;
 
 namespace Puffin
 {
@@ -204,24 +205,40 @@ namespace Puffin
 
       public static void GenerateCastling(MoveList moveList, Board board)
       {
-         Bitboard castleSquares = new(board.CastleSquares & (board.SideToMove == Color.White ? RANK_MASKS[(int)Rank.Rank_1] : RANK_MASKS[(int)Rank.Rank_8]));
-         int kingSquare = board.SideToMove == Color.White ? board.PieceBB[(int)PieceType.King].GetMSB() : board.PieceBB[(int)PieceType.King].GetLSB();
+         Bitboard rookSquares = new(board.CastleSquares & (board.SideToMove == Color.White ? RANK_MASKS[(int)Rank.Rank_1] : RANK_MASKS[(int)Rank.Rank_8]));
 
-         while (castleSquares)
+         if (board.InCheck || !rookSquares)
          {
-            int square = castleSquares.GetLSB();
-            castleSquares.ClearLSB();
+            return;
+         }
 
-            if ((BetweenBB[kingSquare][square] & (board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value)) == 0)
+         int kingSquare = board.SideToMove == Color.White ? board.PieceBB[(int)PieceType.King].GetMSB() : board.PieceBB[(int)PieceType.King].GetLSB();
+         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
+         int kingCastleSquare = board.SideToMove == Color.White ? (int)Square.G1 : (int)Square.G8;
+         int queenCastleSquare = board.SideToMove == Color.White ? (int)Square.C1 : (int)Square.C8;
+         int oppositeColor = (int)board.SideToMove ^ 1;
+
+         while (rookSquares)
+         {
+            int rookSquare = rookSquares.GetLSB();
+            rookSquares.ClearLSB();
+
+            if ((BetweenBB[kingSquare][rookSquare] & occupied) != 0)
             {
-               if (kingSquare < square)
-               {
-                  moveList.Add(new Move(kingSquare, board.SideToMove == Color.White ? (int)Square.G1 : (int)Square.G8, MoveFlag.KingCastle));
-               }
-               else if (kingSquare > square)
-               {
-                  moveList.Add(new Move(kingSquare, board.SideToMove == Color.White ? (int)Square.C1 : (int)Square.C8, MoveFlag.QueenCastle));
-               }
+               continue;
+            }
+
+            int targetSquare = (kingSquare < rookSquare) ? kingCastleSquare : queenCastleSquare;
+            int pathSquare = (kingSquare < rookSquare) ? targetSquare - 1 : targetSquare + 1;
+
+            // Check the path of the king to make sure it isn't moving through check
+            if (!board.IsAttacked(pathSquare, oppositeColor))
+            {
+               moveList.Add(new Move(
+                  kingSquare,
+                  targetSquare,
+                  kingSquare < rookSquare ? MoveFlag.KingCastle : MoveFlag.QueenCastle
+               ));
             }
          }
       }
