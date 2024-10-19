@@ -1,35 +1,23 @@
-﻿namespace Puffin
+﻿using System.Runtime.InteropServices;
+
+namespace Puffin
 {
-   internal readonly struct BoardState(Color side, Square en_passant, ulong castling, Piece captured, int halfmoves, int fullmoves, ulong hash, int phase)
+   internal readonly struct BoardState(Square en_passant, ulong castling, Piece captured, int halfmoves, ulong hash, int phase)
    {
-      public Color SideToMove { get; } = side;
-      public Square En_Passant { get; } = en_passant;
       public ulong CastleSquares { get; } = castling;
-      public Piece CapturedPiece { get; } = captured;
-      public int Halfmoves { get; } = halfmoves;
-      public int Fullmoves { get; } = fullmoves;
       public ulong Hash { get; } = hash;
+      public int Halfmoves { get; } = halfmoves;
       public int Phase { get; } = phase;
+      public Piece CapturedPiece { get; } = captured;
+      public Square En_Passant { get; } = en_passant;
    }
 
-   internal class History : ICloneable
+   internal class History()
    {
+      private readonly BoardState[] Stack = new BoardState[1000]; // arbitrary max length
+
       public int Count { get; private set; } = 0;
-
-      public BoardState[] Stack { get; } = new BoardState[1000]; // arbitrary max length
-
-      public History() { }
-
-      public History(History other)
-      {
-         Array.Copy(other.Stack, Stack, Stack.Length);
-         Count = other.Count;
-      }
-
-      public object Clone()
-      {
-         return new History(this);
-      }
+      public BoardState this[int index] => Stack[index];
 
       public void Reset()
       {

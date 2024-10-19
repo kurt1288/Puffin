@@ -16,7 +16,6 @@ namespace Puffin
       public Square EnPassant { get; private set; } = Square.Null;
       public ulong CastleSquares { get; private set; } = 0;
       public int Halfmoves { get; private set; } = 0;
-      public int Fullmoves { get; private set; } = 0;
       public int Phase { get; private set; } = 0;
       public History History { get; } = new();
       public Score[] MaterialScore { get; } = [new(0, 0), new(0, 0)];
@@ -49,10 +48,8 @@ namespace Puffin
          EnPassant = other.EnPassant;
          CastleSquares = other.CastleSquares;
          Halfmoves = other.Halfmoves;
-         Fullmoves = other.Fullmoves;
          Phase = other.Phase;
          UniqueHash = other.Hash;
-         History = (History)other.History.Clone();
          Array.Copy(other.Squares, Squares, Squares.Length);
          Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
          Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);
@@ -86,7 +83,6 @@ namespace Puffin
          EnPassant = Square.Null;
          CastleSquares = 0;
          Halfmoves = 0;
-         Fullmoves = 0;
          Phase = 0;
          MaterialScore[(int)Color.White] = new Score(0, 0);
          MaterialScore[(int)Color.Black] = new Score(0, 0);
@@ -170,11 +166,6 @@ namespace Puffin
                Halfmoves = halfMoves;
             }
 
-            if (fenParts.Length > 5 && int.TryParse(fenParts[5], out int fullMoves))
-            {
-               Fullmoves = fullMoves;
-            }
-
             UniqueHash = Zobrist.GenerateHash(this);
          }
          catch
@@ -193,8 +184,8 @@ namespace Puffin
 
          History.Add(
             new BoardState(
-               SideToMove, EnPassant, CastleSquares, Squares[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to],
-               Halfmoves, Fullmoves, UniqueHash, Phase)
+               EnPassant, CastleSquares, Squares[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to],
+               Halfmoves, UniqueHash, Phase)
          );
 
          if (EnPassant != Square.Null)
@@ -210,17 +201,17 @@ namespace Puffin
             Halfmoves = 0;
          }
 
+         RemovePiece(piece, from);
+
          switch (flag)
          {
             case MoveFlag.Quiet:
                {
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
                   break;
                }
             case MoveFlag.DoublePawnPush:
                {
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
                   EnPassant = (Square)((to + from) / 2);
                   Zobrist.UpdateEnPassant(ref UniqueHash, EnPassant);
@@ -229,13 +220,11 @@ namespace Puffin
             case MoveFlag.Capture:
                {
                   RemovePiece(Squares[to], to);
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
                   break;
                }
             case MoveFlag.EPCapture:
                {
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
                   RemovePiece(new Piece(PieceType.Pawn, (Color)((int)piece.Color ^ 1)), piece.Color == Color.White ? to + 8 : to - 8);
                   break;
@@ -243,7 +232,6 @@ namespace Puffin
             case MoveFlag.KingCastle:
                {
                   // Move king
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
 
                   // Move rook
@@ -256,7 +244,6 @@ namespace Puffin
             case MoveFlag.QueenCastle:
                {
                   // Move king
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
 
                   // Move rook
@@ -268,52 +255,44 @@ namespace Puffin
                }
             case MoveFlag.KnightPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Knight, piece.Color), to);
                   break;
                }
             case MoveFlag.BishopPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Bishop, piece.Color), to);
                   break;
                }
             case MoveFlag.RookPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Rook, piece.Color), to);
                   break;
                }
             case MoveFlag.QueenPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Queen, piece.Color), to);
                   break;
                }
             case MoveFlag.KnightPromotionCapture:
                {
-                  RemovePiece(piece, from);
                   RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Knight, piece.Color), to);
                   break;
                }
             case MoveFlag.BishopPromotionCapture:
                {
-                  RemovePiece(piece, from);
                   RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Bishop, piece.Color), to);
                   break;
                }
             case MoveFlag.RookPromotionCapture:
                {
-                  RemovePiece(piece, from);
                   RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Rook, piece.Color), to);
                   break;
                }
             case MoveFlag.QueenPromotionCapture:
                {
-                  RemovePiece(piece, from);
                   RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Queen, piece.Color), to);
                   break;
@@ -345,8 +324,7 @@ namespace Puffin
             CastleSquares &= ~castleRightsToRemove;
          }
 
-         SideToMove = (Color)((int)SideToMove ^ 1);
-         Fullmoves += 1;
+         SideToMove ^= (Color)1;
 
          Zobrist.UpdateSideToMove(ref UniqueHash);
 
@@ -355,19 +333,14 @@ namespace Puffin
          Debug.Assert(MaterialScore[0] == Evaluation.Material(this, Color.White));
          Debug.Assert(MaterialScore[1] == Evaluation.Material(this, Color.Black));
 
-         if (IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove))
-         {
-            return false;
-         }
-
-         return true;
+         return !IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove);
       }
 
       public void MakeNullMove()
       {
          History.Add(
             new BoardState(
-               SideToMove, EnPassant, CastleSquares, new Piece(), Halfmoves, Fullmoves, Hash, Phase
+               EnPassant, CastleSquares, new Piece(), Halfmoves, Hash, Phase
             )
          );
 
@@ -378,8 +351,7 @@ namespace Puffin
 
          EnPassant = Square.Null;
          Halfmoves = 0;
-         Fullmoves += 1;
-         SideToMove = (Color)((int)SideToMove ^ 1);
+         SideToMove ^= (Color)1;
 
          Zobrist.UpdateSideToMove(ref UniqueHash);
 
@@ -391,24 +363,23 @@ namespace Puffin
       {
          BoardState previousState = History.Pop();
 
-         SideToMove = previousState.SideToMove;
+         SideToMove ^= (Color)1;
          EnPassant = previousState.En_Passant;
          CastleSquares = previousState.CastleSquares;
          Halfmoves = previousState.Halfmoves;
-         Fullmoves = previousState.Fullmoves;
 
          int from = move.From;
          int to = move.To;
          Piece piece = Squares[to];
 
+         RemovePiece(piece, to);
+
          if (move.HasType(MoveType.Promotion))
          {
-            RemovePiece(piece, to);
             SetPiece(new Piece(PieceType.Pawn, piece.Color), from);
          }
          else if (move.IsCastle())
          {
-            RemovePiece(piece, to);
             SetPiece(piece, from);
 
             Piece rook = new(PieceType.Rook, piece.Color);
@@ -426,7 +397,6 @@ namespace Puffin
          }
          else
          {
-            RemovePiece(piece, to);
             SetPiece(piece, from);
          }
 
@@ -454,11 +424,10 @@ namespace Puffin
       {
          BoardState previousState = History.Pop();
 
-         SideToMove = previousState.SideToMove;
+         SideToMove ^= (Color)1;
          EnPassant = previousState.En_Passant;
          CastleSquares = previousState.CastleSquares;
          Halfmoves = previousState.Halfmoves;
-         Fullmoves = previousState.Fullmoves;
          Phase = previousState.Phase;
          UniqueHash = previousState.Hash;
 

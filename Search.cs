@@ -465,7 +465,7 @@ namespace Puffin
 
          for (int i = Board.History.Count - 4; i >= last; i -= 2)
          {
-            if (Board.History.Stack[i].Hash == Board.Hash)
+            if (Board.History[i].Hash == Board.Hash)
             {
                return true;
             }

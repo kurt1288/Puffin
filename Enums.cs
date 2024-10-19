@@ -19,7 +19,7 @@
       Null,
    }
 
-   enum PieceType
+   enum PieceType : byte
    {
       Pawn,
       Knight,
