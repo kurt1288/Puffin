@@ -197,11 +197,11 @@ namespace Puffin
 
          MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), false);
 
-         while (moves.Next())
+         while (moves.Next() is Move move)
          {
-            bool isQuiet = !moves.Move.HasType(MoveType.Capture) && !moves.Move.HasType(MoveType.Promotion);
+            bool isQuiet = !move.HasType(MoveType.Capture) && !move.HasType(MoveType.Promotion);
             // SEE pruning
-            if (!SEE_GE(moves.Move, -75 * depth))
+            if (!SEE_GE(move, -75 * depth))
             {
                continue;
             }
@@ -221,19 +221,19 @@ namespace Puffin
                }
             }
 
-            if (!Board.MakeMove(moves.Move))
+            if (!Board.MakeMove(move))
             {
-               Board.UndoMove(moves.Move);
+               Board.UndoMove(move);
                continue;
             }
 
-            Board.MoveStack[ply] = (moves.Move, Board.Squares[moves.Move.To]);
+            Board.MoveStack[ply] = (move, Board.Squares[move.To]);
             ThreadInfo.Nodes += 1;
             legalMoves += 1;
 
             if (isQuiet && quietMovesCount < 100)
             {
-               quietMoves[quietMovesCount++] = moves.Move;
+               quietMoves[quietMovesCount++] = move;
             }
 
             int E = inCheck ? 1 : 0;
@@ -257,7 +257,7 @@ namespace Puffin
                // Moves that do not beat the current best value (alpha) are cut-off. Moves that do will be researched below
                if (-NegaScout(-alpha - 1, -alpha, reduction, ply + 1, true) <= alpha)
                {
-                  Board.UndoMove(moves.Move);
+                  Board.UndoMove(move);
                   continue;
                }
             }
@@ -272,12 +272,12 @@ namespace Puffin
                score = -NegaScout(-beta, -alpha, depth - 1 + E, ply + 1, true);
             }
 
-            Board.UndoMove(moves.Move);
+            Board.UndoMove(move);
 
             if (score > bestScore)
             {
                bestScore = score;
-               bestMove = moves.Move;
+               bestMove = move;
             }
 
             if (score > alpha)
@@ -293,27 +293,27 @@ namespace Puffin
 
                if (isQuiet)
                {
-                  if (moves.Move != ThreadInfo.KillerMoves[ply][0])
+                  if (move != ThreadInfo.KillerMoves[ply][0])
                   {
                      ThreadInfo.KillerMoves[ply][1] = ThreadInfo.KillerMoves[ply][0];
-                     ThreadInfo.KillerMoves[ply][0] = moves.Move;
+                     ThreadInfo.KillerMoves[ply][0] = move;
                   }
 
                   int bonus = depth * depth;
 
-                  ThreadInfo.UpdateHistory(Board.SideToMove, moves.Move, bonus);
+                  ThreadInfo.UpdateHistory(Board.SideToMove, move, bonus);
 
                   if (!isRoot)
                   {
-                     ThreadInfo.UpdateCountermove(Board.MoveStack[ply - 1].Move, moves.Move);
-                     ThreadInfo.UpdateContHistory(Board.Squares[moves.Move.From], moves.Move, Board.MoveStack, ply, 1, bonus);
-                     ThreadInfo.UpdateContHistory(Board.Squares[moves.Move.From], moves.Move, Board.MoveStack, ply, 2, bonus);
+                     ThreadInfo.UpdateCountermove(Board.MoveStack[ply - 1].Move, move);
+                     ThreadInfo.UpdateContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 1, bonus);
+                     ThreadInfo.UpdateContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 2, bonus);
                   }
 
                   // Reduce history score for other quiet moves
                   for (int i = 0; i < quietMovesCount; i++)
                   {
-                     if (quietMoves[i] == moves.Move)
+                     if (quietMoves[i] == move)
                      {
                         continue;
                      }
@@ -399,36 +399,36 @@ namespace Puffin
          HashFlag flag = HashFlag.Alpha;
          MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), true);
 
-         while (moves.Next())
+         while (moves.Next() is Move move)
          {
             // Delta pruning
-            if (((moves.Move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Squares[moves.Move.To].Type, Board) + 200 < alpha)
+            if (((move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Squares[move.To].Type, Board) + 200 < alpha)
             {
                continue;
             }
 
-            if (!SEE_GE(moves.Move, -50))
+            if (!SEE_GE(move, -50))
             {
                continue;
             }
 
-            if (!Board.MakeMove(moves.Move))
+            if (!Board.MakeMove(move))
             {
-               Board.UndoMove(moves.Move);
+               Board.UndoMove(move);
                continue;
             }
 
-            Board.MoveStack[ply] = (moves.Move, Board.Squares[moves.Move.To]);
+            Board.MoveStack[ply] = (move, Board.Squares[move.To]);
             ThreadInfo.Nodes += 1;
 
             int score = -Quiescence(-beta, -alpha, ply + 1, isPVNode);
 
-            Board.UndoMove(moves.Move);
+            Board.UndoMove(move);
 
             if (score > bestScore)
             {
                bestScore = score;
-               bestMove = moves.Move;
+               bestMove = move;
             }
 
             if (score > alpha)

@@ -16,16 +16,14 @@
       private readonly MoveList MoveList = new();
       private readonly Board Board = board;
       private readonly Move HashMove = hashMove;
-      private readonly Move CounterMove = ply > 0 ? info.GetCountermove(board.MoveStack[ply - 1].Move) : new();
+      private readonly Move CounterMove = ply > 0 ? info.GetCountermove(board.MoveStack[ply - 1].Move) : default;
       private int Index = 0;
       private readonly SearchInfo SearchInfo = info;
-      private readonly int Ply = ply;
 
       public bool NoisyOnly { get; set; } = noisyOnly;
       public Stage Stage { get; private set; } = Stage.HashMove;
-      public Move Move { get; private set; }
 
-      public bool Next()
+      public Move? Next()
       {
          switch (Stage)
          {
@@ -35,8 +33,7 @@
 
                   if (Board.IsPseudoLegal(HashMove))
                   {
-                     Move = HashMove;
-                     return true;
+                     return HashMove;
                   }
 
                   goto case Stage.GenNoisy;
@@ -53,13 +50,12 @@
                {
                   if (Index < MoveList.Count)
                   {
-                     Move = NextMove(MoveList, Index++);
-                     return true;
+                     return NextMove(MoveList, Index++);
                   }
 
                   if (NoisyOnly)
                   {
-                     return false;
+                     return null;
                   }
 
                   Stage++;
@@ -68,16 +64,14 @@
                }
             case Stage.Killers:
                {
-                  if (Index < 2)
+                  while (Index < 2)
                   {
-                     if (Board.IsPseudoLegal(SearchInfo.KillerMoves[Ply][Index]))
+                     if (Board.IsPseudoLegal(SearchInfo.KillerMoves[ply][Index]))
                      {
-                        Move = SearchInfo.KillerMoves[Ply][Index++];
-                        return true;
+                        return SearchInfo.KillerMoves[ply][Index++];
                      }
 
                      Index++;
-                     goto case Stage.Killers;
                   }
 
                   Stage++;
@@ -88,10 +82,9 @@
                   Stage++;
 
                   if (Board.IsPseudoLegal(CounterMove) && CounterMove != HashMove
-                     && CounterMove != SearchInfo.KillerMoves[Ply][0] && CounterMove != SearchInfo.KillerMoves[Ply][1])
+                     && CounterMove != SearchInfo.KillerMoves[ply][0] && CounterMove != SearchInfo.KillerMoves[ply][1])
                   {
-                     Move = CounterMove;
-                     return true;
+                     return CounterMove;
                   }
 
                   goto case Stage.GenQuiet;
@@ -100,7 +93,7 @@
                {
                   if (NoisyOnly)
                   {
-                     return false;
+                     return null;
                   }
 
                   MoveList.Clear();
@@ -112,22 +105,16 @@
                }
             case Stage.Quiet:
                {
-                  if (NoisyOnly)
+                  if (!NoisyOnly && Index < MoveList.Count)
                   {
-                     return false;
+                     return NextMove(MoveList, Index++);
                   }
 
-                  if (Index < MoveList.Count)
-                  {
-                     Move = NextMove(MoveList, Index++);
-                     return true;
-                  }
-
-                  return false;
+                  return null;
                }
             default:
                {
-                  return false;
+                  return null;
                }
          }
       }
@@ -156,7 +143,7 @@
          {
             Move move = moves[i];
 
-            if (move == HashMove || move == SearchInfo.KillerMoves[Ply][0] || move == SearchInfo.KillerMoves[Ply][1] || move == CounterMove)
+            if (move == HashMove || move == SearchInfo.KillerMoves[ply][0] || move == SearchInfo.KillerMoves[ply][1] || move == CounterMove)
             {
                moves.RemoveAt(i);
             }
