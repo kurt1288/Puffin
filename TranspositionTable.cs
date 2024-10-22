@@ -10,21 +10,18 @@ namespace Puffin
       Beta
    }
 
-   public struct TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
+   public readonly struct TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
    {
       public readonly ulong Hash { get; } = hash; // 8 bytes
-      public int Score { get; set; } = score; // 4 bytes
+      public readonly int Score { get; } = score; // 4 bytes
       public readonly ushort Move { get; } = move; // 2 bytes
       public readonly byte Depth { get; } = depth; // 1 byte
       public readonly HashFlag Flag { get; } = flag; // 1 byte
    }
 
-   public struct TranspositionTable
+   public struct TranspositionTable()
    {
       TTEntry[] Table = new TTEntry[32 * 1024 * 1024 / 16]; // Default to 32MB table size
-      ulong Used = 0;
-
-      public TranspositionTable() { }
 
       // Size in MB
       public void Resize(int size)
@@ -33,38 +30,41 @@ namespace Puffin
          // and then updates the memory pointer.
          Array.Resize(ref Table, size * 1024 * 1024 / 16);
          Array.Clear(Table);
-         Used = 0;
       }
 
-      public void Reset()
+      public readonly void Reset()
       {
          Array.Clear(Table);
-         Used = 0;
       }
 
-      public readonly TTEntry? GetEntry(ulong hash, int ply)
+      public readonly bool GetEntry(ulong hash, int ply, out TTEntry entry)
       {
-         TTEntry entry = Table[hash % (ulong)Table.Length];
+         ref TTEntry current = ref Table[hash % (ulong)Table.Length];
 
-         if (entry.Hash != hash)
+         if (current.Hash != hash)
          {
-            return null;
+            entry = default;
+            return false;
          }
+
+         int adjustedScore = current.Score;
 
          // Mate score adjustments
-         if (entry.Score > MATE - MAX_PLY)
+         if (adjustedScore > MATE - MAX_PLY)
          {
-            entry.Score -= ply;
+            adjustedScore -= ply;
          }
-         else if (entry.Score < -(MATE - MAX_PLY))
+         else if (adjustedScore < -(MATE - MAX_PLY))
          {
-            entry.Score += ply;
+            adjustedScore += ply;
          }
 
-         return entry;
+         entry = new(current.Hash, current.Depth, current.Move, current.Flag, adjustedScore);
+
+         return true;
       }
 
-      public void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
+      public readonly void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
       {
          // Mate score adjustments
          if (score > MATE - MAX_PLY)
@@ -76,18 +76,26 @@ namespace Puffin
             score -= ply;
          }
 
-         ref TTEntry entry = ref Table[hash % (ulong)Table.Length];
-         if (entry.Hash == 0)
-         {
-            Used++;
-         }
-
-         entry = new TTEntry(hash, depth, move, flag, score);
+         Table[hash % (ulong)Table.Length] = new TTEntry(hash, depth, move, flag, score);
       }
 
-      public readonly ulong GetUsed()
+      /// <summary>
+      /// Returns an estimate of the number of entries in the table
+      /// </summary>
+      /// <returns></returns>
+      public readonly int GetUsed()
       {
-         return 1000 * Used / (ulong)Table.Length;
+         int used = 0;
+
+         for (int i = 0; i < 1000; i++)
+         {
+            if (Table[i].Hash != 0)
+            {
+               used++;
+            }
+         }
+
+         return used;
       }
    }
 }

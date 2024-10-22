@@ -99,7 +99,7 @@ namespace Puffin
             {
                if (Thread.CurrentThread.Name == "Thread 0")
                {
-                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {ThreadManager.GetTotalNodes()} nps {Math.Round((double)((long)ThreadManager.GetTotalNodes() * 1000 / Math.Max(TimeManager.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {TimeManager.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
+                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {ThreadManager.GetTotalNodes()} nps {Math.Round((double)(ThreadManager.GetTotalNodes() / Math.Max(TimeManager.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {TimeManager.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
                }
             }
          }
@@ -137,18 +137,18 @@ namespace Puffin
             return Quiescence(alpha, beta, ply, isPVNode);
          }
 
-         TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
-         ushort ttMove = entry.HasValue ? entry.Value.Move : (ushort)0;
+         bool ttValid = TTable.GetEntry(Board.Hash, ply, out TTEntry entry);
+         ushort ttMove = ttValid ? entry.Move : (ushort)0;
 
          if (!isPVNode && !isRoot)
          {
-            if (entry.HasValue && entry.Value.Depth >= depth
-               && (entry.Value.Flag == HashFlag.Exact
-               || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
-               || entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha
+            if (ttValid && entry.Depth >= depth
+               && (entry.Flag == HashFlag.Exact
+               || entry.Flag == HashFlag.Beta && entry.Score >= beta
+               || entry.Flag == HashFlag.Alpha && entry.Score <= alpha
                ))
             {
-               return entry.Value.Score;
+               return entry.Score;
             }
          }
 
@@ -369,18 +369,18 @@ namespace Puffin
             return 0;
          }
 
-         TTEntry? entry = TTable.GetEntry(Board.Hash, ply);
-         ushort ttMove = entry.HasValue ? entry.Value.Move : (ushort)0;
+         bool ttValid = TTable.GetEntry(Board.Hash, ply, out TTEntry entry);
+         ushort ttMove = ttValid ? entry.Move : (ushort)0;
 
          if (!isPVNode)
          {
-            if (entry.HasValue
-               && (entry.Value.Flag == HashFlag.Exact
-               || entry.Value.Flag == HashFlag.Beta && entry.Value.Score >= beta
-               || entry.Value.Flag == HashFlag.Alpha && entry.Value.Score <= alpha
+            if (ttValid
+               && (entry.Flag == HashFlag.Exact
+               || entry.Flag == HashFlag.Beta && entry.Score >= beta
+               || entry.Flag == HashFlag.Alpha && entry.Score <= alpha
                ))
             {
-               return entry.Value.Score;
+               return entry.Score;
             }
          }
 
