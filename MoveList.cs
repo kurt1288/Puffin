@@ -8,10 +8,9 @@ namespace Puffin
 
       public int Count { get; private set; } = 0;
 
-      public Move this[int index]
+      public ref readonly Move this[int index]
       {
-         get => Moves[index].Move;
-         set => Moves[index] = (value, Moves[index].Score);
+         get => ref Moves[index].Move;
       }
 
       public void Shuffle()

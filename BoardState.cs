@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace Puffin
+﻿namespace Puffin
 {
    internal readonly struct BoardState(Square en_passant, ulong castling, Piece captured, int halfmoves, ulong hash, int phase)
    {
@@ -17,21 +15,21 @@ namespace Puffin
       private readonly BoardState[] Stack = new BoardState[1000]; // arbitrary max length
 
       public int Count { get; private set; } = 0;
-      public BoardState this[int index] => Stack[index];
+      public ref readonly BoardState this[int index] => ref Stack[index];
 
       public void Reset()
       {
          Count = 0;
       }
 
-      public void Add(BoardState state)
+      public void Add(Square en_passant, ulong castling, Piece captured, int halfmoves, ulong hash, int phase)
       {
-         Stack[Count++] = state;
+         Stack[Count++] = new(en_passant, castling, captured, halfmoves, hash, phase);
       }
 
-      public BoardState Pop()
+      public ref readonly BoardState Pop()
       {
-         return Stack[--Count];
+         return ref Stack[--Count];
       }
    }
 }

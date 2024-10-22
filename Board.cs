@@ -28,7 +28,7 @@ namespace Puffin
       {
          for (int i = 0; i < Squares.Length; i++)
          {
-            Squares[i].Reset();
+            Squares[i] = Piece.Null;
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
@@ -65,7 +65,7 @@ namespace Puffin
       {
          for (int i = 0; i < Squares.Length; i++)
          {
-            Squares[i].Reset();
+            Squares[i] = Piece.Null;
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
@@ -182,11 +182,7 @@ namespace Puffin
          int to = move.To;
          Piece piece = Squares[from];
 
-         History.Add(
-            new BoardState(
-               EnPassant, CastleSquares, Squares[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to],
-               Halfmoves, UniqueHash, Phase)
-         );
+         History.Add(EnPassant, CastleSquares, Squares[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to], Halfmoves, UniqueHash, Phase);
 
          if (EnPassant != Square.Null)
          {
@@ -338,11 +334,7 @@ namespace Puffin
 
       public void MakeNullMove()
       {
-         History.Add(
-            new BoardState(
-               EnPassant, CastleSquares, new Piece(), Halfmoves, Hash, Phase
-            )
-         );
+         History.Add(EnPassant, CastleSquares, Piece.Null, Halfmoves, Hash, Phase);
 
          if (EnPassant != Square.Null)
          {
@@ -361,7 +353,7 @@ namespace Puffin
 
       public void UndoMove(Move move)
       {
-         BoardState previousState = History.Pop();
+         ref readonly BoardState previousState = ref History.Pop();
 
          SideToMove ^= (Color)1;
          EnPassant = previousState.En_Passant;
@@ -422,7 +414,7 @@ namespace Puffin
 
       public void UnmakeNullMove()
       {
-         BoardState previousState = History.Pop();
+         ref readonly BoardState previousState = ref History.Pop();
 
          SideToMove ^= (Color)1;
          EnPassant = previousState.En_Passant;
@@ -452,7 +444,7 @@ namespace Puffin
       {
          ColorBB[(int)piece.Color].ResetBit(square);
          PieceBB[(int)piece.Type].ResetBit(square);
-         Squares[square] = new Piece();
+         Squares[square] = Piece.Null;
          Phase -= PHASE_VALUES[(int)piece.Type];
          Zobrist.UpdatePieces(ref UniqueHash, piece, square);
          MaterialScore[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];

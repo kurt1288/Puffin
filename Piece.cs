@@ -1,15 +1,9 @@
 ﻿namespace Puffin
 {
-   internal struct Piece
+   internal readonly struct Piece
    {
-      public PieceType Type { get; private set; }
-      public Color Color { get; private set; }
-
-      public Piece()
-      {
-         Type = PieceType.Null;
-         Color = Color.Null;
-      }
+      public PieceType Type { get; }
+      public Color Color { get; }
 
       public Piece(PieceType type, Color color)
       {
@@ -21,12 +15,6 @@
       {
          Type = FromChar(piece);
          Color = char.IsUpper(piece) ? Color.White : Color.Black;
-      }
-
-      public void Reset()
-      {
-         Type = PieceType.Null;
-         Color = Color.Null;
       }
 
       static PieceType FromChar(char piece)
@@ -42,5 +30,7 @@
             _ => throw new Exception($"Invalid piece: {piece}"),
          };
       }
+
+      public static Piece Null => new(PieceType.Null, Color.Null);
    }
 }
