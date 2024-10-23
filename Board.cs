@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static Puffin.Constants;
-using static Puffin.Attacks;
+using static Puffin.Attacks.Attacks;
 
 namespace Puffin
 {

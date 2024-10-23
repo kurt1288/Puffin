@@ -13,7 +13,7 @@ namespace Puffin
       public Engine()
       {
          // Initializes the Attacks static class
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Attacks).TypeHandle);
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Attacks.Attacks).TypeHandle);
 
          // Initializes the Constants static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Constants).TypeHandle);

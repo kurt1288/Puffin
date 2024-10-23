@@ -13,7 +13,7 @@ using System.Runtime;
 using System.Text;
 using System.Text.RegularExpressions;
 using static Puffin.Constants;
-using static Puffin.Attacks;
+using static Puffin.Attacks.Attacks;
 
 namespace Puffin.Tuner
 {

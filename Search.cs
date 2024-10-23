@@ -1,4 +1,5 @@
 ﻿using static Puffin.Constants;
+using static Puffin.Attacks.Attacks;
 
 namespace Puffin
 {
@@ -528,7 +529,7 @@ namespace Puffin
                   break;
                }
 
-               attackers |= Attacks.GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value;
+               attackers |= GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value;
             }
             else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Knight].Value) != 0)
             {
@@ -548,7 +549,7 @@ namespace Puffin
                   break;
                }
 
-               attackers |= Attacks.GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value;
+               attackers |= GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value;
             }
             else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Rook].Value) != 0)
             {
@@ -559,7 +560,7 @@ namespace Puffin
                   break;
                }
 
-               attackers |= Attacks.GetRookAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Rook] | Board.PieceBB[(int)PieceType.Queen]).Value;
+               attackers |= GetRookAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Rook] | Board.PieceBB[(int)PieceType.Queen]).Value;
             }
             else if ((bb = stmAttackers & Board.PieceBB[(int)PieceType.Queen].Value) != 0)
             {
@@ -570,8 +571,8 @@ namespace Puffin
                   break;
                }
 
-               attackers |= (Attacks.GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value)
-                  | (Attacks.GetRookAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Rook] | Board.PieceBB[(int)PieceType.Queen]).Value);
+               attackers |= (GetBishopAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Bishop] | Board.PieceBB[(int)PieceType.Queen]).Value)
+                  | (GetRookAttacks(to, occupied) & (Board.PieceBB[(int)PieceType.Rook] | Board.PieceBB[(int)PieceType.Queen]).Value);
             }
             else
             {

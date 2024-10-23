@@ -1,5 +1,5 @@
 ﻿using static Puffin.Constants;
-using static Puffin.Attacks;
+using static Puffin.Attacks.Attacks;
 using System.Diagnostics;
 
 namespace Puffin
