@@ -46,6 +46,7 @@ namespace Puffin.Tuner
          public double[] bishopPair = new double[2];
          public double[] pawnPushThreats = new double[2];
          public double[] pawnAttacks = new double[2];
+         public double[] freeAdvancePawn = new double[2];
          public double score = 0;
 
          public Trace()
@@ -161,7 +162,7 @@ namespace Puffin.Tuner
       }
 
       // readonly Engine Engine;
-      private readonly ParameterWeight[] Parameters = new ParameterWeight[506];
+      private readonly ParameterWeight[] Parameters = new ParameterWeight[507];
 
       public Tuner()
       {
@@ -180,6 +181,7 @@ namespace Puffin.Tuner
          Evaluation.BishopPair = new();
          Evaluation.PawnPushThreats = new();
          Evaluation.PawnAttacks = new();
+         Evaluation.FreeAdvancePawn = new();
 
          for (int i = 0; i < 384; i++)
          {
@@ -441,6 +443,7 @@ namespace Puffin.Tuner
          AddSingleParameter(Evaluation.BishopPair, ref index);
          AddSingleParameter(Evaluation.PawnPushThreats, ref index);
          AddSingleParameter(Evaluation.PawnAttacks, ref index);
+         AddSingleParameter(Evaluation.FreeAdvancePawn, ref index);
       }
 
       private void AddSingleParameter(Score value, ref int index)
@@ -601,17 +604,31 @@ namespace Puffin.Tuner
          {
             int square = pawns.GetLSB();
             pawns.ClearLSB();
+            int rank = (color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1;
 
             // Passed pawns
             if ((PassedPawnMasks[(int)color][square] & (board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1]).Value) == 0)
             {
-               score += Evaluation.PassedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1];
+               score += Evaluation.PassedPawn[rank];
+               trace.passedPawn[rank][(int)color]++;
+
+               if (rank < 4)
+               {
+                  continue;
+               }
+
                score += TaxiDistance[square][board.GetSquareByPiece(PieceType.King, color)] * Evaluation.FriendlyKingPawnDistance;
                score += TaxiDistance[square][board.GetSquareByPiece(PieceType.King, color ^ (Color)1)] * Evaluation.EnemyKingPawnDistance;
 
-               trace.passedPawn[(color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1][(int)color]++;
                trace.friendlyKingPawnDistance[(int)color] += TaxiDistance[square][board.GetSquareByPiece(PieceType.King, color)];
                trace.enemyKingPawnDistance[(int)color] += TaxiDistance[square][board.GetSquareByPiece(PieceType.King, color ^ (Color)1)];
+
+               // Free to advance (no enemy non-pawn pieces ahead)
+               if ((ForwardMask[(int)color][square] & board.ColorBB[(int)color ^ 1].Value) == 0)
+               {
+                  score += Evaluation.FreeAdvancePawn;
+                  trace.freeAdvancePawn[(int)color]++;
+               }
             }
 
             // Isolated pawn
@@ -846,6 +863,7 @@ namespace Puffin.Tuner
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.bishopPair);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.pawnPushThreats);
          AddSingleCoefficientAndEntry(ref entryCoefficients, trace.pawnAttacks);
+         AddSingleCoefficientAndEntry(ref entryCoefficients, trace.freeAdvancePawn);
 
          return entryCoefficients;
       }
@@ -937,6 +955,7 @@ namespace Puffin.Tuner
          PrintSingle("bishop pair", ref index, sw);
          PrintSingle("pawn push threats", ref index, sw);
          PrintSingle("pawn attacks", ref index, sw);
+         PrintSingle("free advance pawn", ref index, sw);
       }
 
       private void PrintSingle(string name, ref int index, StreamWriter writer)

@@ -17,6 +17,7 @@ namespace Puffin
       public readonly static ulong[][] BetweenBB = new ulong[64][];
       public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
       public readonly static ulong[] IsolatedPawnMasks = new ulong[8];
+      public readonly static ulong[][] ForwardMask = new ulong[2][];
       public readonly static int[][] TaxiDistance = new int[64][];
 
       public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
@@ -59,6 +60,8 @@ namespace Puffin
          ulong notFileH = ~FILE_MASKS[(int)File.H];
          PassedPawnMasks[(int)Color.White] = new ulong[64];
          PassedPawnMasks[(int)Color.Black] = new ulong[64];
+         ForwardMask[(int)Color.White] = new ulong[64];
+         ForwardMask[(int)Color.Black] = new ulong[64];
 
          for (int depth = 0; depth < MAX_PLY; depth++)
          {
@@ -82,16 +85,21 @@ namespace Puffin
             PassedPawnMasks[(int)Color.White][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
             PassedPawnMasks[(int)Color.Black][i] = FILE_MASKS[i & 7] | ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
 
+            ForwardMask[(int)Color.White][i] = PassedPawnMasks[(int)Color.White][i] & FILE_MASKS[i & 7];
+            ForwardMask[(int)Color.Black][i] = PassedPawnMasks[(int)Color.Black][i] & FILE_MASKS[i & 7];
+
             IsolatedPawnMasks[i & 7] = ((FILE_MASKS[i & 7] & notFileH) << 1) | ((FILE_MASKS[i & 7] & notFileA) >> 1);
 
             for (int j = 7 - (i >> 3); j >= 0; j--)
             {
                PassedPawnMasks[(int)Color.White][i] &= ~RANK_MASKS[j];
+               ForwardMask[(int)Color.White][i] &= ~RANK_MASKS[j];
             }
 
             for (int j = 7 - (i >> 3); j <= 7; j++)
             {
                PassedPawnMasks[(int)Color.Black][i] &= ~RANK_MASKS[j];
+               ForwardMask[(int)Color.Black][i] &= ~RANK_MASKS[j];
             }
 
             for (int j = 0; j < 64; j++)
