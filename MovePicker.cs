@@ -41,7 +41,7 @@
             case Stage.GenNoisy:
                {
                   MoveGen.GenerateNoisy(MoveList, Board);
-                  ScoreMoves(MoveList);
+                  ScoreNoisyMoves(MoveList);
                   Stage++;
                   Index = 0;
                   goto case Stage.Noisy;
@@ -98,7 +98,7 @@
 
                   MoveList.Clear();
                   MoveGen.GenerateQuiet(MoveList, Board);
-                  ScoreMoves(MoveList);
+                  ScoreQuietMoves(MoveList);
                   Stage++;
                   Index = 0;
                   goto case Stage.Quiet;
@@ -137,7 +137,29 @@
          return list[index];
       }
 
-      private void ScoreMoves(MoveList moves)
+      private void ScoreNoisyMoves(MoveList moves)
+      {
+         for (int i = moves.Count - 1; i >= 0; i--)
+         {
+            Move move = moves[i];
+
+            if (move == HashMove)
+            {
+               moves.RemoveAt(i);
+               continue;
+            }
+
+            int baseScore = move.HasType(MoveType.Promotion)
+               ? move.Flag == MoveFlag.QueenPromotion || move.Flag == MoveFlag.QueenPromotionCapture ? 250000 : -250000
+               : 150000;
+            PieceType captured = move.Flag == MoveFlag.EPCapture ? PieceType.Pawn : Board.Squares[move.To].Type;
+            Piece moving = Board.Squares[move.From];
+
+            moves.SetScore(i, baseScore + (50 * Constants.SEE_VALUES[(int)captured] - Constants.SEE_VALUES[(int)moving.Type]));
+         }
+      }
+
+      private void ScoreQuietMoves(MoveList moves)
       {
          for (int i = moves.Count - 1; i >= 0; i--)
          {
@@ -146,28 +168,14 @@
             if (move == HashMove || move == SearchInfo.KillerMoves[ply][0] || move == SearchInfo.KillerMoves[ply][1] || move == CounterMove)
             {
                moves.RemoveAt(i);
+               continue;
             }
-            else if (move.HasType(MoveType.Capture))
-            {
-               Piece captured = Board.Squares[move.To];
 
-               if (move.Flag == MoveFlag.EPCapture)
-               {
-                  captured = new Piece(PieceType.Pawn, Color.White); // color doesn't matter here
-               }
-
-               Piece moving = Board.Squares[move.From];
-
-               moves.SetScore(i, 150000 + (50 * Evaluation.PieceValues[(int)captured.Type].Mg - Evaluation.PieceValues[(int)moving.Type].Mg));
-            }
-            else
-            {
-               moves.SetScore(i,
-                  SearchInfo.GetHistory(Board.Squares[move.From].Color, move)
-                  + SearchInfo.GetContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 1)
-                  + SearchInfo.GetContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 2)
-               );
-            }
+            moves.SetScore(i,
+               SearchInfo.GetHistory(Board.Squares[move.From].Color, move)
+               + SearchInfo.GetContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 1)
+               + SearchInfo.GetContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 2)
+            );
          }
       }
    }
