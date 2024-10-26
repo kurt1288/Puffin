@@ -1,7 +1,9 @@
-﻿using Puffin;
+﻿using Microsoft.Extensions.Configuration;
+using Puffin;
 using Puffin.Tuner;
 using static Puffin.Constants;
 using System.Runtime.Intrinsics.X86;
+using static Puffin.TunableHelpers;
 
 const string Name = "Puffin";
 const string Version = "4.0";
@@ -25,6 +27,10 @@ if (!Bmi2.X64.IsSupported)
    Environment.Exit(100);
 }
 #endif
+
+IConfiguration config = new ConfigurationBuilder()
+   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+   .Build();
 
 Console.WriteLine($"{Name} {Version}");
 
@@ -77,19 +83,13 @@ while (true)
             Console.WriteLine($"option name Hash type spin default 32 min 1 max 512");
             Console.WriteLine($"option name Threads type spin default 1 min 1 max 256");
 
-            // for tuning
-            //Console.WriteLine($"option name ASP_Depth type spin default 4 min 0 max 8");
-            //Console.WriteLine($"option name ASP_Margin type spin default 10 min 0 max 20");
-            //Console.WriteLine($"option name NMP_Depth type spin default 3 min 0 max 10");
-            //Console.WriteLine($"option name RFP_Depth type spin default 10 min 0 max 20");
-            //Console.WriteLine($"option name RFP_Margin type spin default 70 min 0 max 500");
-            //Console.WriteLine($"option name LMR_Depth type spin default 2 min 0 max 6");
-            //Console.WriteLine($"option name LMR_MoveLimit type spin default 3 min 0 max 10");
-            //Console.WriteLine($"option name FP_Depth type spin default 7 min 0 max 10");
-            //Console.WriteLine($"option name FP_Margin type spin default 80 min 0 max 500");
-            //Console.WriteLine($"option name LMP_Depth type spin default 8 min 0 max 15");
-            //Console.WriteLine($"option name LMP_Margin type spin default 5 min 0 max 15");
-            //Console.WriteLine($"option name IIR_Depth type spin default 5 min 0 max 10");
+            if (config.GetValue<bool>("EnableTuningOptions"))
+            {
+               foreach (TuningParameterInfo param in GetTuningParametersAsOptions())
+               {
+                  Console.WriteLine($"option name {param.Name} type spin default {param.Current} min {param.Min} max {param.Max}");
+               }
+            }
 
             Console.WriteLine("uciok");
             break;
@@ -165,6 +165,11 @@ while (true)
       case "evaluate":
          {
             Console.WriteLine(engine.Evaluate());
+            break;
+         }
+      case "wf_json":
+         {
+            Console.WriteLine(ExportWeatherFactoryConfig());
             break;
          }
       default:

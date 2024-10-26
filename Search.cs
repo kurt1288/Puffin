@@ -12,18 +12,48 @@ namespace Puffin
 
       public SearchInfo ThreadInfo { get; } = info;
 
-      internal static int ASP_Depth = 4;
-      internal static int ASP_Margin = 10;
-      internal static int NMP_Depth = 3;
-      internal static int RFP_Depth = 10;
-      internal static int RFP_Margin = 70;
-      internal static int LMR_Depth = 2;
-      internal static int LMR_MoveLimit = 3;
-      internal static int FP_Depth = 7;
-      internal static int FP_Margin = 80;
-      internal static int LMP_Depth = 8;
-      internal static int LMP_Margin = 5;
-      internal static int IIR_Depth = 5;
+      // Aspiration Windows
+      [Tunable(min: 1, max: 10, step: 1)]
+      public static int ASP_Depth { get; set; } = 4;
+
+      [Tunable(min: 5, max: 20, step: 1)]
+      public static int ASP_Margin { get; set; } = 10;
+
+      // Null Move Pruning
+      [Tunable(min: 1, max: 8, step: 1)]
+      public static int NMP_Depth { get; set; } = 3;
+
+      // Reverse Futility Pruning
+      [Tunable(min: 1, max: 14, step: 1)]
+      public static int RFP_Depth { get; set; } = 10;
+
+      [Tunable(min: 1, max: 300, step: 5)]
+      public static int RFP_Margin { get; set; } = 70;
+
+      // Late Move Reduction
+      [Tunable(min: 1, max: 10, step: 1)]
+      public static int LMR_Depth { get; set; } = 2;
+
+      [Tunable(min: 1, max: 15, step: 1)]
+      public static int LMR_MoveLimit { get; set; } = 3;
+
+      // Futility Pruning
+      [Tunable(min: 1, max: 10, step: 1)]
+      public static int FP_Depth { get; set; } = 7;
+
+      [Tunable(min: 1, max: 300, step: 5)]
+      public static int FP_Margin { get; set; } = 80;
+
+      // Late Move Pruning
+      [Tunable(min: 1, max: 15, step: 1)]
+      public static int LMP_Depth { get; set; } = 8;
+
+      [Tunable(min: 1, max: 10, step: 1)]
+      public static int LMP_Margin { get; set; } = 5;
+
+      // Internal Iterative Reduction
+      [Tunable(min: 1, max: 10, step: 1)]
+      public static int IIR_Depth { get; set; } = 5;
 
       static string FormatScore(int score)
       {
