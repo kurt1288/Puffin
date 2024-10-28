@@ -226,9 +226,9 @@ namespace Puffin
                   SearchManager = new(value, ref TTable);
                   break;
                }
-            case "ASP_Depth":
+            case "ASP_Min_Depth":
                {
-                  Search.ASP_Depth = value;
+                  Search.ASP_Min_Depth = value;
                   break;
                }
             case "ASP_Margin":
@@ -236,14 +236,14 @@ namespace Puffin
                   Search.ASP_Margin = value;
                   break;
                }
-            case "NMP_Depth":
+            case "NMP_Min_Depth":
                {
-                  Search.NMP_Depth = value;
+                  Search.NMP_Min_Depth = value;
                   break;
                }
-            case "RFP_Depth":
+            case "RFP_Max_Depth":
                {
-                  Search.RFP_Depth = value;
+                  Search.RFP_Max_Depth = value;
                   break;
                }
             case "RFP_Margin":
@@ -251,19 +251,19 @@ namespace Puffin
                   Search.RFP_Margin = value;
                   break;
                }
-            case "LMR_Depth":
+            case "LMR_Min_Depth":
                {
-                  Search.LMR_Depth = value;
+                  Search.LMR_Min_Depth = value;
                   break;
                }
-            case "LMR_MoveLimit":
+            case "LMR_Min_MoveLimit":
                {
-                  Search.LMR_MoveLimit = value;
+                  Search.LMR_Min_MoveLimit = value;
                   break;
                }
-            case "FP_Depth":
+            case "FP_Max_Depth":
                {
-                  Search.FP_Depth = value;
+                  Search.FP_Max_Depth = value;
                   break;
                }
             case "FP_Margin":
@@ -271,19 +271,31 @@ namespace Puffin
                   Search.FP_Margin = value;
                   break;
                }
-            case "LMP_Depth":
+            case "LMP_Max_Depth":
                {
-                  Search.LMP_Depth = value;
+                  Search.LMP_Max_Depth = value;
                   break;
                }
-            case "LMP_Margin":
+            case "LMP_Min_Margin":
                {
-                  Search.LMP_Margin = value;
+                  Search.LMP_Min_Margin = value;
                   break;
                }
-            case "IIR_Depth":
+            case "IIR_Min_Depth":
                {
-                  Search.IIR_Depth = value;
+                  Search.IIR_Min_Depth = value;
+                  break;
+               }
+            case "LMR_Reduction_Base":
+               {
+                  Search.LMR_Reduction_Base = value / 100;
+                  GenerateLMReductionTable();
+                  break;
+               }
+            case "LMR_Reduction_Multiplier":
+               {
+                  Search.LMR_Reduction_Multiplier = value / 100;
+                  GenerateLMReductionTable();
                   break;
                }
             default:

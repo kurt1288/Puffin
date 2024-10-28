@@ -10,9 +10,6 @@ namespace Puffin
       public const int INFINITY = 30000;
       public const int MATE = 20000;
 
-      public const double LMR_Reduction_Base = 0.85;
-      public const double LMR_Reduction_Multiplier = 0.3;
-
       public readonly static ulong[] SquareBB = new ulong[64];
       public readonly static ulong[][] BetweenBB = new ulong[64][];
       public readonly static ulong[][] PassedPawnMasks = new ulong[2][];
@@ -63,15 +60,7 @@ namespace Puffin
          ForwardMask[(int)Color.White] = new ulong[64];
          ForwardMask[(int)Color.Black] = new ulong[64];
 
-         for (int depth = 0; depth < MAX_PLY; depth++)
-         {
-            LMR_Reductions[depth] = new int[218];
-
-            for (int moves = 0; moves < 218; moves++)
-            {
-               LMR_Reductions[depth][moves] = (int)(LMR_Reduction_Base + Math.Log(depth) * Math.Log(moves) * LMR_Reduction_Multiplier);
-            }
-         }
+         GenerateLMReductionTable();
 
          for (int i = 0; i < 64; i++)
          {
@@ -115,6 +104,19 @@ namespace Puffin
 
                BetweenBB[i][j] = (ulong)(line & between);
                TaxiDistance[i][j] = Math.Abs((j >> 3) - (i >> 3)) + Math.Abs((j & 7) - (i & 7));
+            }
+         }
+      }
+
+      public static void GenerateLMReductionTable()
+      {
+         for (int depth = 0; depth < MAX_PLY; depth++)
+         {
+            LMR_Reductions[depth] = new int[218];
+
+            for (int moves = 0; moves < 218; moves++)
+            {
+               LMR_Reductions[depth][moves] = (int)(Search.LMR_Reduction_Base + Math.Log(depth) * Math.Log(moves) * Search.LMR_Reduction_Multiplier);
             }
          }
       }

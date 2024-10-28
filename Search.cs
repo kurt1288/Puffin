@@ -12,48 +12,35 @@ namespace Puffin
 
       public SearchInfo ThreadInfo { get; } = info;
 
-      // Aspiration Windows
-      [Tunable(min: 1, max: 10, step: 1)]
-      public static int ASP_Depth { get; set; } = 4;
-
-      [Tunable(min: 5, max: 20, step: 1)]
+      #region SPSA Tunable Parameters
+      [Tunable(min: 5, max: 20, step: 4)]
       public static int ASP_Margin { get; set; } = 10;
 
-      // Null Move Pruning
-      [Tunable(min: 1, max: 8, step: 1)]
-      public static int NMP_Depth { get; set; } = 3;
-
-      // Reverse Futility Pruning
-      [Tunable(min: 1, max: 14, step: 1)]
-      public static int RFP_Depth { get; set; } = 10;
-
-      [Tunable(min: 1, max: 300, step: 5)]
+      [Tunable(min: 40, max: 200, step: 25)]
       public static int RFP_Margin { get; set; } = 70;
 
-      // Late Move Reduction
-      [Tunable(min: 1, max: 10, step: 1)]
-      public static int LMR_Depth { get; set; } = 2;
-
-      [Tunable(min: 1, max: 15, step: 1)]
-      public static int LMR_MoveLimit { get; set; } = 3;
-
-      // Futility Pruning
-      [Tunable(min: 1, max: 10, step: 1)]
-      public static int FP_Depth { get; set; } = 7;
-
-      [Tunable(min: 1, max: 300, step: 5)]
+      [Tunable(min: 50, max: 200, step: 25)]
       public static int FP_Margin { get; set; } = 80;
 
-      // Late Move Pruning
-      [Tunable(min: 1, max: 15, step: 1)]
-      public static int LMP_Depth { get; set; } = 8;
+      [Tunable(min: 0.1, max: 2.0, step: 0.5)]
+      public static double LMR_Reduction_Base { get; set; } = 0.85;
 
-      [Tunable(min: 1, max: 10, step: 1)]
-      public static int LMP_Margin { get; set; } = 5;
+      [Tunable(min: 0.1, max: 1.0, step: 0.5)]
+      public static double LMR_Reduction_Multiplier { get; set; } = 0.3;
 
-      // Internal Iterative Reduction
-      [Tunable(min: 1, max: 10, step: 1)]
-      public static int IIR_Depth { get; set; } = 5;
+      #endregion
+
+      #region Non-SPSA Parameters (Depth and Move Thresholds)
+      public static int ASP_Min_Depth { get; set; } = 4;
+      public static int NMP_Min_Depth { get; set; } = 3;
+      public static int RFP_Max_Depth { get; set; } = 10;
+      public static int LMR_Min_Depth { get; set; } = 2;
+      public static int LMR_Min_MoveLimit { get; set; } = 3;
+      public static int FP_Max_Depth { get; set; } = 7;
+      public static int LMP_Max_Depth { get; set; } = 8;
+      public static int LMP_Min_Margin { get; set; } = 5;
+      public static int IIR_Min_Depth { get; set; } = 5;
+      #endregion
 
       static string FormatScore(int score)
       {
@@ -92,7 +79,7 @@ namespace Puffin
             int margin = ASP_Margin;
 
             // Use aspiration windows at higher depths
-            if (i >= ASP_Depth)
+            if (i >= ASP_Min_Depth)
             {
                alpha = Math.Max(score - margin, -INFINITY);
                beta = Math.Min(score + margin, INFINITY);
@@ -189,14 +176,14 @@ namespace Puffin
          if (!isPVNode && !inCheck)
          {
             // Reverse futility pruning
-            if (depth <= RFP_Depth && staticEval - RFP_Margin * depth >= beta)
+            if (depth <= RFP_Max_Depth && staticEval - RFP_Margin * depth >= beta)
             {
                return (staticEval + beta) / 2;
             }
 
             // Null move pruning
             // The last condition prevents NMP if the STM only has a king and pawns left
-            if (doNull && depth >= NMP_Depth && staticEval >= beta
+            if (doNull && depth >= NMP_Min_Depth && staticEval >= beta
                && (Board.ColorBB[(int)Board.SideToMove].Value
                & (Board.PieceBB[(int)PieceType.Knight].Value | Board.PieceBB[(int)PieceType.Bishop].Value
                | Board.PieceBB[(int)PieceType.Rook].Value | Board.PieceBB[(int)PieceType.Queen].Value)) != 0)
@@ -221,7 +208,7 @@ namespace Puffin
          int quietMovesCount = 0;
 
          // Internal iterative reduction
-         if (depth >= IIR_Depth && ttMove == 0)
+         if (depth >= IIR_Min_Depth && ttMove == 0)
          {
             depth--;
          }
@@ -240,13 +227,13 @@ namespace Puffin
             if (isQuiet)
             {
                // Late move pruning
-               if (depth <= LMP_Depth && legalMoves > LMP_Margin + depth * depth)
+               if (depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * depth)
                {
                   moves.NoisyOnly = true;
                }
 
                // Futility pruning
-               if (depth <= FP_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
+               if (depth <= FP_Max_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
                   moves.NoisyOnly = true;
                }
@@ -269,7 +256,7 @@ namespace Puffin
 
             int E = inCheck ? 1 : 0;
 
-            if (depth > LMR_Depth && legalMoves > LMR_MoveLimit && moves.Stage == Stage.Quiet)
+            if (depth > LMR_Min_Depth && legalMoves > LMR_Min_MoveLimit && moves.Stage == Stage.Quiet)
             {
                int R = LMR_Reductions[depth][legalMoves];
 
