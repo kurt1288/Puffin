@@ -1,4 +1,6 @@
-﻿namespace Puffin
+﻿using System.Diagnostics;
+
+namespace Puffin
 {
    enum Stage
    {
@@ -9,6 +11,8 @@
       Counter,
       GenQuiet,
       Quiet,
+      BadNoisyInit,
+      BadNoisy,
    }
 
    internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly)
@@ -18,6 +22,8 @@
       private readonly Move HashMove = hashMove;
       private readonly Move CounterMove = ply > 0 ? info.GetCountermove(board.MoveStack[ply - 1].Move) : default;
       private int Index = 0;
+      private int BadNoisyIndex = 0;
+      private int Killer = 0;
       private readonly SearchInfo SearchInfo = info;
 
       public bool NoisyOnly { get; set; } = noisyOnly;
@@ -43,14 +49,22 @@
                   MoveGen.GenerateNoisy(MoveList, Board);
                   ScoreNoisyMoves(MoveList);
                   Stage++;
-                  Index = 0;
                   goto case Stage.Noisy;
                }
             case Stage.Noisy:
                {
-                  if (Index < MoveList.Count)
+                  while (Index < MoveList.Count)
                   {
-                     return NextMove(MoveList, Index++);
+                     Move move = NextMove(MoveList, Index++);
+
+                     if (!Board.SEE_GE(move, 0))
+                     {
+                        MoveList.Add(move, MoveList.GetScore(Index - 1), BadNoisyIndex++);
+                     }
+                     else
+                     {
+                        return move;
+                     }
                   }
 
                   if (NoisyOnly)
@@ -59,19 +73,18 @@
                   }
 
                   Stage++;
-                  Index = 0;
                   goto case Stage.Killers;
                }
             case Stage.Killers:
                {
-                  while (Index < 2)
+                  while (Killer < 2)
                   {
-                     if (Board.IsPseudoLegal(SearchInfo.KillerMoves[ply][Index]))
+                     if (Board.IsPseudoLegal(SearchInfo.KillerMoves[ply][Killer]))
                      {
-                        return SearchInfo.KillerMoves[ply][Index++];
+                        return SearchInfo.KillerMoves[ply][Killer++];
                      }
 
-                     Index++;
+                     Killer++;
                   }
 
                   Stage++;
@@ -91,16 +104,13 @@
                }
             case Stage.GenQuiet:
                {
-                  if (NoisyOnly)
+                  if (!NoisyOnly)
                   {
-                     return null;
+                     MoveGen.GenerateQuiet(MoveList, Board);
+                     ScoreQuietMoves(MoveList);
                   }
-
-                  MoveList.Clear();
-                  MoveGen.GenerateQuiet(MoveList, Board);
-                  ScoreQuietMoves(MoveList);
+                  
                   Stage++;
-                  Index = 0;
                   goto case Stage.Quiet;
                }
             case Stage.Quiet:
@@ -108,6 +118,23 @@
                   if (!NoisyOnly && Index < MoveList.Count)
                   {
                      return NextMove(MoveList, Index++);
+                  }
+
+                  Stage++;
+                  goto case Stage.BadNoisyInit;
+               }
+            case Stage.BadNoisyInit:
+               {
+                  Index = 0;
+                  Stage++;
+                  goto case Stage.BadNoisy;
+               }
+            case Stage.BadNoisy:
+               {
+                  if (Index < BadNoisyIndex)
+                  {
+                     Debug.Assert(MoveList[Index].Flag != MoveFlag.Quiet);
+                     return MoveList[Index++];
                   }
 
                   return null;

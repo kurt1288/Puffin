@@ -25,6 +25,7 @@ namespace Puffin
       public void SetScore(int index, int score) => Moves[index].Score = score;
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public void Add(Move move) => Moves[Count++] = (move, 0);
+      public void Add(Move move, int score, int index) => Moves[index] = (move, score);
 
       public void RemoveAt(int index)
       {

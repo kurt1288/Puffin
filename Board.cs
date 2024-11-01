@@ -764,6 +764,114 @@ namespace Puffin
          return (moves.Value & SquareBB[move.To]) != 0;
       }
 
+      /// <summary>
+      /// Static Exchange Evaluation Greater or Equal. Is <paramref name="move"/> better than <paramref name="threshold"/>?
+      /// </summary>
+      public bool SEE_GE(Move move, int threshold)
+      {
+         if (move.IsCastle() || move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.EPCapture)
+         {
+            return threshold <= 0;
+         }
+
+         int from = move.From;
+         int to = move.To;
+
+         int swap = SEE_VALUES[(int)Squares[to].Type] - threshold;
+         if (swap < 0)
+         {
+            return false;
+         }
+
+         swap = SEE_VALUES[(int)Squares[from].Type] - swap;
+         if (swap <= 0)
+         {
+            return true;
+         }
+
+         ulong occupied = ((ColorBB[(int)Color.White] | ColorBB[(int)Color.Black]).Value ^ SquareBB[from]) | SquareBB[to];
+
+         ulong attackers = AttackersTo(to, occupied);
+         int stm = (int)SideToMove;
+         int res = 1;
+         ulong stmAttackers, bb;
+
+         while (true)
+         {
+            stm ^= 1;
+            attackers &= occupied;
+
+            stmAttackers = attackers & ColorBB[stm].Value;
+            if (stmAttackers == 0)
+            {
+               break;
+            }
+
+            res ^= 1;
+
+            if ((bb = stmAttackers & PieceBB[(int)PieceType.Pawn].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Pawn] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= GetBishopAttacks(to, occupied) & (PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Knight].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Knight] - swap) < res)
+               {
+                  break;
+               }
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Bishop].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Bishop] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= GetBishopAttacks(to, occupied) & (PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Rook].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Rook] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= GetRookAttacks(to, occupied) & (PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Queen].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Queen] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= (GetBishopAttacks(to, occupied) & (PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Queen]).Value)
+                  | (GetRookAttacks(to, occupied) & (PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]).Value);
+            }
+            else
+            {
+               return ((attackers & ~ColorBB[stm].Value) != 0) ? (res ^ 1) != 0 : res != 0;
+            }
+         }
+
+         return res != 0;
+      }
+
       private int VerifyPhase()
       {
          int phase = 0;
