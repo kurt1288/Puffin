@@ -1,5 +1,4 @@
 ﻿using static Puffin.Constants;
-using static Puffin.Attacks.Attacks;
 
 namespace Puffin
 {
@@ -23,10 +22,14 @@ namespace Puffin
       public static int FP_Margin { get; set; } = 80;
 
       [Tunable(min: 0.1, max: 2.0, step: 0.5)]
-      public static double LMR_Reduction_Base { get; set; } = 0.85;
+      public static double LMR_Quiet_Reduction_Base { get; set; } = 1.6;
+
+      public static double LMR_Noisy_Reduction_Base { get; set; } = 0.3;
 
       [Tunable(min: 0.1, max: 1.0, step: 0.5)]
-      public static double LMR_Reduction_Multiplier { get; set; } = 0.3;
+      public static double LMR_Quiet_Reduction_Multiplier { get; set; } = 0.4;
+
+      public static double LMR_Noisy_Reduction_Multiplier { get; set; } = 0.3;
 
       public static int SEE_Noisy_Threshold { get; set; } = -90;
 
@@ -260,34 +263,35 @@ namespace Puffin
             }
 
             int E = inCheck ? 1 : 0;
+            int newDepth = depth - 1 + E;
+            bool doLMR = depth > LMR_Min_Depth && legalMoves > LMR_Min_MoveLimit;
 
-            if (depth > LMR_Min_Depth && legalMoves > LMR_Min_MoveLimit && moves.Stage == Stage.Quiet)
+            if (doLMR)
             {
-               int R = LMR_Reductions[depth][legalMoves];
+               int R = LMR_Reductions[isQuiet ? 0 : 1][depth][legalMoves];
 
-               if (!isPVNode)
+               if (isPVNode)
                {
-                  R += 1;
+                  R--;
                }
 
-               if (Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1))
+               if (Board.InCheck)
                {
-                  R -= 1;
+                  R--;
                }
 
-               int reduction = Math.Clamp(depth - 1 + E - R, 1, depth - 1 + E + 1);
-
-               // Moves that do not beat the current best value (alpha) are cut-off. Moves that do will be researched below
-               if (-NegaScout(-alpha - 1, -alpha, reduction, ply + 1, true) <= alpha)
-               {
-                  Board.UndoMove(move);
-                  continue;
-               }
+               newDepth = Math.Clamp(newDepth - R, 1, newDepth);
             }
 
             // First move of leftmost nodes get searched with a full window (because b = beta)
             // Subsequent moves get searched with a null window (b = alpha + 1)
-            int score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1, true);
+            int score = -NegaScout(-b, -alpha, newDepth, ply + 1, true);
+
+            // If reduced search failed high, retry with normal depth
+            if (doLMR && score > alpha)
+            {
+               score = -NegaScout(-b, -alpha, depth - 1 + E, ply + 1, true);
+            }
 
             // After the first legal move, if the intial search (above) fails high or low, research with the full window
             if (score > alpha && score < beta && legalMoves > 1)

@@ -17,7 +17,7 @@ namespace Puffin
       public readonly static ulong[][] ForwardMask = new ulong[2][];
       public readonly static int[][] TaxiDistance = new int[64][];
 
-      public readonly static int[][] LMR_Reductions = new int[MAX_PLY][];
+      public readonly static int[][][] LMR_Reductions = new int[2][][];
 
       public readonly static int[] SEE_VALUES = [100, 325, 350, 500, 1000, 0, 0];
       public readonly static ImmutableArray<int> PHASE_VALUES = [0, 1, 1, 2, 4, 0]; // Pawns do not contribute to the phase value
@@ -110,13 +110,21 @@ namespace Puffin
 
       public static void GenerateLMReductionTable()
       {
-         for (int depth = 0; depth < MAX_PLY; depth++)
+         for (int i = 0; i < 2; i++)
          {
-            LMR_Reductions[depth] = new int[218];
+            LMR_Reductions[i] = new int[MAX_PLY][];
 
-            for (int moves = 0; moves < 218; moves++)
+            for (int depth = 0; depth < MAX_PLY; depth++)
             {
-               LMR_Reductions[depth][moves] = (int)(Search.LMR_Reduction_Base + Math.Log(depth) * Math.Log(moves) * Search.LMR_Reduction_Multiplier);
+               LMR_Reductions[i][depth] = new int[218];
+
+               for (int moves = 0; moves < 218; moves++)
+               {
+                  double lmrBase = i == 0 ? Search.LMR_Quiet_Reduction_Base : Search.LMR_Noisy_Reduction_Base;
+                  double lmrMulti = i == 0 ? Search.LMR_Quiet_Reduction_Multiplier : Search.LMR_Noisy_Reduction_Multiplier;
+
+                  LMR_Reductions[i][depth][moves] = (int)(lmrBase + Math.Log(depth) * Math.Log(moves) * lmrMulti);
+               }
             }
          }
       }

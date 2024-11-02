@@ -286,15 +286,15 @@ namespace Puffin
                   Search.IIR_Min_Depth = value;
                   break;
                }
-            case "LMR_Reduction_Base":
+            case "LMR_Quiet_Reduction_Base":
                {
-                  Search.LMR_Reduction_Base = value / 100;
+                  Search.LMR_Quiet_Reduction_Base = value / 100;
                   GenerateLMReductionTable();
                   break;
                }
-            case "LMR_Reduction_Multiplier":
+            case "LMR_Quiet_Reduction_Multiplier":
                {
-                  Search.LMR_Reduction_Multiplier = value / 100;
+                  Search.LMR_Quiet_Reduction_Multiplier = value / 100;
                   GenerateLMReductionTable();
                   break;
                }
