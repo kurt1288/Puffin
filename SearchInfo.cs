@@ -11,6 +11,7 @@ namespace Puffin
       private readonly int[] ContinuationHistory = new int[12 * 64 * 12 * 64]; // [prev piece * prev to square * curr piece * curr to square]
       private readonly int[] QuietHistory = new int[2 * 64 * 64]; // [side to move * from square * to square]
 
+      public int[] EvalStack { get; set; } = new int[MAX_PLY]; 
       public Move[][] KillerMoves { get; set; } = new Move[MAX_PLY][];
       public int Nodes { get; set; } = 0;
       public int Score { get; set; } = -INFINITY;

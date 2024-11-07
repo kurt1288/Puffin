@@ -180,10 +180,19 @@ namespace Puffin
          bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
          int staticEval = Evaluation.Evaluate(Board);
 
+         ThreadInfo.EvalStack[ply] = staticEval;
+
+         bool improving = false;
+
+         if (ply >= 2 && !inCheck)
+         {
+            improving = staticEval > ThreadInfo.EvalStack[ply - 2];
+         }
+
          if (!isPVNode && !inCheck)
          {
             // Reverse futility pruning
-            if (depth <= RFP_Max_Depth && staticEval - RFP_Margin * depth >= beta)
+            if (depth <= RFP_Max_Depth && staticEval - RFP_Margin * (depth - (improving ? 1 : 0)) >= beta)
             {
                return (staticEval + beta) / 2;
             }
@@ -278,6 +287,11 @@ namespace Puffin
                if (Board.InCheck)
                {
                   R--;
+               }
+
+               if (!improving)
+               {
+                  R++;
                }
 
                newDepth = Math.Clamp(newDepth - R, 1, newDepth);
