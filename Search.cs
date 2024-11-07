@@ -238,7 +238,7 @@ namespace Puffin
             if (isQuiet)
             {
                // Late move pruning
-               if (depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * depth)
+               if (depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * (improving ? 2 : 1))
                {
                   moves.NoisyOnly = true;
                }
