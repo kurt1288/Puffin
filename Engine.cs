@@ -125,10 +125,10 @@ namespace Puffin
          }
       }
 
-      public void Perft(int depth)
+      public ulong Perft(int depth)
       {
          Perft perft = new(Board);
-         perft.Run(depth);
+         return perft.Run(depth);
       }
 
       public int Evaluate()
