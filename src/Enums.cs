@@ -16,6 +16,7 @@
    {
       White,
       Black,
+      Both,
       Null,
    }
 

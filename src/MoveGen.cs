@@ -20,8 +20,8 @@ namespace Puffin
          GeneratePawnPushes(moveList, board);
          GenerateCastling(moveList, board);
 
-         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         Bitboard nonPawns = board.ColorBB[(int)board.SideToMove] & ~board.PieceBB[(int)PieceType.Pawn].Value;
+         ulong occupied = board.ColorBoard(Color.Both).Value;
+         Bitboard nonPawns = board.ColorBoard(board.SideToMove) & ~board.PieceBoard((int)PieceType.Pawn).Value;
 
          while (nonPawns)
          {
@@ -53,8 +53,8 @@ namespace Puffin
          GenerateEnPassant(moveList, board);
          GeneratePawnPromotions(moveList, board);
 
-         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
-         Bitboard nonPawns = board.ColorBB[(int)board.SideToMove] & ~board.PieceBB[(int)PieceType.Pawn].Value;
+         ulong occupied = board.ColorBoard(Color.Both).Value;
+         Bitboard nonPawns = board.ColorBoard(board.SideToMove) & ~board.PieceBoard((int)PieceType.Pawn).Value;
 
          while (nonPawns)
          {
@@ -71,7 +71,7 @@ namespace Puffin
                _ => throw new Exception($"Unable to get attacks for piece {board.Squares[from].Type}"),
             };
 
-            attacks &= board.ColorBB[(int)board.SideToMove ^ 1];
+            attacks &= board.ColorBoard(board.SideToMove ^ (Color)1);
             while (attacks)
             {
                moveList.Add(new Move(from, attacks.GetLSB(), MoveFlag.Capture));
@@ -83,8 +83,8 @@ namespace Puffin
       // Only generates QUIET pawn moves (no promotions, attacks, en passant, etc.)
       public static void GeneratePawnPushes(MoveList moveList, Board board)
       {
-         ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
-         ulong empty = ~(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
+         ulong pawns = board.ColorPieceBB(board.SideToMove, PieceType.Pawn).Value;
+         ulong empty = ~board.ColorBoard(Color.Both).Value;
          int up = board.SideToMove == Color.White ? -8 : 8;
          int startRank = board.SideToMove == Color.White ? 6 : 1;
          Bitboard targets = board.SideToMove == Color.White ? new(pawns >> 8) : new(pawns << 8);
@@ -105,7 +105,7 @@ namespace Puffin
 
       public static void GeneratePawnAttacks(MoveList moveList, Board board)
       {
-         ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
+         ulong pawns = board.ColorPieceBB(board.SideToMove, PieceType.Pawn).Value;
          Bitboard rightTargets = new((pawns & ~FILE_MASKS[(int)File.H]) >> 7);
          Bitboard leftTargets = new((pawns & ~FILE_MASKS[(int)File.A]) >> 9);
          int upRight = board.SideToMove == Color.White ? -7 : 7;
@@ -117,8 +117,8 @@ namespace Puffin
             leftTargets = new((pawns & ~FILE_MASKS[(int)File.H]) << 9);
          }
 
-         rightTargets &= board.ColorBB[(int)board.SideToMove ^ 1];
-         leftTargets &= board.ColorBB[(int)board.SideToMove ^ 1];
+         rightTargets &= board.ColorBoard(board.SideToMove ^ (Color)1);
+         leftTargets &= board.ColorBoard(board.SideToMove ^ (Color)1);
 
          while (rightTargets)
          {
@@ -164,8 +164,8 @@ namespace Puffin
       // Pawn pushes to promotions (no attacks)
       public static void GeneratePawnPromotions(MoveList moveList, Board board)
       {
-         ulong pawns = board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)board.SideToMove].Value;
-         ulong empty = ~(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
+         ulong pawns = board.ColorPieceBB(board.SideToMove, PieceType.Pawn).Value;
+         ulong empty = ~board.ColorBoard(Color.Both).Value;
          Bitboard targets = new(pawns >> 8 & RANK_MASKS[(int)Rank.Rank_8]);
          int up = board.SideToMove == Color.White ? -8 : 8;
 
@@ -191,8 +191,7 @@ namespace Puffin
       {
          Bitboard attackers = board.EnPassant != Square.Null
             ? new(PawnAttacks[(int)board.SideToMove ^ 1][(int)board.EnPassant]
-               & board.PieceBB[(int)PieceType.Pawn].Value
-               & board.ColorBB[(int)board.SideToMove].Value)
+               & board.ColorPieceBB(board.SideToMove, PieceType.Pawn).Value)
             : new();
 
          while (attackers)
@@ -212,8 +211,8 @@ namespace Puffin
             return;
          }
 
-         int kingSquare = board.SideToMove == Color.White ? board.PieceBB[(int)PieceType.King].GetMSB() : board.PieceBB[(int)PieceType.King].GetLSB();
-         ulong occupied = board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value;
+         int kingSquare = board.SideToMove == Color.White ? board.PieceBoard(PieceType.King).GetMSB() : board.PieceBoard(PieceType.King).GetLSB();
+         ulong occupied = board.ColorBoard(Color.Both).Value;
          int kingCastleSquare = board.SideToMove == Color.White ? (int)Square.G1 : (int)Square.G8;
          int queenCastleSquare = board.SideToMove == Color.White ? (int)Square.C1 : (int)Square.C8;
          int oppositeColor = (int)board.SideToMove ^ 1;

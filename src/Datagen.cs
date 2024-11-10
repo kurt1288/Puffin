@@ -225,7 +225,7 @@ namespace Puffin
             if (!bestMove.HasType(MoveType.Capture) && !bestMove.HasType(MoveType.Promotion)
                && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)
                && Math.Abs(info.Score) < MATE - MAX_PLY
-               && (board.PieceBB[(int)PieceType.Knight] | board.PieceBB[(int)PieceType.Bishop] | board.PieceBB[(int)PieceType.Rook] | board.PieceBB[(int)PieceType.Queen]).CountBits() > 4) {
+               && board.NonPawnMaterial.CountBits() > 4) {
                positions.AddFEN(ToFEN(board));
             }
 

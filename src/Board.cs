@@ -8,10 +8,10 @@ namespace Puffin
    internal sealed class Board : ICloneable
    {
       private ulong UniqueHash = 0;
+      private readonly Bitboard[] ColorBB = new Bitboard[3];
+      private readonly Bitboard[] PieceBB = new Bitboard[6];
 
       public Piece[] Squares { get; } = new Piece[64];
-      public Bitboard[] ColorBB { get; } = new Bitboard[2];
-      public Bitboard[] PieceBB { get; } = new Bitboard[6];
       public Color SideToMove { get; private set; } = Color.Null;
       public Square EnPassant { get; private set; } = Square.Null;
       public ulong CastleSquares { get; private set; } = 0;
@@ -23,6 +23,11 @@ namespace Puffin
 
       public ulong Hash => UniqueHash;
       public bool InCheck => IsAttacked(GetSquareByPiece(PieceType.King, SideToMove), (int)SideToMove ^ 1);
+
+      public Bitboard ColorPieceBB(Color color, PieceType piece) => ColorBB[(int)color] & PieceBB[(int)piece];
+      public Bitboard ColorBoard(Color color) => ColorBB[(int)color];
+      public Bitboard PieceBoard(PieceType piece) => PieceBB[(int)piece];
+      public Bitboard NonPawnMaterial => PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen];
 
       public Board()
       {
@@ -432,6 +437,7 @@ namespace Puffin
       {
          ColorBB[(int)piece.Color].SetBit(square);
          PieceBB[(int)piece.Type].SetBit(square);
+         ColorBB[(int)Color.Both].SetBit(square);
          Squares[square] = piece;
          Phase += PHASE_VALUES[(int)piece.Type];
          Zobrist.UpdatePieces(ref UniqueHash, piece, square);
@@ -444,6 +450,7 @@ namespace Puffin
       {
          ColorBB[(int)piece.Color].ResetBit(square);
          PieceBB[(int)piece.Type].ResetBit(square);
+         ColorBB[(int)Color.Both].ResetBit(square);
          Squares[square] = Piece.Null;
          Phase -= PHASE_VALUES[(int)piece.Type];
          Zobrist.UpdatePieces(ref UniqueHash, piece, square);

@@ -41,7 +41,7 @@ namespace Puffin
       {
          ulong hash = 0;
 
-         Bitboard pieces = new(board.ColorBB[(int)Color.White].Value | board.ColorBB[(int)Color.Black].Value);
+         Bitboard pieces = board.ColorBoard(Color.Both);
 
          while (pieces)
          {

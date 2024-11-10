@@ -199,10 +199,7 @@ namespace Puffin
 
             // Null move pruning
             // The last condition prevents NMP if the STM only has a king and pawns left
-            if (doNull && depth >= NMP_Min_Depth && staticEval >= beta
-               && (Board.ColorBB[(int)Board.SideToMove].Value
-               & (Board.PieceBB[(int)PieceType.Knight].Value | Board.PieceBB[(int)PieceType.Bishop].Value
-               | Board.PieceBB[(int)PieceType.Rook].Value | Board.PieceBB[(int)PieceType.Queen].Value)) != 0)
+            if (doNull && depth >= NMP_Min_Depth && staticEval >= beta && (Board.ColorBoard(Board.SideToMove) & Board.NonPawnMaterial))
             {
                Board.MakeNullMove();
                int score = -NegaScout(-beta, -beta + 1, depth - 1 - (3 + depth / 6), ply + 1, false);

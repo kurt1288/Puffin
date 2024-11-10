@@ -536,10 +536,9 @@ namespace Puffin.Tuner
       private static EvalInfo InitEval(Board board)
       {
          // Mobility squares: All squares not attacked by enemy pawns minus own blocked pawns.
-         Bitboard occ = board.ColorBB[(int)Color.White] | board.ColorBB[(int)Color.Black];
-
-         Bitboard blackPawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.Black];
-         Bitboard whitePawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)Color.White];
+         Bitboard occ = board.ColorBoard(Color.Both);
+         Bitboard blackPawns = board.ColorPieceBB(Color.Black, PieceType.Pawn);
+         Bitboard whitePawns = board.ColorPieceBB(Color.White, PieceType.Pawn);
 
          EvalInfo info = new(
             [
@@ -559,12 +558,12 @@ namespace Puffin.Tuner
       {
          Score score = new();
 
-         if ((board.PieceBB[(int)PieceType.Bishop] & board.ColorBB[(int)Color.White]).CountBits() >= 2)
+         if (board.ColorPieceBB(Color.White, PieceType.Bishop).CountBits() >= 2)
          {
             trace.bishopPair[(int)Color.White]++;
             score += Evaluation.BishopPair;
          }
-         if ((board.PieceBB[(int)PieceType.Bishop] & board.ColorBB[(int)Color.Black]).CountBits() >= 2)
+         if (board.ColorPieceBB(Color.Black, PieceType.Bishop).CountBits() >= 2)
          {
             trace.bishopPair[(int)Color.Black]++;
             score -= Evaluation.BishopPair;
@@ -583,7 +582,7 @@ namespace Puffin.Tuner
       private static Score EvalPawns(Board board, EvalInfo info, Color color, Trace trace)
       {
          Score score = new();
-         Bitboard pawns = board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color];
+         Bitboard pawns = board.ColorPieceBB(color, PieceType.Pawn);
 
          score += Evaluation.DefendedPawn[(pawns & PawnAnyAttacks(pawns.Value, color)).CountBits()];
          score += Evaluation.ConnectedPawn[(pawns & pawns.RightShift()).CountBits()];
@@ -591,8 +590,8 @@ namespace Puffin.Tuner
          trace.connectedPawn[(pawns & pawns.RightShift()).CountBits()][(int)color]++;
 
          // Enemy non-pawn pieces that can be attacked with a pawn push
-         ulong pawnShift = (pawns.Shift(color == Color.White ? Direction.Down : Direction.Up) & ~(board.ColorBB[(int)color] | board.ColorBB[(int)color ^ 1]).Value).Value;
-         ulong enemyPieces = (board.ColorBB[(int)color ^ 1] ^ (board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1])).Value;
+         ulong pawnShift = (pawns.Shift(color == Color.White ? Direction.Down : Direction.Up) & ~board.ColorBoard(Color.Both).Value).Value;
+         ulong enemyPieces = (board.ColorBoard(color ^ (Color)1) ^ board.ColorPieceBB(color ^ (Color)1, PieceType.Pawn)).Value;
          score += Evaluation.PawnPushThreats * new Bitboard(PawnAnyAttacks(pawnShift, color) & enemyPieces).CountBits();
          trace.pawnPushThreats[(int)color] += new Bitboard(PawnAnyAttacks(pawnShift, color) & enemyPieces).CountBits();
 
@@ -607,7 +606,7 @@ namespace Puffin.Tuner
             int rank = (color == Color.White ? 8 - (square >> 3) : 1 + (square >> 3)) - 1;
 
             // Passed pawns
-            if ((PassedPawnMasks[(int)color][square] & (board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color ^ 1]).Value) == 0)
+            if ((PassedPawnMasks[(int)color][square] & board.ColorPieceBB(color ^ (Color)1, PieceType.Pawn).Value) == 0)
             {
                score += Evaluation.PassedPawn[rank];
                trace.passedPawn[rank][(int)color]++;
@@ -624,7 +623,7 @@ namespace Puffin.Tuner
                trace.enemyKingPawnDistance[(int)color] += TaxiDistance[square][board.GetSquareByPiece(PieceType.King, color ^ (Color)1)];
 
                // Free to advance (no enemy non-pawn pieces ahead)
-               if ((ForwardMask[(int)color][square] & board.ColorBB[(int)color ^ 1].Value) == 0)
+               if ((ForwardMask[(int)color][square] & board.ColorBoard(color ^ (Color)1).Value) == 0)
                {
                   score += Evaluation.FreeAdvancePawn;
                   trace.freeAdvancePawn[(int)color]++;
@@ -632,7 +631,7 @@ namespace Puffin.Tuner
             }
 
             // Isolated pawn
-            if ((IsolatedPawnMasks[square & 7] & (board.PieceBB[(int)PieceType.Pawn] & board.ColorBB[(int)color]).Value) == 0)
+            if ((IsolatedPawnMasks[square & 7] & board.ColorPieceBB(color, PieceType.Pawn).Value) == 0)
             {
                // Penalty is based on file
                score -= Evaluation.IsolatedPawn[square & 7];
@@ -646,7 +645,7 @@ namespace Puffin.Tuner
       private static Score EvalKnights(Board board, EvalInfo info, Color color, PotentialKingAttacks[] potentialKingAttacks, Trace trace)
       {
          Score score = new();
-         Bitboard knightsBB = board.PieceBB[(int)PieceType.Knight] & board.ColorBB[(int)color];
+         Bitboard knightsBB = board.ColorPieceBB(color, PieceType.Knight);
 
          while (knightsBB)
          {
@@ -671,13 +670,13 @@ namespace Puffin.Tuner
       private static Score EvalBishops(Board board, EvalInfo info, Color color, PotentialKingAttacks[] potentialKingAttacks, Trace trace)
       {
          Score score = new();
-         Bitboard bishopBB = board.PieceBB[(int)PieceType.Bishop] & board.ColorBB[(int)color];
+         Bitboard bishopBB = board.ColorPieceBB(color, PieceType.Bishop);
 
          while (bishopBB)
          {
             int square = bishopBB.GetLSB();
             bishopBB.ClearLSB();
-            ulong moves = GetBishopAttacks(square, (board.ColorBB[(int)Color.White] | board.ColorBB[(int)Color.Black]).Value);
+            ulong moves = GetBishopAttacks(square, board.ColorBoard(Color.Both).Value);
             score += Evaluation.BishopMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()];
             trace.bishopMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()][(int)color]++;
 
@@ -697,19 +696,19 @@ namespace Puffin.Tuner
       private static Score EvalRooks(Board board, EvalInfo info, Color color, PotentialKingAttacks[] potentialKingAttacks, Trace trace)
       {
          Score score = new();
-         Bitboard rookBB = board.PieceBB[(int)PieceType.Rook] & board.ColorBB[(int)color];
+         Bitboard rookBB = board.ColorPieceBB(color, PieceType.Rook);
 
          while (rookBB)
          {
             int square = rookBB.GetLSB();
             rookBB.ClearLSB();
-            ulong moves = GetRookAttacks(square, (board.ColorBB[(int)Color.White] | board.ColorBB[(int)Color.Black]).Value);
+            ulong moves = GetRookAttacks(square, board.ColorBoard(Color.Both).Value);
             score += Evaluation.RookMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()];
             trace.rookMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()][(int)color]++;
 
-            if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value) == 0)
+            if ((FILE_MASKS[square & 7] & board.ColorPieceBB(color, PieceType.Pawn).Value) == 0)
             {
-               if ((FILE_MASKS[square & 7] & board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color ^ 1].Value) == 0)
+               if ((FILE_MASKS[square & 7] & board.ColorPieceBB(color ^ (Color)1, PieceType.Pawn).Value) == 0)
                {
                   score += Evaluation.RookOpenFile;
                   trace.rookOpenFile[(int)color]++;
@@ -737,13 +736,13 @@ namespace Puffin.Tuner
       private static Score EvalQueens(Board board, EvalInfo info, Color color, PotentialKingAttacks[] potentialKingAttacks, Trace trace)
       {
          Score score = new();
-         Bitboard queenBB = board.PieceBB[(int)PieceType.Queen] & board.ColorBB[(int)color];
+         Bitboard queenBB = board.ColorPieceBB(color, PieceType.Queen);
 
          while (queenBB)
          {
             int square = queenBB.GetLSB();
             queenBB.ClearLSB();
-            ulong moves = GetQueenAttacks(square, (board.ColorBB[(int)Color.White] | board.ColorBB[(int)Color.Black]).Value);
+            ulong moves = GetQueenAttacks(square, board.ColorBoard(Color.Both).Value);
             score += Evaluation.QueenMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()];
             trace.queenMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()][(int)color]++;
 
@@ -763,7 +762,7 @@ namespace Puffin.Tuner
       private static Score EvalKings(Board board, EvalInfo info, Color color, PotentialKingAttacks[] potentialKingAttacks, Trace trace)
       {
          Score score = new();
-         Bitboard kingBB = board.PieceBB[(int)PieceType.King] & board.ColorBB[(int)color];
+         Bitboard kingBB = board.ColorPieceBB(color, PieceType.King);
 
          while (kingBB)
          {
@@ -775,13 +774,13 @@ namespace Puffin.Tuner
             {
                ulong pawnSquares = color == Color.White ? (ulong)(kingSq % 8 < 3 ? 0x7070000000000 : 0xe0e00000000000) : (ulong)(kingSq % 8 < 3 ? 0x70700 : 0xe0e000);
 
-               Bitboard pawns = new(board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & pawnSquares);
+               Bitboard pawns = board.ColorPieceBB(color, PieceType.Pawn) & pawnSquares;
                score += Evaluation.PawnShield[Math.Min(pawns.CountBits(), 3)];
                trace.pawnShield[Math.Min(pawns.CountBits(), 3)][(int)color]++;
 
-               if ((board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color].Value & FILE_MASKS[kingSq & 7]) == 0)
+               if ((board.ColorPieceBB(color, PieceType.Pawn).Value & FILE_MASKS[kingSq & 7]) == 0)
                {
-                  if ((board.PieceBB[(int)PieceType.Pawn].Value & board.ColorBB[(int)color ^ 1].Value & FILE_MASKS[kingSq & 7]) == 0)
+                  if ((board.ColorPieceBB(color ^ (Color)1, PieceType.Pawn).Value & FILE_MASKS[kingSq & 7]) == 0)
                   {
                      score -= Evaluation.KingOpenFile;
                      trace.kingOpenFile[(int)color]--;
@@ -814,7 +813,7 @@ namespace Puffin.Tuner
 
       private static Score Material(Board board, Color color, Trace trace)
       {
-         Bitboard us = new(board.ColorBB[(int)color].Value);
+         Bitboard us = board.ColorBoard(color);
          Score score = new();
 
          while (us)
