@@ -10,13 +10,26 @@ namespace Puffin
       Beta
    }
 
-   public readonly struct TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
+   public struct TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
    {
-      public readonly ulong Hash { get; } = hash; // 8 bytes
-      public readonly int Score { get; } = score; // 4 bytes
-      public readonly ushort Move { get; } = move; // 2 bytes
-      public readonly byte Depth { get; } = depth; // 1 byte
-      public readonly HashFlag Flag { get; } = flag; // 1 byte
+      public ulong Hash { get; private set; } = hash; // 8 bytes
+      public int Score { get; private set; } = score; // 4 bytes
+      public ushort Move { get; private set; } = move; // 2 bytes
+      public byte Depth { get; private set; } = depth; // 1 byte
+      public HashFlag Flag { get; private set; } = flag; // 1 byte
+
+      public void Update(ulong hash, byte depth, ushort move, int score, HashFlag flag)
+      {
+         if (move != 0 || hash != Hash)
+         {
+            Move = move;
+         }
+
+         Hash = hash;
+         Depth = depth;
+         Score = score;
+         Flag = flag;
+      }
    }
 
    public struct TranspositionTable()
@@ -66,6 +79,8 @@ namespace Puffin
 
       public readonly void SaveEntry(ulong hash, byte depth, int ply, ushort move, int score, HashFlag flag)
       {
+         ref TTEntry entry = ref Table[hash % (ulong)Table.Length];
+
          // Mate score adjustments
          if (score > MATE - MAX_PLY)
          {
@@ -76,7 +91,7 @@ namespace Puffin
             score -= ply;
          }
 
-         Table[hash % (ulong)Table.Length] = new TTEntry(hash, depth, move, flag, score);
+         entry.Update(hash, depth, move, score, flag);
       }
 
       /// <summary>

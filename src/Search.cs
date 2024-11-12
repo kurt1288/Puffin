@@ -315,17 +315,17 @@ namespace Puffin
             if (score > bestScore)
             {
                bestScore = score;
-               bestMove = move;
+
+               if (score > alpha)
+               {
+                  bestMove = move;
+                  alpha = score;
+                  flag = HashFlag.Exact;
+                  ThreadInfo.UpdatePV(bestMove, ply);
+               }
             }
 
-            if (score > alpha)
-            {
-               alpha = score;
-               flag = HashFlag.Exact;
-               ThreadInfo.UpdatePV(bestMove, ply);
-            }
-
-            if (alpha >= beta)
+            if (score >= beta)
             {
                flag = HashFlag.Beta;
 
