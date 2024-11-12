@@ -30,7 +30,8 @@ namespace Puffin
          Array.Clear(QuietHistory);
          Array.Clear(ContinuationHistory);
          Array.Clear(PvLength);
-         Pv = new Move[MAX_PLY][];
+         Array.Clear(CounterMoves);
+         Array.Clear(EvalStack);
          Nodes = 0;
          Score = -INFINITY;
 
