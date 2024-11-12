@@ -172,6 +172,11 @@ while (true)
             Console.WriteLine(ExportWeatherFactoryConfig());
             break;
          }
+      case "bench":
+         {
+            Engine.Bench(int.Parse(tokens[1]));
+            break;
+         }
       default:
          {
             Console.WriteLine($"Unrecognized UCI command: {input}");

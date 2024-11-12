@@ -400,3 +400,4 @@ FodyWeavers.xsd
 # Custom
 Tests/*.epd
 Tuner/*.epd
+src/Tests/fens.txt

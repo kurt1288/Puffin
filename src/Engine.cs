@@ -202,6 +202,12 @@ namespace Puffin
          SearchManager.StartSearches(Timer, Board);
       }
 
+      public static void Bench(int depth)
+      {
+         Bench bench = new(depth);
+         bench.Run();
+      }
+
       public void StopSearch()
       {
          Timer.Stop();
