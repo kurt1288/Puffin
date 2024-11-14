@@ -232,7 +232,7 @@ namespace Puffin
          {
             bool isQuiet = !move.HasType(MoveType.Capture) && !move.HasType(MoveType.Promotion);
 
-            if (isQuiet)
+            if (isQuiet && !isRoot)
             {
                // Late move pruning
                if (depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * (improving ? 2 : 1))
