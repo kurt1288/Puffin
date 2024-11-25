@@ -64,6 +64,13 @@ namespace Puffin
          return (Value & ~Constants.FILE_MASKS[(int)File.H]) << 1;
       }
 
+      // Only do Up/Down shifts for now
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public readonly Bitboard Shift(Direction direction)
+      {
+         return direction == Direction.Up ? new Bitboard(Value << (int)direction) : new Bitboard(Value >> -(int)direction);
+      }
+
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public static int LSB(ulong value)
       {
@@ -73,6 +80,7 @@ namespace Puffin
       public static Bitboard operator &(Bitboard a, ulong b) => new(a.Value & b);
       public static Bitboard operator &(Bitboard a, Bitboard b) => new(a.Value & b.Value);
       public static Bitboard operator |(Bitboard a, Bitboard b) => new(a.Value | b.Value);
+      public static Bitboard operator ^(Bitboard a, Bitboard b) => new(a.Value ^ b.Value);
       public static bool operator ==(Bitboard a, Bitboard b) => a.Value == b.Value;
       public static bool operator !=(Bitboard a, Bitboard b) => a.Value != b.Value;
       public static implicit operator bool(Bitboard a) => a.Value != 0;

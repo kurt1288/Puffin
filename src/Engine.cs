@@ -4,16 +4,16 @@ namespace Puffin
 {
    internal class Engine
    {
-      public readonly Board Board = new();
-      readonly TimeManager Timer = new();
-      TranspositionTable TTable = new();
-      int Threads = 1;
-      ThreadManager SearchManager;
+      private readonly Board Board = new();
+      private readonly TimeManager Timer = new();
+      private TranspositionTable TTable = new();
+      private int Threads = 1;
+      private ThreadManager SearchManager;
 
       public Engine()
       {
          // Initializes the Attacks static class
-         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Attacks).TypeHandle);
+         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Attacks.Attacks).TypeHandle);
 
          // Initializes the Constants static class
          System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(Constants).TypeHandle);
@@ -42,21 +42,21 @@ namespace Puffin
          foreach (string move in moves)
          {
             MoveFlag flag = MoveFlag.Quiet;
-            int from = (int)Enum.Parse(typeof(Square), move.Substring(0, 2).ToUpper());
-            int to = (int)Enum.Parse(typeof(Square), move.Substring(2, 2).ToUpper());
-            Piece piece = Board.Mailbox[from];
+            int from = (byte)Enum.Parse(typeof(Square), move.Substring(0, 2).ToUpper());
+            int to = (byte)Enum.Parse(typeof(Square), move.Substring(2, 2).ToUpper());
+            Piece piece = Board.Squares[from];
 
             if (piece.Type == PieceType.Pawn && Math.Abs((from >> 3) - (to >> 3)) == 2)
             {
                flag = MoveFlag.DoublePawnPush;
             }
 
-            if (Board.Mailbox[to].Type != PieceType.Null)
+            if (Board.Squares[to].Type != PieceType.Null)
             {
                flag = MoveFlag.Capture;
             }
 
-            if (to == (int)Board.En_Passant && piece.Type == PieceType.Pawn)
+            if (to == (int)Board.EnPassant && piece.Type == PieceType.Pawn)
             {
                flag = MoveFlag.EPCapture;
             }
@@ -77,7 +77,7 @@ namespace Puffin
             {
                if (char.ToLower(move[4]) == 'n')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.KnightPromotionCapture;
                   }
@@ -88,7 +88,7 @@ namespace Puffin
                }
                else if (char.ToLower(move[4]) == 'b')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.BishopPromotionCapture;
                   }
@@ -99,7 +99,7 @@ namespace Puffin
                }
                else if (char.ToLower(move[4]) == 'r')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.RookPromotionCapture;
                   }
@@ -110,7 +110,7 @@ namespace Puffin
                }
                else if (char.ToLower(move[4]) == 'q')
                {
-                  if (Board.Mailbox[to].Type != PieceType.Null)
+                  if (Board.Squares[to].Type != PieceType.Null)
                   {
                      flag = MoveFlag.QueenPromotionCapture;
                   }
@@ -125,10 +125,10 @@ namespace Puffin
          }
       }
 
-      public void Perft(int depth)
+      public ulong Perft(int depth)
       {
          Perft perft = new(Board);
-         perft.Run(depth);
+         return perft.Run(depth);
       }
 
       public int Evaluate()
@@ -202,6 +202,12 @@ namespace Puffin
          SearchManager.StartSearches(Timer, Board);
       }
 
+      public static void Bench(int depth)
+      {
+         Bench bench = new(depth);
+         bench.Run();
+      }
+
       public void StopSearch()
       {
          Timer.Stop();
@@ -226,9 +232,9 @@ namespace Puffin
                   SearchManager = new(value, ref TTable);
                   break;
                }
-            case "ASP_Depth":
+            case "ASP_Min_Depth":
                {
-                  Search.ASP_Depth = value;
+                  Search.ASP_Min_Depth = value;
                   break;
                }
             case "ASP_Margin":
@@ -236,14 +242,14 @@ namespace Puffin
                   Search.ASP_Margin = value;
                   break;
                }
-            case "NMP_Depth":
+            case "NMP_Min_Depth":
                {
-                  Search.NMP_Depth = value;
+                  Search.NMP_Min_Depth = value;
                   break;
                }
-            case "RFP_Depth":
+            case "RFP_Max_Depth":
                {
-                  Search.RFP_Depth = value;
+                  Search.RFP_Max_Depth = value;
                   break;
                }
             case "RFP_Margin":
@@ -251,19 +257,19 @@ namespace Puffin
                   Search.RFP_Margin = value;
                   break;
                }
-            case "LMR_Depth":
+            case "LMR_Min_Depth":
                {
-                  Search.LMR_Depth = value;
+                  Search.LMR_Min_Depth = value;
                   break;
                }
-            case "LMR_MoveLimit":
+            case "LMR_Min_MoveLimit":
                {
-                  Search.LMR_MoveLimit = value;
+                  Search.LMR_Min_MoveLimit = value;
                   break;
                }
-            case "FP_Depth":
+            case "FP_Max_Depth":
                {
-                  Search.FP_Depth = value;
+                  Search.FP_Max_Depth = value;
                   break;
                }
             case "FP_Margin":
@@ -271,19 +277,31 @@ namespace Puffin
                   Search.FP_Margin = value;
                   break;
                }
-            case "LMP_Depth":
+            case "LMP_Max_Depth":
                {
-                  Search.LMP_Depth = value;
+                  Search.LMP_Max_Depth = value;
                   break;
                }
-            case "LMP_Margin":
+            case "LMP_Min_Margin":
                {
-                  Search.LMP_Margin = value;
+                  Search.LMP_Min_Margin = value;
                   break;
                }
-            case "IIR_Depth":
+            case "IIR_Min_Depth":
                {
-                  Search.IIR_Depth = value;
+                  Search.IIR_Min_Depth = value;
+                  break;
+               }
+            case "LMR_Quiet_Reduction_Base":
+               {
+                  Search.LMR_Quiet_Reduction_Base = value / 100;
+                  GenerateLMReductionTable();
+                  break;
+               }
+            case "LMR_Quiet_Reduction_Multiplier":
+               {
+                  Search.LMR_Quiet_Reduction_Multiplier = value / 100;
+                  GenerateLMReductionTable();
                   break;
                }
             default:

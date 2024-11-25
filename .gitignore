@@ -398,5 +398,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Custom
-Tests/
+Tests/*.epd
 Tuner/*.epd
+src/Tests/fens.txt

@@ -2,20 +2,15 @@
 
 namespace Puffin
 {
-   internal class Perft
+   internal class Perft(Board board)
    {
-      readonly Board Board;
+      private readonly Board Board = board;
 
-      public Perft(Board board)
-      {
-         Board = board;
-      }
-
-      public void Run(int depth)
+      public ulong Run(int depth)
       {
          if (depth == 0)
          {
-            return;
+            return 0;
          }
 
          Stopwatch stopWatch = new();
@@ -51,6 +46,8 @@ namespace Puffin
          Console.WriteLine($"{Environment.NewLine}Nodes searched: {totalNodes.ToString("N0")}");
          Console.WriteLine($"Elapsed time: {Math.Round(ts.TotalMilliseconds / 1000, 5)} seconds");
          Console.WriteLine($"NPS: {Math.Round(totalNodes / (ts.TotalMilliseconds / 1000)).ToString("N0")}");
+
+         return totalNodes;
       }
 
       ulong Divide(int depth)

@@ -1,33 +1,39 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static Puffin.Constants;
-using static Puffin.Attacks;
+using static Puffin.Attacks.Attacks;
 
 namespace Puffin
 {
    internal sealed class Board : ICloneable
    {
-      public Piece[] Mailbox { get; private set; } = new Piece[64];
-      public Bitboard[] ColorBB { get; private set; } = new Bitboard[2];
-      public Bitboard[] PieceBB { get; private set; } = new Bitboard[6];
-      public Color SideToMove { get; private set; }
-      public Square En_Passant { get; private set; } = Square.Null;
+      private ulong UniqueHash = 0;
+      private readonly Bitboard[] ColorBB = new Bitboard[3];
+      private readonly Bitboard[] PieceBB = new Bitboard[6];
+
+      public Piece[] Squares { get; } = new Piece[64];
+      public Color SideToMove { get; private set; } = Color.Null;
+      public Square EnPassant { get; private set; } = Square.Null;
       public ulong CastleSquares { get; private set; } = 0;
       public int Halfmoves { get; private set; } = 0;
-      public int Fullmoves { get; private set; } = 0;
       public int Phase { get; private set; } = 0;
+      public History History { get; } = new();
+      public Score[] MaterialScore { get; } = [new(0, 0), new(0, 0)];
+      public (Move Move, Piece Piece)[] MoveStack { get; private set; } = new (Move Move, Piece Piece)[1000]; // arbitrary 1000 moves max
 
-      public History GameHistory = new();
+      public ulong Hash => UniqueHash;
+      public bool InCheck => IsAttacked(GetSquareByPiece(PieceType.King, SideToMove), (int)SideToMove ^ 1);
 
-      public int[] PhaseValues = { 0, 1, 1, 2, 4, 0 }; // Pawns do not contribute to the phase value
-      public Score[] MaterialValue = { new Score(0, 0), new Score(0, 0) };
-      public ulong Hash = 0;
+      public Bitboard ColorPieceBB(Color color, PieceType piece) => ColorBB[(int)color] & PieceBB[(int)piece];
+      public Bitboard ColorBoard(Color color) => ColorBB[(int)color];
+      public Bitboard PieceBoard(PieceType piece) => PieceBB[(int)piece];
+      public Bitboard NonPawnMaterial => PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen];
 
       public Board()
       {
-         for (int i = 0; i < Mailbox.Length; i++)
+         for (int i = 0; i < Squares.Length; i++)
          {
-            Mailbox[i].Reset();
+            Squares[i] = Piece.Null;
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
@@ -39,33 +45,20 @@ namespace Puffin
          {
             PieceBB[i].Reset();
          }
-
-         GameHistory.Reset();
-         SideToMove = Color.Null;
-         En_Passant = Square.Null;
-         CastleSquares = 0;
-         Halfmoves = 0;
-         Fullmoves = 0;
-         Phase = 0;
-         MaterialValue[(int)Color.White] = new Score(0, 0);
-         MaterialValue[(int)Color.Black] = new Score(0, 0);
-         Hash = 0;
       }
 
       public Board(Board other)
       {
          SideToMove = other.SideToMove;
-         En_Passant = other.En_Passant;
+         EnPassant = other.EnPassant;
          CastleSquares = other.CastleSquares;
          Halfmoves = other.Halfmoves;
-         Fullmoves = other.Fullmoves;
          Phase = other.Phase;
-         Hash = other.Hash;
-         GameHistory = (History)other.GameHistory.Clone();
-         Array.Copy(other.Mailbox, Mailbox, Mailbox.Length);
+         UniqueHash = other.Hash;
+         Array.Copy(other.Squares, Squares, Squares.Length);
          Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
          Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);
-         Array.Copy(other.MaterialValue, MaterialValue, MaterialValue.Length);
+         Array.Copy(other.MaterialScore, MaterialScore, MaterialScore.Length);
       }
 
       public object Clone()
@@ -75,9 +68,9 @@ namespace Puffin
 
       public void Reset()
       {
-         for (int i = 0; i < Mailbox.Length; i++)
+         for (int i = 0; i < Squares.Length; i++)
          {
-            Mailbox[i].Reset();
+            Squares[i] = Piece.Null;
          }
 
          for (int i = 0; i < ColorBB.Length; i++)
@@ -90,16 +83,15 @@ namespace Puffin
             PieceBB[i].Reset();
          }
 
-         GameHistory.Reset();
+         History.Reset();
          SideToMove = Color.Null;
-         En_Passant = Square.Null;
+         EnPassant = Square.Null;
          CastleSquares = 0;
          Halfmoves = 0;
-         Fullmoves = 0;
          Phase = 0;
-         MaterialValue[(int)Color.White] = new Score(0, 0);
-         MaterialValue[(int)Color.Black] = new Score(0, 0);
-         Hash = 0;
+         MaterialScore[(int)Color.White] = new Score(0, 0);
+         MaterialScore[(int)Color.Black] = new Score(0, 0);
+         UniqueHash = 0;
       }
 
       public void SetPosition(string fen)
@@ -171,7 +163,7 @@ namespace Puffin
                var f = fenParts[3][0];
                int file = "abcdefgh".IndexOf(fenParts[3][0]);
                int rank = 8 - int.Parse(fenParts[3][1].ToString());
-               En_Passant = (Square)(rank * 8 + file);
+               EnPassant = (Square)(rank * 8 + file);
             }
 
             if (fenParts.Length > 4 && int.TryParse(fenParts[4], out int halfMoves))
@@ -179,12 +171,7 @@ namespace Puffin
                Halfmoves = halfMoves;
             }
 
-            if (fenParts.Length > 5 && int.TryParse(fenParts[5], out int fullMoves))
-            {
-               Fullmoves = fullMoves;
-            }
-
-            Hash = Zobrist.GenerateHash(this);
+            UniqueHash = Zobrist.GenerateHash(this);
          }
          catch
          {
@@ -198,20 +185,16 @@ namespace Puffin
          MoveFlag flag = move.Flag;
          int from = move.From;
          int to = move.To;
-         Piece piece = Mailbox[from];
+         Piece piece = Squares[from];
 
-         GameHistory.Add(
-            new BoardState(
-               SideToMove, En_Passant, CastleSquares, Mailbox[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to],
-               Halfmoves, Fullmoves, Hash, Phase)
-         );
+         History.Add(EnPassant, CastleSquares, Squares[flag == MoveFlag.EPCapture ? piece.Color == Color.White ? to + 8 : to - 8 : to], Halfmoves, UniqueHash, Phase);
 
-         if (En_Passant != Square.Null)
+         if (EnPassant != Square.Null)
          {
-            Zobrist.UpdateEnPassant(ref Hash, En_Passant);
+            Zobrist.UpdateEnPassant(ref UniqueHash, EnPassant);
          }
 
-         En_Passant = Square.Null;
+         EnPassant = Square.Null;
          Halfmoves += 1;
 
          if (piece.Type == PieceType.Pawn || move.HasType(MoveType.Capture))
@@ -219,32 +202,30 @@ namespace Puffin
             Halfmoves = 0;
          }
 
+         RemovePiece(piece, from);
+
          switch (flag)
          {
             case MoveFlag.Quiet:
                {
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
                   break;
                }
             case MoveFlag.DoublePawnPush:
                {
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
-                  En_Passant = (Square)((to + from) / 2);
-                  Zobrist.UpdateEnPassant(ref Hash, En_Passant);
+                  EnPassant = (Square)((to + from) / 2);
+                  Zobrist.UpdateEnPassant(ref UniqueHash, EnPassant);
                   break;
                }
             case MoveFlag.Capture:
                {
-                  RemovePiece(Mailbox[to], to);
-                  RemovePiece(piece, from);
+                  RemovePiece(Squares[to], to);
                   SetPiece(piece, to);
                   break;
                }
             case MoveFlag.EPCapture:
                {
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
                   RemovePiece(new Piece(PieceType.Pawn, (Color)((int)piece.Color ^ 1)), piece.Color == Color.White ? to + 8 : to - 8);
                   break;
@@ -252,104 +233,68 @@ namespace Puffin
             case MoveFlag.KingCastle:
                {
                   // Move king
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
 
                   // Move rook
                   int rFrom = new Bitboard(CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
                   int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
-                  SetPiece(Mailbox[rFrom], rTo);
-                  RemovePiece(Mailbox[rFrom], rFrom);
-
-                  // Check the path of the king to make sure it isn't moving from check or moving through check
-                  Bitboard kingPath = new(BetweenBB[from][to] | SquareBB[to] | SquareBB[from]);
-                  while (kingPath)
-                  {
-                     int square = kingPath.GetLSB();
-                     kingPath.ClearLSB();
-                     if (IsAttacked(square, (int)piece.Color ^ 1))
-                     {
-                        return false;
-                     }
-                  }
-
+                  SetPiece(Squares[rFrom], rTo);
+                  RemovePiece(Squares[rFrom], rFrom);
                   break;
                }
             case MoveFlag.QueenCastle:
                {
                   // Move king
-                  RemovePiece(piece, from);
                   SetPiece(piece, to);
 
                   // Move rook
                   int rFrom = new Bitboard(CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetLSB();
                   int rTo = SideToMove == Color.White ? (int)Square.D1 : (int)Square.D8;
-                  SetPiece(Mailbox[rFrom], rTo);
-                  RemovePiece(Mailbox[rFrom], rFrom);
-
-                  // Check the path of the king to make sure it isn't moving from check or doesn't moving through check
-                  Bitboard kingPath = new(BetweenBB[from][to] | SquareBB[to] | SquareBB[from]);
-                  while (kingPath)
-                  {
-                     int square = kingPath.GetLSB();
-                     kingPath.ClearLSB();
-                     if (IsAttacked(square, (int)piece.Color ^ 1))
-                     {
-                        return false;
-                     }
-                  }
-
+                  SetPiece(Squares[rFrom], rTo);
+                  RemovePiece(Squares[rFrom], rFrom);
                   break;
                }
             case MoveFlag.KnightPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Knight, piece.Color), to);
                   break;
                }
             case MoveFlag.BishopPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Bishop, piece.Color), to);
                   break;
                }
             case MoveFlag.RookPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Rook, piece.Color), to);
                   break;
                }
             case MoveFlag.QueenPromotion:
                {
-                  RemovePiece(piece, from);
                   SetPiece(new Piece(PieceType.Queen, piece.Color), to);
                   break;
                }
             case MoveFlag.KnightPromotionCapture:
                {
-                  RemovePiece(piece, from);
-                  RemovePiece(Mailbox[to], to);
+                  RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Knight, piece.Color), to);
                   break;
                }
             case MoveFlag.BishopPromotionCapture:
                {
-                  RemovePiece(piece, from);
-                  RemovePiece(Mailbox[to], to);
+                  RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Bishop, piece.Color), to);
                   break;
                }
             case MoveFlag.RookPromotionCapture:
                {
-                  RemovePiece(piece, from);
-                  RemovePiece(Mailbox[to], to);
+                  RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Rook, piece.Color), to);
                   break;
                }
             case MoveFlag.QueenPromotionCapture:
                {
-                  RemovePiece(piece, from);
-                  RemovePiece(Mailbox[to], to);
+                  RemovePiece(Squares[to], to);
                   SetPiece(new Piece(PieceType.Queen, piece.Color), to);
                   break;
                }
@@ -360,90 +305,78 @@ namespace Puffin
          }
 
          // update castling
-         if (piece.Type == PieceType.King)
+         ulong homeRank = RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
+         ulong affectedSquares = SquareBB[move.From] | SquareBB[move.To];
+         ulong castleRightsToRemove = 0;
+
+         // Update castling rights if the king moves
+         if (piece.Type == PieceType.King && (CastleSquares & homeRank) != 0)
          {
-            // If the king moves, remove the castle squares from the home rank
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]);
-            CastleSquares &= ~RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8];
+            castleRightsToRemove |= CastleSquares & homeRank;
          }
 
-         // if a piece is moving either to or from a rook square, either the rook is moving, being captured, or just not on that square. either way, castling rights
-         // on that side are gone.
-         if ((SquareBB[move.From] & CastleSquares) != 0)
+         // Update castling rights if a rook moves or is captured
+         castleRightsToRemove |= CastleSquares & affectedSquares;
+
+         // Apply the updates
+         if (castleRightsToRemove != 0)
          {
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & SquareBB[move.From]);
-            CastleSquares &= ~SquareBB[move.From];
-         }
-         if ((SquareBB[move.To] & CastleSquares) != 0)
-         {
-            Zobrist.UpdateCastle(ref Hash, CastleSquares & SquareBB[move.To]);
-            CastleSquares &= ~SquareBB[move.To];
+            Zobrist.UpdateCastle(ref UniqueHash, castleRightsToRemove);
+            CastleSquares &= ~castleRightsToRemove;
          }
 
-         SideToMove = (Color)((int)SideToMove ^ 1);
-         Fullmoves += 1;
+         SideToMove ^= (Color)1;
 
-         Zobrist.UpdateSideToMove(ref Hash);
+         Zobrist.UpdateSideToMove(ref UniqueHash);
 
-         Debug.Assert(Zobrist.Verify(Hash, this));
+         Debug.Assert(Zobrist.Verify(UniqueHash, this));
          Debug.Assert(Phase == VerifyPhase());
-         Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
-         Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
+         Debug.Assert(MaterialScore[0] == Evaluation.Material(this, Color.White));
+         Debug.Assert(MaterialScore[1] == Evaluation.Material(this, Color.Black));
 
-         if (IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove))
-         {
-            return false;
-         }
-
-         return true;
+         return !IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove);
       }
 
       public void MakeNullMove()
       {
-         GameHistory.Add(
-            new BoardState(
-               SideToMove, En_Passant, CastleSquares, new Piece(), Halfmoves, Fullmoves, Hash, Phase
-            )
-         );
+         History.Add(EnPassant, CastleSquares, Piece.Null, Halfmoves, Hash, Phase);
 
-         if (En_Passant != Square.Null)
+         if (EnPassant != Square.Null)
          {
-            Zobrist.UpdateEnPassant(ref Hash, En_Passant);
+            Zobrist.UpdateEnPassant(ref UniqueHash, EnPassant);
          }
 
-         En_Passant = Square.Null;
+         EnPassant = Square.Null;
          Halfmoves = 0;
-         Fullmoves += 1;
-         SideToMove = (Color)((int)SideToMove ^ 1);
+         SideToMove ^= (Color)1;
 
-         Zobrist.UpdateSideToMove(ref Hash);
+         Zobrist.UpdateSideToMove(ref UniqueHash);
 
-         Debug.Assert(Zobrist.Verify(Hash, this));
+         Debug.Assert(Zobrist.Verify(UniqueHash, this));
          Debug.Assert(Phase == VerifyPhase());
       }
 
       public void UndoMove(Move move)
       {
-         BoardState previousState = GameHistory.Pop();
+         ref readonly BoardState previousState = ref History.Pop();
 
-         SideToMove = previousState.SideToMove;
-         En_Passant = previousState.En_Passant;
+         SideToMove ^= (Color)1;
+         EnPassant = previousState.En_Passant;
          CastleSquares = previousState.CastleSquares;
          Halfmoves = previousState.Halfmoves;
-         Fullmoves = previousState.Fullmoves;
 
          int from = move.From;
          int to = move.To;
-         Piece piece = Mailbox[to];
+         Piece piece = Squares[to];
+
+         RemovePiece(piece, to);
 
          if (move.HasType(MoveType.Promotion))
          {
-            RemovePiece(piece, to);
             SetPiece(new Piece(PieceType.Pawn, piece.Color), from);
          }
          else if (move.IsCastle())
          {
-            RemovePiece(piece, to);
             SetPiece(piece, from);
 
             Piece rook = new(PieceType.Rook, piece.Color);
@@ -461,7 +394,6 @@ namespace Puffin
          }
          else
          {
-            RemovePiece(piece, to);
             SetPiece(piece, from);
          }
 
@@ -478,26 +410,25 @@ namespace Puffin
          }
 
          Phase = previousState.Phase;
-         Hash = previousState.Hash;
+         UniqueHash = previousState.Hash;
          Debug.Assert(Zobrist.Verify(Hash, this));
          Debug.Assert(Phase == VerifyPhase());
-         Debug.Assert(MaterialValue[0] == Evaluation.Material(this, Color.White));
-         Debug.Assert(MaterialValue[1] == Evaluation.Material(this, Color.Black));
+         Debug.Assert(MaterialScore[0] == Evaluation.Material(this, Color.White));
+         Debug.Assert(MaterialScore[1] == Evaluation.Material(this, Color.Black));
       }
 
       public void UnmakeNullMove()
       {
-         BoardState previousState = GameHistory.Pop();
+         ref readonly BoardState previousState = ref History.Pop();
 
-         SideToMove = previousState.SideToMove;
-         En_Passant = previousState.En_Passant;
+         SideToMove ^= (Color)1;
+         EnPassant = previousState.En_Passant;
          CastleSquares = previousState.CastleSquares;
          Halfmoves = previousState.Halfmoves;
-         Fullmoves = previousState.Fullmoves;
          Phase = previousState.Phase;
-         Hash = previousState.Hash;
+         UniqueHash = previousState.Hash;
 
-         Debug.Assert(Zobrist.Verify(Hash, this));
+         Debug.Assert(Zobrist.Verify(UniqueHash, this));
          Debug.Assert(Phase == VerifyPhase());
       }
 
@@ -506,11 +437,12 @@ namespace Puffin
       {
          ColorBB[(int)piece.Color].SetBit(square);
          PieceBB[(int)piece.Type].SetBit(square);
-         Mailbox[square] = piece;
-         Phase += PhaseValues[(int)piece.Type];
-         Zobrist.UpdatePieces(ref Hash, piece, square);
-         MaterialValue[(int)piece.Color] += Evaluation.PieceValues[(int)piece.Type];
-         MaterialValue[(int)piece.Color] += Evaluation.GetPSTScore(piece, square);
+         ColorBB[(int)Color.Both].SetBit(square);
+         Squares[square] = piece;
+         Phase += PHASE_VALUES[(int)piece.Type];
+         Zobrist.UpdatePieces(ref UniqueHash, piece, square);
+         MaterialScore[(int)piece.Color] += Evaluation.PieceValues[(int)piece.Type];
+         MaterialScore[(int)piece.Color] += Evaluation.GetPSTScore(piece, square);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -518,22 +450,17 @@ namespace Puffin
       {
          ColorBB[(int)piece.Color].ResetBit(square);
          PieceBB[(int)piece.Type].ResetBit(square);
-         Mailbox[square] = new Piece();
-         Phase -= PhaseValues[(int)piece.Type];
-         Zobrist.UpdatePieces(ref Hash, piece, square);
-         MaterialValue[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];
-         MaterialValue[(int)piece.Color] -= Evaluation.GetPSTScore(piece, square);
+         ColorBB[(int)Color.Both].ResetBit(square);
+         Squares[square] = Piece.Null;
+         Phase -= PHASE_VALUES[(int)piece.Type];
+         Zobrist.UpdatePieces(ref UniqueHash, piece, square);
+         MaterialScore[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];
+         MaterialScore[(int)piece.Color] -= Evaluation.GetPSTScore(piece, square);
       }
 
       public int GetSquareByPiece(PieceType piece, Color color)
       {
          return new Bitboard(PieceBB[(int)piece].Value & ColorBB[(int)color].Value).GetLSB();
-      }
-
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      public Bitboard MinorPieces(Color color)
-      {
-         return (PieceBB[(int)PieceType.Knight] | PieceBB[(int)PieceType.Bishop]) & ColorBB[(int)color].Value;
       }
 
       public bool IsAttacked(int square, int color)
@@ -682,31 +609,31 @@ namespace Puffin
          // Null move?
          // No piece on the from square?
          // Piece on the from square isn't the correct color?
-         if (move == 0 || Mailbox[move.From].Type == PieceType.Null || Mailbox[move.From].Color != SideToMove)
+         if (move == 0 || Squares[move.From].Type == PieceType.Null || Squares[move.From].Color != SideToMove)
          {
             return false;
          }
 
-         Piece piece = Mailbox[move.From];
+         Piece piece = Squares[move.From];
          int up = (piece.Color == Color.White) ? -8 : 8;
 
          // there's no piece to move?
          // moving an opponent's piece?
          // trying to capture a king
-         if (piece.Type == PieceType.Null || piece.Color != SideToMove || Mailbox[move.To].Type == PieceType.King)
+         if (piece.Type == PieceType.Null || piece.Color != SideToMove || Squares[move.To].Type == PieceType.King)
          {
             return false;
          }
 
          // trying to capture our own piece in a non-castle move?
-         if (Mailbox[move.To].Type != PieceType.Null && Mailbox[move.To].Color == SideToMove && !move.IsCastle())
+         if (Squares[move.To].Type != PieceType.Null && Squares[move.To].Color == SideToMove && !move.IsCastle())
          {
             return false;
          }
 
          if (piece.Type == PieceType.Pawn)
          {
-            if (move.Flag == MoveFlag.EPCapture && En_Passant != Square.Null && Mailbox[move.To - up].Type == PieceType.Pawn && Mailbox[move.To - up].Color != piece.Color)
+            if (move.Flag == MoveFlag.EPCapture && EnPassant != Square.Null && Squares[move.To - up].Type == PieceType.Pawn && Squares[move.To - up].Color != piece.Color)
             {
                return true;
             }
@@ -725,7 +652,7 @@ namespace Puffin
 
             if (move.HasType(MoveType.Capture))
             {
-               return Mailbox[move.To].Type != PieceType.Null && (PawnAttacks[(int)piece.Color][move.From] & SquareBB[move.To]) != 0;
+               return Squares[move.To].Type != PieceType.Null && (PawnAttacks[(int)piece.Color][move.From] & SquareBB[move.To]) != 0;
             }
 
             // Non-captures should remain on the same file
@@ -743,7 +670,7 @@ namespace Puffin
                   return false;
                }
 
-               return Mailbox[move.To].Type == PieceType.Null && Mailbox[move.To - up].Type == PieceType.Null;
+               return Squares[move.To].Type == PieceType.Null && Squares[move.To - up].Type == PieceType.Null;
             }
             // single push or attack
             else
@@ -754,98 +681,77 @@ namespace Puffin
                   return false;
                }
 
-               return Mailbox[move.To].Type == PieceType.Null;
+               return Squares[move.To].Type == PieceType.Null;
             }
          }
 
          if (move.IsCastle())
          {
-            if (piece.Type != PieceType.King)
+            if (piece.Type != PieceType.King || InCheck)
             {
                return false;
             }
 
             int homeRank = piece.Color == Color.White ? 7 : 0;
-
             if (move.To >> 3 != homeRank || move.From >> 3 != homeRank)
             {
                return false;
             }
 
-            if (move.Flag == MoveFlag.KingCastle)
-            {
-               // no castle square
-               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.H1]) == 0 : (CastleSquares & SquareBB[(int)Square.H8]) == 0)
-               {
-                  return false;
-               }
+            bool isKingSide = move.Flag == MoveFlag.KingCastle;
+            int castleSquare = isKingSide ?
+                (piece.Color == Color.White ? (int)Square.H1 : (int)Square.H8) :
+                (piece.Color == Color.White ? (int)Square.A1 : (int)Square.A8);
 
-               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.H1] : BetweenBB[move.From][(int)Square.H8];
+            if ((CastleSquares & SquareBB[castleSquare]) == 0)
+            {
+               return false;
+            }
+
+            ulong path = BetweenBB[move.From][castleSquare];
+            if ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) != 0)
+            {
+               return false;
+            }
+
+            int pathSquare = isKingSide ?
+                (piece.Color == Color.White ? (int)Square.G1 : (int)Square.G8) - 1 :
+                (piece.Color == Color.White ? (int)Square.C1 : (int)Square.C8) + 1;
 
 #if DEBUG
-               MoveList castleMoves = new();
-               MoveGen.GenerateCastling(castleMoves, this);
-               bool foundCastle = false;
-               for (int i = 0; i < castleMoves.Count; i++)
-               {
-                  if (castleMoves[i] == move)
-                  {
-                     foundCastle = true;
-                  }
-               }
-
-               Debug.Assert(foundCastle == ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0));
-#endif
-
-               // true if path between is empty, otherwise false
-               return (path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0;
-            }
-            else
+            MoveList castleMoves = new();
+            MoveGen.GenerateCastling(castleMoves, this);
+            bool foundCastle = false;
+            for (int i = 0; i < castleMoves.Count; i++)
             {
-               // no castle square
-               if (piece.Color == Color.White ? (CastleSquares & SquareBB[(int)Square.A1]) == 0 : (CastleSquares & SquareBB[(int)Square.A8]) == 0)
+               if (castleMoves[i] == move)
                {
-                  return false;
+                  foundCastle = true;
                }
+            }
 
-               ulong path = piece.Color == Color.White ? BetweenBB[move.From][(int)Square.A1] : BetweenBB[move.From][(int)Square.A8];
-
-#if DEBUG
-               MoveList castleMoves = new();
-               MoveGen.GenerateCastling(castleMoves, this);
-               bool foundCastle = false;
-               for (int i = 0; i < castleMoves.Count; i++)
-               {
-                  if (castleMoves[i] == move)
-                  {
-                     foundCastle = true;
-                  }
-               }
-
-               Debug.Assert(foundCastle == ((path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0));
+            Debug.Assert(foundCastle == !IsAttacked(pathSquare, (int)piece.Color ^ 1));
 #endif
 
-               // true if path between is empty, otherwise false
-               return (path & (ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)) == 0;
-            }
+            return !IsAttacked(pathSquare, (int)piece.Color ^ 1);
          }
 
          // At this point, pawn moves, quiet moves to an occupied space, and capture moves to an unoccupied space are all invalid
          if (move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.DoublePawnPush || move.Flag == MoveFlag.EPCapture
-            || (move.Flag == MoveFlag.Quiet && Mailbox[move.To].Type != PieceType.Null)
-            || (move.Flag == MoveFlag.Capture && Mailbox[move.To].Type == PieceType.Null))
+            || (move.Flag == MoveFlag.Quiet && Squares[move.To].Type != PieceType.Null)
+            || (move.Flag == MoveFlag.Capture && Squares[move.To].Type == PieceType.Null))
          {
             return false;
          }
 
-         Bitboard moves = Mailbox[move.From].Type switch
+         Bitboard moves = Squares[move.From].Type switch
          {
             PieceType.Knight => new(KnightAttacks[move.From]),
             PieceType.Bishop => new(GetBishopAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
             PieceType.Rook => new(GetRookAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
             PieceType.Queen => new(GetQueenAttacks(move.From, ColorBB[(int)Color.White].Value | ColorBB[(int)Color.Black].Value)),
             PieceType.King => new(KingAttacks[move.From]),
-            _ => throw new Exception($"Unable to get attacks for piece {Mailbox[move.From].Type}"),
+            _ => throw new Exception($"Unable to get attacks for piece {Squares[move.From].Type}"),
          };
 
 #if DEBUG
@@ -865,6 +771,114 @@ namespace Puffin
          return (moves.Value & SquareBB[move.To]) != 0;
       }
 
+      /// <summary>
+      /// Static Exchange Evaluation Greater or Equal. Is <paramref name="move"/> better than <paramref name="threshold"/>?
+      /// </summary>
+      public bool SEE_GE(Move move, int threshold)
+      {
+         if (move.IsCastle() || move.HasType(MoveType.Promotion) || move.Flag == MoveFlag.EPCapture)
+         {
+            return threshold <= 0;
+         }
+
+         int from = move.From;
+         int to = move.To;
+
+         int swap = SEE_VALUES[(int)Squares[to].Type] - threshold;
+         if (swap < 0)
+         {
+            return false;
+         }
+
+         swap = SEE_VALUES[(int)Squares[from].Type] - swap;
+         if (swap <= 0)
+         {
+            return true;
+         }
+
+         ulong occupied = ((ColorBB[(int)Color.White] | ColorBB[(int)Color.Black]).Value ^ SquareBB[from]) | SquareBB[to];
+
+         ulong attackers = AttackersTo(to, occupied);
+         int stm = (int)SideToMove;
+         int res = 1;
+         ulong stmAttackers, bb;
+
+         while (true)
+         {
+            stm ^= 1;
+            attackers &= occupied;
+
+            stmAttackers = attackers & ColorBB[stm].Value;
+            if (stmAttackers == 0)
+            {
+               break;
+            }
+
+            res ^= 1;
+
+            if ((bb = stmAttackers & PieceBB[(int)PieceType.Pawn].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Pawn] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= GetBishopAttacks(to, occupied) & (PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Knight].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Knight] - swap) < res)
+               {
+                  break;
+               }
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Bishop].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Bishop] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= GetBishopAttacks(to, occupied) & (PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Rook].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Rook] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= GetRookAttacks(to, occupied) & (PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]).Value;
+            }
+            else if ((bb = stmAttackers & PieceBB[(int)PieceType.Queen].Value) != 0)
+            {
+               occupied ^= SquareBB[Bitboard.LSB(bb)];
+
+               if ((swap = SEE_VALUES[(int)PieceType.Queen] - swap) < res)
+               {
+                  break;
+               }
+
+               attackers |= (GetBishopAttacks(to, occupied) & (PieceBB[(int)PieceType.Bishop] | PieceBB[(int)PieceType.Queen]).Value)
+                  | (GetRookAttacks(to, occupied) & (PieceBB[(int)PieceType.Rook] | PieceBB[(int)PieceType.Queen]).Value);
+            }
+            else
+            {
+               return ((attackers & ~ColorBB[stm].Value) != 0) ? (res ^ 1) != 0 : res != 0;
+            }
+         }
+
+         return res != 0;
+      }
+
       private int VerifyPhase()
       {
          int phase = 0;
@@ -874,9 +888,9 @@ namespace Puffin
          {
             int square = pieces.GetLSB();
             pieces.ClearLSB();
-            Piece piece = Mailbox[square];
+            Piece piece = Squares[square];
 
-            phase += PhaseValues[(int)piece.Type];
+            phase += PHASE_VALUES[(int)piece.Type];
          }
 
          return phase;

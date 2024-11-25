@@ -5,11 +5,12 @@ namespace Puffin
 {
    internal class TimeManager : ICloneable
    {
-      readonly Stopwatch StopWatch = new();
-      readonly int Overhead = 20;
-      bool Stopped = false;
-      double SoftTime = 0;
-      double MaxTime = 0;
+      private readonly Stopwatch StopWatch = new();
+      private readonly int Overhead = 20;
+      private bool Stopped = false;
+      private double SoftTime = 0;
+      private double MaxTime = 0;
+
       public int MaxDepth { get; set; } = MAX_PLY - 1;
       public int NodeLimit { get; private set; } = -1; // -1 is unlimited
 
