@@ -6,7 +6,7 @@ using System.Runtime.Intrinsics.X86;
 using static Puffin.TunableHelpers;
 
 const string Name = "Puffin";
-const string Version = "4.0";
+const string Version = "5.0";
 const string Author = "Kurt Peters";
 
 // These intrinsics aren't required. If they're not supported BitOperations will fall back to whatever is.
