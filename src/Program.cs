@@ -50,10 +50,27 @@ if (args.Length != 0)
       }
       else if (arg == "datagen")
       {
-         Datagen datagen = new();
-         Datagen.Run(int.Parse(args[i + 1]));
-         Environment.Exit(0);
-         break;
+         using var cancellationTokenSource = new CancellationTokenSource();
+         // Setup Ctrl+C handler
+         Console.CancelKeyPress += (sender, e) =>
+         {
+            Console.WriteLine("Stopping. Please wait...");
+            e.Cancel = true; // Prevent the process from terminating immediately
+            cancellationTokenSource.Cancel();
+         };
+
+         try
+         {
+            // Run your long-running method
+            Datagen datagen = new(cancellationTokenSource.Token);
+            datagen.Run(int.Parse(args[i + 1]));
+            Environment.Exit(0);
+            break;
+         }
+         catch (OperationCanceledException)
+         {
+            Console.WriteLine("Operation was cancelled.");
+         }
       }
       else if (arg == "tunetest")
       {

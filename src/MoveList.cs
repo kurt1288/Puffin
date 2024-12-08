@@ -38,6 +38,15 @@ namespace Puffin
          Count = 0;
       }
 
+      /// <summary>
+      /// NEVER USE THIS. ONLY FOR DATAGEN
+      /// </summary>
+      public void Reset()
+      {
+         Array.Clear(Moves, 0, Moves.Length);
+         Count = 0;
+      }
+
       public void SwapMoves(int index1, int index2)
       {
          var temp = Moves[index1];
