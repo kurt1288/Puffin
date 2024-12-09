@@ -8,6 +8,7 @@ namespace Puffin
       const int MAX_DEPTH = 5;
       const int MAX_NODES = 8000;
       const double PERCENT_POSTIIONS_FROM_GAME = 0.2;
+      const double PERCENT_POSTIIONS_FROM_DRAW_GAME = 0.1;
       static readonly Random random = new();
       static int gamesCompleted = 0;
       static int maxPositions = 0;
@@ -18,7 +19,7 @@ namespace Puffin
       public void Run(int targetFens)
       {
          maxPositions = targetFens;
-         string path = @$"./DataGen_Results_{DateTime.Now:yyyy-MM-dd, HH.mm.sss}";
+         string path = @$"./DataGen_Results";
 
          Thread[] threads = new Thread[Environment.ProcessorCount - 2];
          DirectoryInfo di = Directory.CreateDirectory(path);
@@ -68,9 +69,11 @@ namespace Puffin
          int total = positionsArray.Length;
 
          Console.WriteLine("Writing to datagen.epd...");
+         
+         using StreamWriter writer = new(Path.Combine(folderPath, "datagen.epd"), false);
+
          for (int i = 0; i < total; i++)
          {
-            using StreamWriter writer = new(Path.Combine(folderPath, "datagen.epd"), true);
             writer.WriteLine(positionsArray[i]);
 
             string[] parts = positionsArray[i].Split(" ");
@@ -144,11 +147,16 @@ namespace Puffin
             try
             {
                GeneratePositions(board, timeManager, table, info, search, cts, position);
+
+               // To cut down on the number of draw positions, take half as many positions from drawn games
+               // This keeps the overall draw positions to around 20-25% of the total
+               double percentage = position.WDL == 0.5 ? PERCENT_POSTIIONS_FROM_DRAW_GAME : PERCENT_POSTIIONS_FROM_GAME;
+
                Interlocked.Increment(ref gamesCompleted);
 
                string[] fens = position.FENS.ToArray();
                random.Shuffle(fens);
-               int length = (int)(fens.Length * PERCENT_POSTIIONS_FROM_GAME);
+               int length = (int)(fens.Length * percentage);
                Interlocked.Add(ref totalPositions, length);
 
                for (int i = 0; i < length; i++)
@@ -164,6 +172,10 @@ namespace Puffin
             catch (TimeoutException)
             {
                Console.WriteLine("Position took to long and timed out. Skipping...");
+            }
+            catch (Exception ex)
+            {
+               Console.WriteLine($"Exception during search: {ex}");
             }
             finally
             {

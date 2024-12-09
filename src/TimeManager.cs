@@ -77,6 +77,7 @@ namespace Puffin
          SoftTime = 0;
          MaxTime = 0;
          NodeLimit = -1;
+         Stopped = false;
          StopWatch.Reset();
       }
 
