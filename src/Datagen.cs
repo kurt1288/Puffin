@@ -155,13 +155,21 @@ namespace Puffin
 
                Interlocked.Increment(ref gamesCompleted);
 
-               string[] fens = position.FENS.ToArray();
+               string[] fens = position.FENS;
                Random.Shared.Shuffle(fens);
                int total = (int)(fens.Length * percentage);
                Interlocked.Add(ref totalPositions, total);
+               int count = 0;
 
-               for (int i = 0; i < total; i++)
+               for (int i = 0; i < fens.Length && count < total; i++)
                {
+                  // This is faster than creating a new array/span that contains only valid entries
+                  if (fens[i] == null)
+                  {
+                     continue;
+                  }
+
+                  count++;
                   writer.WriteLine($"{fens[i]} [{position.WDL:N1}]");
                }
 
@@ -399,20 +407,22 @@ namespace Puffin
       }
    }
 
-   internal struct Position()
+   internal class Position()
    {
-      public List<string> FENS = [];
+      public readonly string[] FENS = new string[512];
       public double WDL = -1;
+      public int Count = 0;
 
-      public readonly void AddFEN(string fen)
+      public void AddFEN(string fen)
       {
-         FENS.Add(fen);
+         FENS[Count++] = fen;
       }
 
       public void Reset()
       {
-         FENS.Clear();
+         Array.Clear(FENS);
          WDL = -1;
+         Count = 0;
       }
    }
 }
