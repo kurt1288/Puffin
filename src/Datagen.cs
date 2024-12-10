@@ -1,20 +1,21 @@
 using System.Diagnostics;
+using System.Text;
 using static Puffin.Constants;
 
 namespace Puffin
 {
    internal class Datagen(CancellationToken cancellationToken)
    {
-      const int MAX_DEPTH = 5;
+      const int MAX_DEPTH = 10;
       const int MAX_NODES = 8000;
       const double PERCENT_POSTIIONS_FROM_GAME = 0.2;
       const double PERCENT_POSTIIONS_FROM_DRAW_GAME = 0.1;
-      static readonly Random random = new();
       static int gamesCompleted = 0;
       static int maxPositions = 0;
       static int totalPositions = 0;
       static string folderPath = string.Empty;
       readonly static Stopwatch sw = new();
+      internal static readonly string[] sideToMove = ["w", "b"];
 
       public void Run(int targetFens)
       {
@@ -131,22 +132,22 @@ namespace Puffin
 
       private void Generate()
       {
-         string path = Path.Combine(folderPath, @$"./{Thread.CurrentThread.Name}.epd");
-         using StreamWriter writer = new(path, true);
          Board board = new();
          TranspositionTable table = new();
          TimeManager timeManager = new();
          Position position = new();
          SearchInfo info = new();
          Search search = new(board, timeManager, ref table, info, new(1, ref table));
+         using StreamWriter writer = new(Path.Combine(folderPath, @$"./{Thread.CurrentThread.Name}.epd"), true);
 
          while (totalPositions < maxPositions && !cancellationToken.IsCancellationRequested)
          {
-            CancellationTokenSource cts = new(TimeSpan.FromMinutes(4)); // This should spend, at most, 4 minutes on a single game
+            using CancellationTokenSource gameTimeout = new(TimeSpan.FromMinutes(1)); // Games shouldn't take more than a minute. If they do, forcefully end them.
+            using CancellationTokenSource combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, gameTimeout.Token);
 
             try
             {
-               GeneratePositions(board, timeManager, table, info, search, cts, position);
+               GeneratePositions(board, timeManager, table, info, search, combinedCts, position);
 
                // To cut down on the number of draw positions, take half as many positions from drawn games
                // This keeps the overall draw positions to around 20-25% of the total
@@ -155,11 +156,11 @@ namespace Puffin
                Interlocked.Increment(ref gamesCompleted);
 
                string[] fens = position.FENS.ToArray();
-               random.Shuffle(fens);
-               int length = (int)(fens.Length * percentage);
-               Interlocked.Add(ref totalPositions, length);
+               Random.Shared.Shuffle(fens);
+               int total = (int)(fens.Length * percentage);
+               Interlocked.Add(ref totalPositions, total);
 
-               for (int i = 0; i < length; i++)
+               for (int i = 0; i < total; i++)
                {
                   writer.WriteLine($"{fens[i]} [{position.WDL:N1}]");
                }
@@ -169,48 +170,52 @@ namespace Puffin
                   Console.WriteLine($"Games: {gamesCompleted}. FENs: {totalPositions}. F/s: {1000 * (long)totalPositions / sw.ElapsedMilliseconds}. Total time: {sw.Elapsed:hh\\:mm\\:ss}. Estimated time remaining: {TimeSpan.FromMilliseconds((maxPositions - totalPositions) * (sw.ElapsedMilliseconds / totalPositions)):d\\.hh\\:mm\\:ss}");
                }
             }
-            catch (TimeoutException)
+            catch (TimeoutException ex)
             {
-               Console.WriteLine("Position took to long and timed out. Skipping...");
+               // Could catch here if user does Ctrl+C, so don't show this message in that case
+               if (gameTimeout.IsCancellationRequested)
+               {
+                  Console.WriteLine($"{ex.Message}");
+               }
             }
             catch (Exception ex)
             {
                Console.WriteLine($"Exception during search: {ex}");
             }
-            finally
-            {
-               cts.Dispose();
-            }
          }
-
-         writer.Close();
       }
 
       private static void GeneratePositions(Board board, TimeManager timeManager, TranspositionTable table, SearchInfo info, Search search, CancellationTokenSource cts, Position positions)
       {
          positions.Reset();
-         table.Reset();
-         timeManager.Reset();
-         timeManager.MaxDepth = 8;
-         info.ResetAll();
          MoveList moveList = new();
 
          while (true)
          {
+            if (cts.IsCancellationRequested)
+            {
+               throw new TimeoutException($"Too many loops trying to set up game: {Thread.CurrentThread.Name}");
+            }
+
             board.SetPosition(START_POS);
 
+            // If the game failed to initialize to a valid start position, try again
             if (!GetRandomPosition(board, moveList, cts))
             {
                continue;
             }
 
+            table.Reset();
+            timeManager.Reset();
+            info.ResetAll();
+
             // Do a quick search of the position, and if the score is too large (for either side), discard the position entirely
+            timeManager.MaxDepth = MAX_DEPTH;
             timeManager.Restart();
             search.Run();
-            timeManager.Stop();
 
             // Get a new position if this one is too lopsided
-            if (Math.Abs(info.Score) > 500)
+            if (Math.Abs(info.Score) > 1000)
             {
                continue;
             }
@@ -218,6 +223,8 @@ namespace Puffin
             break;
          }
 
+         table.Reset();
+         timeManager.Reset();
          info.ResetAll();
          timeManager.MaxDepth = MAX_PLY;
          timeManager.SetNodeLimit(MAX_NODES);
@@ -231,55 +238,49 @@ namespace Puffin
 
             timeManager.Restart();
             search.Run();
-            timeManager.Stop();
             Move bestMove = info.GetBestMove();
 
-            // Adjudicate large scores or easy winnable positions
-            if (Math.Abs(info.Score) > 1000 || board.IsWon())
+            // Game over
+            if (bestMove == 0)
             {
-               positions.WDL = info.Score > 0 ? (int)board.SideToMove ^ 1 : (int)board.SideToMove;
+               Debug.Assert(IsMate(board));
+
+               positions.WDL = board.InCheck ? (int)board.SideToMove ^ 1 : 0.5;
                break;
             }
 
-            // Conditions under which the positions should NOT be saved:
-            // 1. Best move is a capture
-            // 2. Best move is a promotion
-            // 3. Side to move is in check
-            // 4. Evaluation score value is a mate value
-            // 5. Less than 2 non-pawn pieces
-            if (!bestMove.HasType(MoveType.Capture)
-               && !bestMove.HasType(MoveType.Promotion)
-               && !board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1)
-               && Math.Abs(info.Score) < MATE - MAX_PLY
-               && board.NonPawnMaterial.CountBits() >= 2) {
+            // Adjudicate wins/losses or long drawn games
+            if (Math.Abs(info.Score) > 5000 || board.IsWon())
+            {
+               positions.WDL = info.Score > 0 ? (int)board.SideToMove ^ 1 : (int)board.SideToMove;
+            }
+            else if (board.History.Count > 40 && board.Halfmoves > 5 && (info.Score is >= -10 and <= 10))
+            {
+               positions.WDL = 0.5;
+            }
+
+            board.MakeMove(bestMove);
+
+            // Forced draw
+            if (board.IsThreefold() || board.Halfmoves >= 100 || board.IsDrawn())
+            {
+               positions.WDL = 0.5;
+               break;
+            }
+
+            bool skipFEN =
+               bestMove.HasType(MoveType.Capture)
+               || bestMove.HasType(MoveType.Promotion)
+               || bestMove.IsCastle()
+               || board.InCheck;
+
+            if (!skipFEN)
+            {
                positions.AddFEN(ToFEN(board));
             }
 
-            if (bestMove == 0 || !board.MakeMove(bestMove))
+            if (positions.WDL != -1)
             {
-               Console.WriteLine("No valid bestmove");
-               break;
-            }
-
-            // If the game has ended via checkmate or stalemate
-            if (IsMate(board))
-            {
-               if (board.IsAttacked(board.GetSquareByPiece(PieceType.King, board.SideToMove), (int)board.SideToMove ^ 1))
-               {
-                  positions.WDL = (int)board.SideToMove ^ 1;
-               }
-               else
-               {
-                  positions.WDL = 0.5;
-               }
-
-               break;
-            }
-
-            // Adjudicate draws
-            if ((board.History.Count > 40 && board.Halfmoves > 4 && (info.Score is >= -15 and <= 15)) || board.Halfmoves >= 100 || board.IsDrawn())
-            {
-               positions.WDL = 0.5;
                break;
             }
          }
@@ -287,7 +288,7 @@ namespace Puffin
 
       private static bool GetRandomPosition(Board board, MoveList moveList, CancellationTokenSource cts)
       {
-         int total = 8 + (random.Next(0, 2) % 2);
+         int total = 8 + (Random.Shared.Next(0, 2) % 2);
          bool foundMove = false;
 
          // Play 8 or 9 random moves
@@ -297,11 +298,10 @@ namespace Puffin
             moveList.Reset();
             MoveGen.GenerateQuiet(moveList, board);
             MoveGen.GenerateNoisy(moveList, board);
-            moveList.Shuffle();
+            moveList.Shuffle(Random.Shared);
 
             for (int j = 0; j < 218; j++) // 218 is the max length for the moves array
             {
-               // Make sure the random move to play is legal
                if (cts.IsCancellationRequested)
                {
                   throw new TimeoutException($"Too many loops in GetRandomPosition: {Thread.CurrentThread.Name}");
@@ -338,7 +338,7 @@ namespace Puffin
       private static string ToFEN(Board board)
       {
          string[] pieces = ["P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"];
-         string fen = string.Empty;
+         StringBuilder fen = new();
 
          for (int rank = 0; rank < 8; rank++)
          {
@@ -357,27 +357,27 @@ namespace Puffin
 
                if (empty > 0)
                {
-                  fen += empty.ToString();
+                  fen.Append(empty);
                   empty = 0;
                }
 
-               fen += pieces[(int)piece.Type + (6 * (int)piece.Color)];
+               fen.Append(pieces[(int)piece.Type + (6 * (int)piece.Color)]);
             }
 
             if (empty > 0)
             {
-               fen += empty.ToString();
+               fen.Append(empty);
             }
 
             if (rank < 7)
             {
-               fen += "/";
+               fen.Append('/');
             }
          }
 
-         fen += $" {new string[] { "w", "b" }[(int)board.SideToMove]} - - 0 1";
+         fen.Append($" {sideToMove[(int)board.SideToMove]} - - 0 1");
 
-         return fen;
+         return fen.ToString();
       }
       
       private static bool IsMate(Board board)
@@ -399,12 +399,12 @@ namespace Puffin
       }
    }
 
-   internal sealed class Position
+   internal struct Position()
    {
       public List<string> FENS = [];
       public double WDL = -1;
 
-      public void AddFEN(string fen)
+      public readonly void AddFEN(string fen)
       {
          FENS.Add(fen);
       }

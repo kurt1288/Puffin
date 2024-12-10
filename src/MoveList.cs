@@ -13,9 +13,8 @@ namespace Puffin
          get => ref Moves[index].Move;
       }
 
-      public void Shuffle()
+      public void Shuffle(Random rnd)
       {
-         Random rnd = new();
          rnd.Shuffle(Moves);
       }
 

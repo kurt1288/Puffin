@@ -604,6 +604,26 @@ namespace Puffin
          return false;
       }
 
+      public bool IsThreefold()
+      {
+         if (Halfmoves < 4 || History.Count <= 1)
+         {
+            return false;
+         }
+
+         int last = Math.Max(History.Count - Halfmoves, 0);
+
+         for (int i = History.Count - 4; i >= last; i -= 2)
+         {
+            if (History[i].Hash == Hash)
+            {
+               return true;
+            }
+         }
+
+         return false;
+      }
+
       public bool IsPseudoLegal(Move move)
       {
          // Null move?
