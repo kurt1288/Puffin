@@ -34,6 +34,11 @@ namespace Puffin
 
       public override string ToString()
       {
+         if (Encoded == 0)
+         {
+            return "0000";
+         }
+
          string str = $"{Enum.GetName(typeof(Square), From).ToLower()}{Enum.GetName(typeof(Square), To).ToLower()}";
 
          if (HasType(MoveType.Promotion))
