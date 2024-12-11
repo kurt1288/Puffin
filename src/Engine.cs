@@ -139,14 +139,12 @@ namespace Puffin
       public void UCIParseGo(string[] command)
       {
          Timer.Reset();
-         int wtime = 0;
-         int btime = 0;
-         int winc = 0;
-         int binc = 0;
-         int movestogo = 0;
-         int movetime = 0;
-         int depth = 0;
-         int nodes = 0;
+
+         int whiteTime = -1;
+         int blackTime = -1;
+         int whiteInc = 0;
+         int blackInc = 0;
+         int movesToGo = 40; // default to 40
 
          for (int i = 0; i < command.Length; i += 2)
          {
@@ -156,48 +154,52 @@ namespace Puffin
             {
                case "wtime":
                   {
-                     wtime = int.Parse(command[i + 1]);
+                     whiteTime = int.Parse(command[i + 1]);
                      break;
                   }
                case "btime":
                   {
-                     btime = int.Parse(command[i + 1]);
+                     blackTime = int.Parse(command[i + 1]);
                      break;
                   }
                case "winc":
                   {
-                     winc = int.Parse(command[i + 1]);
+                     whiteInc = int.Parse(command[i + 1]);
                      break;
                   }
                case "binc":
                   {
-                     binc = int.Parse(command[i + 1]);
+                     blackInc = int.Parse(command[i + 1]);
                      break;
                   }
                case "movestogo":
                   {
-                     movestogo = int.Parse(command[i + 1]);
+                     movesToGo = int.Parse(command[i + 1]);
                      break;
                   }
                case "movetime":
                   {
-                     movetime = int.Parse(command[i + 1]);
+                     Timer.ConfigureMoveTime(int.Parse(command[i + 1]));
                      break;
                   }
                case "depth":
                   {
-                     depth = Math.Clamp(int.Parse(command[1]), 1, MAX_PLY - 1);
+                     Timer.ConfigureDepth(int.Parse(command[i + 1]));
                      break;
                   }
                case "nodes":
                   {
-                     nodes = int.Parse(command[1]);
+                     Timer.ConfigureNodes(int.Parse(command[i + 1]));
                      break;
                   }
             }
          }
 
-         Timer.SetLimits(Board.SideToMove == Color.White ? wtime : btime, Board.SideToMove == Color.White ? winc : binc, movestogo, movetime, depth, nodes);
+         // Configure time based on side to move, outside the switch-case
+         int time = Board.SideToMove == Color.White ? whiteTime : blackTime;
+         int inc = Board.SideToMove == Color.White ? whiteInc : blackInc;
+
+         Timer.ConfigureTime(time, inc, movesToGo);
 
          SearchManager.StartSearches(Timer, Board);
       }

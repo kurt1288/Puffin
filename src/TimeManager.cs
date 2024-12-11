@@ -5,11 +5,11 @@ namespace Puffin
 {
    internal class TimeManager : ICloneable
    {
+      private const int Overhead = 20;
       private readonly Stopwatch StopWatch = new();
-      private readonly int Overhead = 20;
       private bool Stopped = false;
-      private double SoftTime = 0;
-      private double MaxTime = 0;
+      private double SoftTime = -1;
+      private double MaxTime = -1;
 
       public int MaxDepth { get; set; } = MAX_PLY - 1;
       public int NodeLimit { get; private set; } = -1; // -1 is unlimited
@@ -30,27 +30,38 @@ namespace Puffin
          return new TimeManager(this);
       }
 
-      public void SetLimits(int time, int inc, int movestogo, int movetime, int depth, int nodes)
+      public void ConfigureDepth(int depth)
       {
-         MaxDepth = depth != 0 ? Math.Min(depth, MAX_PLY - 1) : MAX_PLY - 1;
-         NodeLimit = nodes != 0 ? nodes : -1;
-         int movesToGo = movestogo != 0 ? Math.Min(movestogo, 40) : 40;
+         MaxDepth = depth > 0 ? Math.Min(depth, MAX_PLY - 1) : MAX_PLY - 1;
+      }
 
-         if (movetime != 0)
+      public void ConfigureNodes(int nodes)
+      {
+         NodeLimit = nodes > 0 ? nodes : -1;
+      }
+
+      public void ConfigureTime(int time, int inc, int movestogo)
+      {
+         if (time < 0)
+         {
+            return;
+         }
+
+         movestogo = Math.Min(movestogo, 40);
+         double baseTimePerMove = time / (double)movestogo;
+         double increment = inc * 0.8;
+
+         SoftTime = (int)Math.Max(0, (0.75 * (baseTimePerMove + increment)) - Overhead);
+         MaxTime = (int)Math.Max(0, Math.Min((time * 0.75) + inc, time) - Overhead);
+      }
+
+      public void ConfigureMoveTime(int movetime)
+      {
+         if (movetime >= 0)
          {
             SoftTime = movetime;
             MaxTime = movetime;
          }
-         else if (time != 0)
-         {
-            SoftTime = (0.75 * ((time / movesToGo) + (inc * 0.8))) - Overhead;
-            MaxTime = Math.Min((time * 0.75) + inc, time) - Overhead;
-         }
-      }
-
-      public void SetNodeLimit(int nodeLimit)
-      {
-         NodeLimit = nodeLimit;
       }
 
       public void Start()
@@ -74,8 +85,8 @@ namespace Puffin
       public void Reset()
       {
          MaxDepth = MAX_PLY - 1;
-         SoftTime = 0;
-         MaxTime = 0;
+         SoftTime = -1;
+         MaxTime = -1;
          NodeLimit = -1;
          Stopped = false;
          StopWatch.Reset();
@@ -95,13 +106,13 @@ namespace Puffin
 
          long elapsedTime = StopWatch.ElapsedMilliseconds;
 
-         if (SoftTime != 0 && newIteration && elapsedTime >= SoftTime)
+         if (SoftTime >= 0 && newIteration && elapsedTime >= SoftTime)
          {
             Stop();
             return true;
          }
 
-         if (MaxTime != 0 && elapsedTime >= MaxTime)
+         if (MaxTime >= 0 && elapsedTime >= MaxTime)
          {
             Stop();
             return true;

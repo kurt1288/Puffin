@@ -235,7 +235,7 @@ namespace Puffin
          timeManager.Reset();
          info.ResetAll();
          timeManager.MaxDepth = MAX_PLY;
-         timeManager.SetNodeLimit(MAX_NODES);
+         timeManager.ConfigureNodes(MAX_NODES);
 
          while (true)
          {

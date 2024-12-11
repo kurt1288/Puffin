@@ -7,7 +7,7 @@ namespace Puffin
       public void Run()
       {
          TimeManager Timer = new();
-         Timer.SetLimits(0, 0, 0, 0, depth, 0);
+         Timer.ConfigureDepth(depth);
 
          long totalNodes = 0;
          double totalMs = 0;
