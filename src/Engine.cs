@@ -140,10 +140,11 @@ namespace Puffin
       {
          Timer.Reset();
 
-         int whiteTime = -1;
-         int blackTime = -1;
-         int whiteInc = 0;
-         int blackInc = 0;
+         bool setTime = false;
+         int wTime = -1;
+         int bTime = -1;
+         int wInc = 0;
+         int bInc = 0;
          int movesToGo = 40; // default to 40
 
          for (int i = 0; i < command.Length; i += 2)
@@ -154,22 +155,26 @@ namespace Puffin
             {
                case "wtime":
                   {
-                     whiteTime = int.Parse(command[i + 1]);
+                     setTime = true;
+                     wTime = int.Parse(command[i + 1]);
                      break;
                   }
                case "btime":
                   {
-                     blackTime = int.Parse(command[i + 1]);
+                     setTime = true;
+                     bTime = int.Parse(command[i + 1]);
                      break;
                   }
                case "winc":
                   {
-                     whiteInc = int.Parse(command[i + 1]);
+                     setTime = true;
+                     wInc = int.Parse(command[i + 1]);
                      break;
                   }
                case "binc":
                   {
-                     blackInc = int.Parse(command[i + 1]);
+                     setTime = true;
+                     bInc = int.Parse(command[i + 1]);
                      break;
                   }
                case "movestogo":
@@ -195,11 +200,14 @@ namespace Puffin
             }
          }
 
-         // Configure time based on side to move, outside the switch-case
-         int time = Board.SideToMove == Color.White ? whiteTime : blackTime;
-         int inc = Board.SideToMove == Color.White ? whiteInc : blackInc;
+         if (setTime)
+         {
+            // Configure time based on side to move, outside the switch-case
+            int time = Board.SideToMove == Color.White ? wTime : bTime;
+            int inc = Board.SideToMove == Color.White ? wInc : bInc;
 
-         Timer.ConfigureTime(time, inc, movesToGo);
+            Timer.ConfigureTime(time, inc, movesToGo);
+         }
 
          SearchManager.StartSearches(Timer, Board);
       }

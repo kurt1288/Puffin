@@ -7,12 +7,12 @@ namespace Puffin
    {
       private const int Overhead = 20;
       private readonly Stopwatch StopWatch = new();
-      private bool Stopped = false;
       private double SoftTime = -1;
       private double MaxTime = -1;
+      private int NodeLimit = -1;
 
+      public bool Stopped { get; private set; } = false;
       public int MaxDepth { get; set; } = MAX_PLY - 1;
-      public int NodeLimit { get; private set; } = -1; // -1 is unlimited
 
       public TimeManager() { }
 
@@ -44,7 +44,7 @@ namespace Puffin
       {
          if (time < 0)
          {
-            return;
+            time = 0;
          }
 
          movestogo = Math.Min(movestogo, 40);
@@ -57,11 +57,13 @@ namespace Puffin
 
       public void ConfigureMoveTime(int movetime)
       {
-         if (movetime >= 0)
+         if (movetime < 0)
          {
-            SoftTime = movetime;
-            MaxTime = movetime;
+            movetime = 0;
          }
+
+         SoftTime = movetime;
+         MaxTime = movetime;
       }
 
       public void Start()
@@ -97,10 +99,16 @@ namespace Puffin
          return StopWatch.ElapsedMilliseconds;
       }
 
-      public bool LimitReached(bool newIteration)
+      public bool LimitReached(bool newIteration, int nodes)
       {
          if (Stopped)
          {
+            return true;
+         }
+
+         if (NodeLimit >= 0 && nodes > NodeLimit)
+         {
+            Stop();
             return true;
          }
 

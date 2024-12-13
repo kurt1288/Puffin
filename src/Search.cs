@@ -72,17 +72,11 @@ namespace Puffin
          int alpha = -INFINITY;
          int beta = INFINITY;
          int score = 0;
-         bool stop;
+         bool mainThread = Thread.CurrentThread.Name == "Thread 0";
 
          // Iterative deepening
-         for (int i = 1; i <= TimeManager.MaxDepth && (stop = TimeManager.LimitReached(true)) != true; i++)
+         for (int i = 1; i <= TimeManager.MaxDepth; i++)
          {
-            if (TimeManager.NodeLimit > 0 && ThreadInfo.Nodes >= TimeManager.NodeLimit)
-            {
-               TimeManager.Stop();
-               break;
-            }
-
             int margin = ASP_Margin;
 
             // Use aspiration windows at higher depths
@@ -117,19 +111,21 @@ namespace Puffin
             }
             catch (TimeoutException)
             {
-               stop = true;
+               break;
             }
 
-            if (!stop)
+            if (mainThread)
             {
-               if (Thread.CurrentThread.Name == "Thread 0")
-               {
-                  Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {ThreadManager.GetTotalNodes()} nps {Math.Round((double)(ThreadManager.GetTotalNodes() / Math.Max(TimeManager.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {TimeManager.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
-               }
+               Console.WriteLine($@"info depth {i} score {FormatScore(score)} nodes {ThreadManager.GetTotalNodes()} nps {Math.Round((double)(ThreadManager.GetTotalNodes() / Math.Max(TimeManager.GetElapsedMs(), 1)), 0)} hashfull {TTable.GetUsed()} time {TimeManager.GetElapsedMs()} pv {ThreadInfo.GetPv()}");
+            }
+
+            if (TimeManager.LimitReached(true, ThreadInfo.Nodes))
+            {
+               break;
             }
          }
 
-         if (Thread.CurrentThread.Name == "Thread 0")
+         if (mainThread)
          {
             Console.WriteLine($"bestmove {ThreadInfo.GetBestMove()}");
          }
@@ -137,7 +133,7 @@ namespace Puffin
 
       private int NegaScout(int alpha, int beta, int depth, int ply, bool doNull)
       {
-         if (ThreadInfo.Nodes % 1024 == 0 && TimeManager.LimitReached(false))
+         if ((ThreadInfo.Nodes & 2047) == 0 && TimeManager.LimitReached(false, ThreadInfo.Nodes))
          {
             throw new TimeoutException();
          }
@@ -392,7 +388,7 @@ namespace Puffin
 
       private int Quiescence(int alpha, int beta, int ply, bool isPVNode)
       {
-         if (ThreadInfo.Nodes % 1024 == 0 && TimeManager.LimitReached(false))
+         if ((ThreadInfo.Nodes & 2047) == 0 && TimeManager.LimitReached(false, ThreadInfo.Nodes))
          {
             throw new TimeoutException();
          }
