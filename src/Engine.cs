@@ -314,6 +314,36 @@ namespace Puffin
                   GenerateLMReductionTable();
                   break;
                }
+            case "LMR_Noisy_Reduction_Base":
+               {
+                  Search.LMR_Noisy_Reduction_Base = value / 100;
+                  break;
+               }
+            case "LMR_Noisy_Reduction_Multiplier":
+               {
+                  Search.LMR_Noisy_Reduction_Multiplier = value / 100;
+                  break;
+               }
+            case "SEE_Noisy_Threshold":
+               {
+                  Search.SEE_Noisy_Threshold = value;
+                  break;
+               }
+            case "SEE_Quiet_Threshold":
+               {
+                  Search.SEE_Quiet_Threshold = value;
+                  break;
+               }
+            case "QS_SEE_MARGIN":
+               {
+                  Search.QS_SEE_MARGIN = value;
+                  break;
+               }
+            case "QS_FUTILITY_MARGIN":
+               {
+                  Search.QS_FUTILITY_MARGIN = value;
+                  break;
+               }
             default:
                {
                   Console.WriteLine($"Unknown or unsupported option: {option[1]}");

@@ -25,27 +25,31 @@ namespace Puffin
       [Tunable(min: 50, max: 200, step: 25)]
       public static int FP_Margin { get; set; } = 80;
 
-      [Tunable(min: 0.1, max: 2.0, step: 0.5)]
+      [Tunable(min: 0.5, max: 2.0, step: 0.75)]
       public static double LMR_Quiet_Reduction_Base { get; set; } = 1.6;
 
+      [Tunable(min: 0.1, max: 1.0, step: 0.75)]
       public static double LMR_Noisy_Reduction_Base { get; set; } = 0.3;
 
-      [Tunable(min: 0.1, max: 1.0, step: 0.5)]
+      [Tunable(min: 0.1, max: 1.5, step: 0.75)]
       public static double LMR_Quiet_Reduction_Multiplier { get; set; } = 0.4;
 
+      [Tunable(min: 0.1, max: 1.5, step: 0.75)]
       public static double LMR_Noisy_Reduction_Multiplier { get; set; } = 0.3;
 
+      [Tunable(min: -150, max: -50, step: 25)]
       public static int SEE_Noisy_Threshold { get; set; } = -90;
 
+      [Tunable(min: -100, max: -20, step: 25)]
       public static int SEE_Quiet_Threshold { get; set; } = -40;
 
+      [Tunable(min: -120, max: -30, step: 25)]
       public static int QS_SEE_MARGIN { get; set; } = -50;
 
+      [Tunable(min: 100, max: 200, step: 25)]
       public static int QS_FUTILITY_MARGIN { get; set; } = 160;
-
       #endregion
 
-      #region Non-SPSA Parameters (Depth and Move Thresholds)
       public static int ASP_Min_Depth { get; set; } = 4;
       public static int NMP_Min_Depth { get; set; } = 3;
       public static int RFP_Max_Depth { get; set; } = 10;
@@ -55,7 +59,6 @@ namespace Puffin
       public static int LMP_Max_Depth { get; set; } = 8;
       public static int LMP_Min_Margin { get; set; } = 5;
       public static int IIR_Min_Depth { get; set; } = 5;
-      #endregion
 
       private void PrintInfo(int depth)
       {
@@ -489,7 +492,7 @@ namespace Puffin
             if (bestScore > -MATING)
             {
                // poor eval and the move doesn't win material
-               if (!move.HasType(MoveType.Promotion) && futility <= alpha && !Board.SEE_GE(move, 1))
+               if (!inCheck && futility <= alpha && !Board.SEE_GE(move, 1))
                {
                   if (futility >= bestScore)
                   {
