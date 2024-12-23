@@ -9,6 +9,7 @@ namespace Puffin
       public const int MAX_PLY = 254;
       public const int INFINITY = 30000;
       public const int MATE = 20000;
+      public const int MATING = MATE - 1000;
 
       public readonly static ulong[] SquareBB = new ulong[64];
       public readonly static ulong[][] BetweenBB = new ulong[64][];

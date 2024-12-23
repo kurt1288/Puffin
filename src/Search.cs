@@ -41,6 +41,8 @@ namespace Puffin
 
       public static int QS_SEE_MARGIN { get; set; } = -50;
 
+      public static int QS_FUTILITY_MARGIN { get; set; } = 160;
+
       #endregion
 
       #region Non-SPSA Parameters (Depth and Move Thresholds)
@@ -428,6 +430,7 @@ namespace Puffin
 
          bool ttValid = TTable.Probe(Board.Hash, ply, out TTEntry entry);
          ushort ttMove = 0;
+         int futility = -INFINITY;
 
          if (ttValid)
          {
@@ -453,17 +456,28 @@ namespace Puffin
             }
          }
 
-         int bestScore = Evaluation.Evaluate(Board);
+         bool inCheck = Board.InCheck;
+         int staticEval = -INFINITY;
+         int bestScore = -INFINITY;
 
-         if (bestScore >= beta)
+         if (!inCheck)
          {
-            return bestScore;
-         }
-         else if (bestScore > alpha)
-         {
-            alpha = bestScore;
+            staticEval = Evaluation.Evaluate(Board);
+
+            if (staticEval >= beta)
+            {
+               return staticEval;
+            }
+            else if (staticEval > alpha)
+            {
+               alpha = staticEval;
+            }
+
+            bestScore = staticEval;
+            futility = staticEval + QS_FUTILITY_MARGIN;
          }
 
+         int legalMoves = 0;
          Move bestMove = new();
          HashFlag flag = HashFlag.Alpha;
          Span<(Move, int)> moveBuffer = stackalloc (Move, int)[218];
@@ -472,15 +486,23 @@ namespace Puffin
 
          while (moves.Next(ref list) is Move move)
          {
-            // Delta pruning
-            if (((move.HasType(MoveType.Promotion) ? 1 : 0) * Evaluation.GetPieceValue(PieceType.Queen, Board)) + bestScore + Evaluation.GetPieceValue(Board.Squares[move.To].Type, Board) + 200 < alpha)
+            if (bestScore > -MATING)
             {
-               continue;
-            }
+               // poor eval and the move doesn't win material
+               if (!move.HasType(MoveType.Promotion) && futility <= alpha && !Board.SEE_GE(move, 1))
+               {
+                  if (futility >= bestScore)
+                  {
+                     bestScore = futility;
+                  }
 
-            if (!Board.SEE_GE(move, QS_SEE_MARGIN))
-            {
-               continue;
+                  continue;
+               }
+
+               if (!Board.SEE_GE(move, QS_SEE_MARGIN))
+               {
+                  continue;
+               }
             }
 
             if (!Board.MakeMove(move))
@@ -491,6 +513,7 @@ namespace Puffin
 
             Board.MoveStack[ply] = (move, Board.Squares[move.To]);
             Nodes += 1;
+            legalMoves++;
 
             int score = -Quiescence(-beta, -alpha, ply + 1, isPVNode);
 
@@ -513,6 +536,11 @@ namespace Puffin
                flag = HashFlag.Beta;
                break;
             }
+         }
+
+         if (legalMoves == 0 && inCheck)
+         {
+            return -MATE + ply;
          }
 
          TTable.SaveEntry(Board.Hash, 0, ply, bestMove.GetEncoded(), bestScore, flag);
