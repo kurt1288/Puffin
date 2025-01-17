@@ -263,25 +263,27 @@ namespace Puffin
          {
             bool isQuiet = !move.HasType(MoveType.Capture) && !move.HasType(MoveType.Promotion);
 
-            if (isQuiet && !isRoot)
+            if (!isRoot && bestScore > -MATING)
             {
                // Late move pruning
-               if (depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * (improving ? 2 : 1))
+               if (isQuiet && depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * (improving ? 2 : 1))
                {
                   moves.NoisyOnly = true;
+                  continue;
                }
 
                // Futility pruning
-               if (depth <= FP_Max_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
+               if (isQuiet && depth <= FP_Max_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
                   moves.NoisyOnly = true;
+                  continue;
                }
-            }
 
-            // SEE pruning
-            if (!isPVNode && moves.Stage > Stage.Noisy && !Board.SEE_GE(move, (isQuiet ? SEE_Quiet_Threshold : SEE_Noisy_Threshold) * depth))
-            {
-               continue;
+               // SEE pruning
+               if (!isPVNode && moves.Stage > Stage.Noisy && !Board.SEE_GE(move, (isQuiet ? SEE_Quiet_Threshold : SEE_Noisy_Threshold) * depth))
+               {
+                  continue;
+               }
             }
 
             if (!Board.MakeMove(move))
