@@ -20,9 +20,11 @@ namespace Puffin
       public History History { get; } = new();
       public Score[] MaterialScore { get; } = [new(0, 0), new(0, 0)];
       public (Move Move, Piece Piece)[] MoveStack { get; private set; } = new (Move Move, Piece Piece)[1000]; // arbitrary 1000 moves max
+      public Bitboard Checkers { get; private set; } = new();
+      public int[] KingSquares { get; private set; } = [];
 
       public ulong Hash => UniqueHash;
-      public bool InCheck => IsAttacked(GetSquareByPiece(PieceType.King, SideToMove), (int)SideToMove ^ 1);
+      public bool InCheck => Checkers.CountBits() != 0;
 
       public Bitboard ColorPieceBB(Color color, PieceType piece) => ColorBB[(int)color] & PieceBB[(int)piece];
       public Bitboard ColorBoard(Color color) => ColorBB[(int)color];
@@ -55,6 +57,8 @@ namespace Puffin
          Halfmoves = other.Halfmoves;
          Phase = other.Phase;
          UniqueHash = other.Hash;
+         Checkers = other.Checkers;
+         KingSquares = other.KingSquares;
          Array.Copy(other.Squares, Squares, Squares.Length);
          Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
          Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);
@@ -92,6 +96,8 @@ namespace Puffin
          MaterialScore[(int)Color.White] = new Score(0, 0);
          MaterialScore[(int)Color.Black] = new Score(0, 0);
          UniqueHash = 0;
+         Checkers = new();
+         KingSquares = [];
       }
 
       public void SetPosition(string fen)
@@ -171,7 +177,9 @@ namespace Puffin
                Halfmoves = halfMoves;
             }
 
+            KingSquares = [GetSquareByPiece(PieceType.King, Color.White), GetSquareByPiece(PieceType.King, Color.Black)];
             UniqueHash = Zobrist.GenerateHash(this);
+            Checkers = new(AttackersTo(KingSquares[(int)SideToMove], ColorBB[(int)Color.Both].Value) & ColorBB[(int)SideToMove ^ 1].Value);
          }
          catch
          {
@@ -310,9 +318,14 @@ namespace Puffin
          ulong castleRightsToRemove = 0;
 
          // Update castling rights if the king moves
-         if (piece.Type == PieceType.King && (CastleSquares & homeRank) != 0)
+         if (piece.Type == PieceType.King)
          {
-            castleRightsToRemove |= CastleSquares & homeRank;
+            KingSquares[(int)SideToMove] = move.To;
+
+            if ((CastleSquares & homeRank) != 0)
+            {
+               castleRightsToRemove |= CastleSquares & homeRank;
+            }
          }
 
          // Update castling rights if a rook moves or is captured
@@ -326,6 +339,7 @@ namespace Puffin
          }
 
          SideToMove ^= (Color)1;
+         Checkers = new(AttackersTo(KingSquares[(int)SideToMove], ColorBB[(int)Color.Both].Value) & ColorBB[(int)SideToMove ^ 1].Value);
 
          Zobrist.UpdateSideToMove(ref UniqueHash);
 
@@ -334,7 +348,7 @@ namespace Puffin
          Debug.Assert(MaterialScore[0] == Evaluation.Material(this, Color.White));
          Debug.Assert(MaterialScore[1] == Evaluation.Material(this, Color.Black));
 
-         return !IsAttacked(GetSquareByPiece(PieceType.King, SideToMove ^ (Color)1), (int)SideToMove);
+         return !IsAttacked(KingSquares[(int)SideToMove ^ 1], (int)SideToMove);
       }
 
       public void MakeNullMove()
@@ -409,6 +423,12 @@ namespace Puffin
             }
          }
 
+         if (piece.Type == PieceType.King)
+         {
+            KingSquares[(int)SideToMove] = move.From;
+         }
+
+         Checkers = new(AttackersTo(KingSquares[(int)SideToMove], ColorBB[(int)Color.Both].Value) & ColorBB[(int)SideToMove ^ 1].Value);
          Phase = previousState.Phase;
          UniqueHash = previousState.Hash;
          Debug.Assert(Zobrist.Verify(Hash, this));
@@ -460,7 +480,7 @@ namespace Puffin
 
       public int GetSquareByPiece(PieceType piece, Color color)
       {
-         return new Bitboard(PieceBB[(int)piece].Value & ColorBB[(int)color].Value).GetLSB();
+         return (PieceBB[(int)piece] & ColorBB[(int)color]).GetLSB();
       }
 
       public bool IsAttacked(int square, int color)
@@ -498,6 +518,7 @@ namespace Puffin
          return false;
       }
 
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
       public ulong AttackersTo(int square, ulong occupied)
       {
          return (PawnAttacks[(int)Color.Black][square] & PieceBB[(int)PieceType.Pawn].Value & ColorBB[(int)Color.White].Value)
@@ -632,6 +653,24 @@ namespace Puffin
          if (move == 0 || Squares[move.From].Type == PieceType.Null || Squares[move.From].Color != SideToMove)
          {
             return false;
+         }
+
+         if (InCheck)
+         {
+            // Double check requires king to move
+            if (Checkers.CountBits() > 1)
+            {
+               if (Squares[move.From].Type != PieceType.King || (KingAttacks[move.From] & SquareBB[move.To]) == 0)
+               {
+                  return false;
+               }
+            }
+
+            // Move while in check must be to block the check
+            if (Squares[move.From].Type != PieceType.King && ((BetweenBB[GetSquareByPiece(PieceType.King, SideToMove)][Checkers.GetLSB()] | SquareBB[Checkers.GetLSB()]) & SquareBB[move.To]) == 0)
+            {
+               return false;
+            }
          }
 
          Piece piece = Squares[move.From];

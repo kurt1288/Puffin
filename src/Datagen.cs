@@ -309,8 +309,8 @@ namespace Puffin
          {
             foundMove = false;
             moveList.Reset();
-            MoveGen.GenerateQuiet(ref moveList, board);
-            MoveGen.GenerateNoisy(ref moveList, board);
+            MoveGen.Generate(ref moveList, board, MoveGenType.Quiet);
+            MoveGen.Generate(ref moveList, board, MoveGenType.Noisy);
             moveList.Shuffle(Random.Shared);
 
             for (int j = 0; j < 218; j++) // 218 is the max length for the moves array

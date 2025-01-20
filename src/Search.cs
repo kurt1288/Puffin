@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Text;
 using static Puffin.Constants;
 
@@ -206,7 +206,7 @@ namespace Puffin
             }
          }
 
-         bool inCheck = Board.IsAttacked(Board.GetSquareByPiece(PieceType.King, Board.SideToMove), (int)Board.SideToMove ^ 1);
+         bool inCheck = Board.IsAttacked(Board.KingSquares[(int)Board.SideToMove], (int)Board.SideToMove ^ 1);
          int staticEval = Evaluation.Evaluate(Board);
 
          ThreadInfo.EvalStack[ply] = staticEval;
@@ -257,7 +257,7 @@ namespace Puffin
 
          Span<(Move, int)> moveBuffer = stackalloc (Move, int)[218];
          MoveList list = new(moveBuffer);
-         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), false);
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove));
 
          while (moves.Next(ref list) is Move move)
          {
@@ -268,14 +268,14 @@ namespace Puffin
                // Late move pruning
                if (isQuiet && depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * (improving ? 2 : 1))
                {
-                  moves.NoisyOnly = true;
+                  moves.SkipQuiets = true;
                   continue;
                }
 
                // Futility pruning
                if (isQuiet && depth <= FP_Max_Depth && legalMoves > 0 && staticEval + FP_Margin * depth < alpha)
                {
-                  moves.NoisyOnly = true;
+                  moves.SkipQuiets = true;
                   continue;
                }
 
@@ -487,7 +487,10 @@ namespace Puffin
          HashFlag flag = HashFlag.Alpha;
          Span<(Move, int)> moveBuffer = stackalloc (Move, int)[218];
          MoveList list = new(moveBuffer);
-         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), true);
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove))
+         {
+            SkipQuiets = true
+         };
 
          while (moves.Next(ref list) is Move move)
          {

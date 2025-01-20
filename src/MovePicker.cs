@@ -15,7 +15,7 @@ namespace Puffin
       BadNoisy,
    }
 
-   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove, bool noisyOnly)
+   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove)
    {
       private readonly Board Board = board;
       private readonly Move HashMove = hashMove;
@@ -25,7 +25,7 @@ namespace Puffin
       private int Killer = 0;
       private readonly SearchInfo SearchInfo = info;
 
-      public bool NoisyOnly { get; set; } = noisyOnly;
+      public bool SkipQuiets { get; set; } = false;
       public Stage Stage { get; private set; } = Stage.HashMove;
 
       public Move? Next(ref MoveList MoveList)
@@ -45,7 +45,7 @@ namespace Puffin
                }
             case Stage.GenNoisy:
                {
-                  MoveGen.GenerateNoisy(ref MoveList, Board);
+                  MoveGen.Generate(ref MoveList, Board, MoveGenType.Noisy);
                   ScoreNoisyMoves(ref MoveList);
                   Stage++;
                   goto case Stage.Noisy;
@@ -66,7 +66,7 @@ namespace Puffin
                      }
                   }
 
-                  if (NoisyOnly)
+                  if (SkipQuiets)
                   {
                      return null;
                   }
@@ -103,9 +103,9 @@ namespace Puffin
                }
             case Stage.GenQuiet:
                {
-                  if (!NoisyOnly)
+                  if (!SkipQuiets)
                   {
-                     MoveGen.GenerateQuiet(ref MoveList, Board);
+                     MoveGen.Generate(ref MoveList, Board, MoveGenType.Quiet);
                      ScoreQuietMoves(ref MoveList);
                   }
                   
@@ -114,7 +114,7 @@ namespace Puffin
                }
             case Stage.Quiet:
                {
-                  if (!NoisyOnly && Index < MoveList.Count)
+                  if (!SkipQuiets && Index < MoveList.Count)
                   {
                      return NextMove(ref MoveList, Index++);
                   }

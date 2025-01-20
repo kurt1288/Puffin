@@ -75,4 +75,10 @@
       Right = 1,
       Left = -Right,
    }
+
+   enum MoveGenType : byte
+   {
+      Quiet,
+      Noisy,
+   }
 }
