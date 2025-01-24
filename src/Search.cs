@@ -26,16 +26,16 @@ namespace Puffin
       public static int FP_Margin { get; set; } = 80;
 
       [Tunable(min: 0.5, max: 2.0, step: 0.75)]
-      public static double LMR_Quiet_Reduction_Base { get; set; } = 1.6;
+      public static double LMR_Quiet_Reduction_Base { get; set; } = 1.3;
 
       [Tunable(min: 0.1, max: 1.0, step: 0.75)]
-      public static double LMR_Noisy_Reduction_Base { get; set; } = 0.3;
+      public static double LMR_Noisy_Reduction_Base { get; set; } = 0.4;
 
       [Tunable(min: 0.1, max: 1.5, step: 0.75)]
-      public static double LMR_Quiet_Reduction_Multiplier { get; set; } = 0.4;
+      public static double LMR_Quiet_Reduction_Multiplier { get; set; } = 0.6;
 
       [Tunable(min: 0.1, max: 1.5, step: 0.75)]
-      public static double LMR_Noisy_Reduction_Multiplier { get; set; } = 0.3;
+      public static double LMR_Noisy_Reduction_Multiplier { get; set; } = 0.4;
 
       [Tunable(min: -150, max: -50, step: 25)]
       public static int SEE_Noisy_Threshold { get; set; } = -90;
@@ -263,7 +263,7 @@ namespace Puffin
          {
             bool isQuiet = !move.HasType(MoveType.Capture) && !move.HasType(MoveType.Promotion);
 
-            if (!isRoot && bestScore > -MATING)
+            if (!isPVNode && bestScore > -MATING)
             {
                // Late move pruning
                if (isQuiet && depth <= LMP_Max_Depth && legalMoves > LMP_Min_Margin + depth * (improving ? 2 : 1))
@@ -280,7 +280,7 @@ namespace Puffin
                }
 
                // SEE pruning
-               if (!isPVNode && moves.Stage > Stage.Noisy && !Board.SEE_GE(move, (isQuiet ? SEE_Quiet_Threshold : SEE_Noisy_Threshold) * depth))
+               if (!Board.SEE_GE(move, (isQuiet ? SEE_Quiet_Threshold : SEE_Noisy_Threshold) * depth))
                {
                   continue;
                }
