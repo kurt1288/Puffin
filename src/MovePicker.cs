@@ -175,13 +175,16 @@ namespace Puffin
                continue;
             }
 
-            int baseScore = move.HasType(MoveType.Promotion)
-               ? move.Flag == MoveFlag.QueenPromotion || move.Flag == MoveFlag.QueenPromotionCapture ? 250000 : -250000
-               : 150000;
             PieceType captured = move.Flag == MoveFlag.EPCapture ? PieceType.Pawn : Board.Squares[move.To].Type;
-            Piece moving = Board.Squares[move.From];
+            int score = 15 * Constants.SEE_VALUES[(int)captured];
+            score += SearchInfo.GetCaptureHistory(Board.Squares[move.From], move, captured);
 
-            moves.SetScore(i, baseScore + (50 * Constants.SEE_VALUES[(int)captured] - Constants.SEE_VALUES[(int)moving.Type]));
+            if (move.HasType(MoveType.Promotion))
+            {
+               score += 150000;
+            }
+
+            moves.SetScore(i, score);
          }
       }
 

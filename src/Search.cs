@@ -246,8 +246,10 @@ namespace Puffin
          int b = beta;
          HashFlag flag = HashFlag.Alpha;
          int legalMoves = 0;
-         Move[] quietMoves = new Move[100];
+         Span<Move> quietMoves = new Move[64];
          int quietMovesCount = 0;
+         Span<Move> captureMoves = new Move[64];
+         int captureMovesCount = 0;
 
          // Internal iterative reduction
          if (depth >= IIR_Min_Depth && ttMove == 0)
@@ -261,7 +263,8 @@ namespace Puffin
 
          while (moves.Next(ref list) is Move move)
          {
-            bool isQuiet = !move.HasType(MoveType.Capture) && !move.HasType(MoveType.Promotion);
+            bool isCapture = move.HasType(MoveType.Capture);
+            bool isQuiet = !isCapture && !move.HasType(MoveType.Promotion);
 
             if (!isPVNode && bestScore > -MATING)
             {
@@ -295,11 +298,6 @@ namespace Puffin
             Board.MoveStack[ply] = (move, Board.Squares[move.To]);
             Nodes += 1;
             legalMoves += 1;
-
-            if (isQuiet && quietMovesCount < 100)
-            {
-               quietMoves[quietMovesCount++] = move;
-            }
 
             int E = inCheck ? 1 : 0;
             int newDepth = depth - 1 + E;
@@ -355,51 +353,28 @@ namespace Puffin
                   alpha = score;
                   flag = HashFlag.Exact;
                   ThreadInfo.UpdatePV(bestMove, ply);
+
+                  if (score >= beta)
+                  {
+                     flag = HashFlag.Beta;
+                     break;
+                  }
                }
             }
 
-            if (score >= beta)
+            if (isQuiet)
             {
-               flag = HashFlag.Beta;
-
-               if (isQuiet)
+               if (quietMovesCount < 64)
                {
-                  if (move != ThreadInfo.KillerMoves[ply][0])
-                  {
-                     ThreadInfo.KillerMoves[ply][1] = ThreadInfo.KillerMoves[ply][0];
-                     ThreadInfo.KillerMoves[ply][0] = move;
-                  }
-
-                  int bonus = depth * depth;
-
-                  ThreadInfo.UpdateHistory(Board.SideToMove, move, bonus);
-
-                  if (!isRoot)
-                  {
-                     ThreadInfo.UpdateCountermove(Board.MoveStack[ply - 1].Move, move);
-                     ThreadInfo.UpdateContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 1, bonus);
-                     ThreadInfo.UpdateContHistory(Board.Squares[move.From], move, Board.MoveStack, ply, 2, bonus);
-                  }
-
-                  // Reduce history score for other quiet moves
-                  for (int i = 0; i < quietMovesCount; i++)
-                  {
-                     if (quietMoves[i] == move)
-                     {
-                        continue;
-                     }
-
-                     ThreadInfo.UpdateHistory(Board.SideToMove, quietMoves[i], -bonus);
-
-                     if (!isRoot)
-                     {
-                        ThreadInfo.UpdateContHistory(Board.Squares[quietMoves[i].From], quietMoves[i], Board.MoveStack, ply, 1, -bonus);
-                        ThreadInfo.UpdateContHistory(Board.Squares[quietMoves[i].From], quietMoves[i], Board.MoveStack, ply, 2, -bonus);
-                     }
-                  }
+                  quietMoves[quietMovesCount++] = move;
                }
-
-               break;
+            }
+            else
+            {
+               if (captureMovesCount < 64)
+               {
+                  captureMoves[captureMovesCount++] = move;
+               }
             }
 
             // Adjust null window
@@ -409,6 +384,60 @@ namespace Puffin
          if (legalMoves == 0)
          {
             return inCheck ? -MATE + ply : 0;
+         }
+
+         if (bestScore >= beta)
+         {
+            int bonus = depth * depth;
+
+            if (!bestMove.HasType(MoveType.Capture) && !bestMove.HasType(MoveType.Promotion))
+            {
+               if (bestMove != ThreadInfo.KillerMoves[ply][0])
+               {
+                  ThreadInfo.KillerMoves[ply][1] = ThreadInfo.KillerMoves[ply][0];
+                  ThreadInfo.KillerMoves[ply][0] = bestMove;
+               }
+
+               ThreadInfo.UpdateHistory(Board.SideToMove, bestMove, bonus);
+
+               if (!isRoot)
+               {
+                  ThreadInfo.UpdateCountermove(Board.MoveStack[ply - 1].Move, bestMove);
+                  ThreadInfo.UpdateContHistory(Board.Squares[bestMove.From], bestMove, Board.MoveStack, ply, 1, bonus);
+                  ThreadInfo.UpdateContHistory(Board.Squares[bestMove.From], bestMove, Board.MoveStack, ply, 2, bonus);
+               }
+
+               // Reduce history score for other quiet moves
+               for (int i = 0; i < quietMovesCount; i++)
+               {
+                  if (quietMoves[i] == bestMove)
+                  {
+                     continue;
+                  }
+
+                  ThreadInfo.UpdateHistory(Board.SideToMove, quietMoves[i], -bonus);
+
+                  if (!isRoot)
+                  {
+                     ThreadInfo.UpdateContHistory(Board.Squares[quietMoves[i].From], quietMoves[i], Board.MoveStack, ply, 1, -bonus);
+                     ThreadInfo.UpdateContHistory(Board.Squares[quietMoves[i].From], quietMoves[i], Board.MoveStack, ply, 2, -bonus);
+                  }
+               }
+            }
+            else
+            {
+               ThreadInfo.UpdateCaptureHistory(Board.Squares[bestMove.From], bestMove, Board.Squares[bestMove.To].Type, bonus);
+
+               for (int i = 0; i < captureMovesCount; i++)
+               {
+                  if (captureMoves[i] == bestMove)
+                  {
+                     continue;
+                  }
+
+                  ThreadInfo.UpdateCaptureHistory(Board.Squares[bestMove.From], captureMoves[i], Board.Squares[captureMoves[i].To].Type, -bonus);
+               }
+            }
          }
 
          TTable.SaveEntry(Board.Hash, (byte)depth, ply, bestMove.GetEncoded(), bestScore, flag);

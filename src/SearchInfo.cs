@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using static Puffin.Constants;
 
 namespace Puffin
@@ -10,6 +11,7 @@ namespace Puffin
       private readonly Move[] CounterMoves = new Move[64 * 64];
       private readonly int[] ContinuationHistory = new int[12 * 64 * 12 * 64]; // [prev piece * prev to square * curr piece * curr to square]
       private readonly int[] QuietHistory = new int[2 * 64 * 64]; // [side to move * from square * to square]
+      private readonly int[] CaptureHistory = new int[2 * 6 * 64 * 7]; // [moving piece * to square * captured piece type]
 
       public int[] EvalStack { get; set; } = new int[MAX_PLY]; 
       public Move[][] KillerMoves { get; set; } = new Move[MAX_PLY][];
@@ -26,6 +28,7 @@ namespace Puffin
 
       public void ResetAll()
       {
+         Array.Clear(CaptureHistory);
          Array.Clear(QuietHistory);
          Array.Clear(ContinuationHistory);
          Array.Clear(PvLength);
@@ -135,6 +138,24 @@ namespace Puffin
          }
 
          return 0;
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public void UpdateCaptureHistory(Piece movingPiece, Move move, PieceType capturedPieceType, int value)
+      {
+         AddToHistory(ref CaptureHistory[CalculateIndex(movingPiece, move.To, move.Flag == MoveFlag.EPCapture ? PieceType.Pawn : capturedPieceType)], value, 15000);
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      public int GetCaptureHistory(Piece movingPiece, Move move, PieceType capturedPieceType)
+      {
+         return CaptureHistory[CalculateIndex(movingPiece, move.To, capturedPieceType)];
+      }
+
+      [MethodImpl(MethodImplOptions.AggressiveInlining)]
+      private static int CalculateIndex(Piece movingPiece, int square, PieceType capturedPieceType)
+      {
+         return ((int)capturedPieceType * 768) + (square * 12) + (int)movingPiece.Type + ((int)movingPiece.Color * 6);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
