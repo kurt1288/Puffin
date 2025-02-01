@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using static Puffin.Constants;
+using static Puffin.Evaluation.Evaluation;
 
 namespace Puffin
 {
@@ -207,7 +208,7 @@ namespace Puffin
          }
 
          bool inCheck = Board.IsAttacked(Board.KingSquares[(int)Board.SideToMove], (int)Board.SideToMove ^ 1);
-         int staticEval = Evaluation.Evaluate(Board);
+         int staticEval = Evaluate(Board);
 
          ThreadInfo.EvalStack[ply] = staticEval;
 
@@ -467,7 +468,7 @@ namespace Puffin
 
          if (!inCheck)
          {
-            staticEval = Evaluation.Evaluate(Board);
+            staticEval = Evaluate(Board);
 
             if (staticEval >= beta)
             {

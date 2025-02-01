@@ -133,7 +133,7 @@ namespace Puffin
 
       public int Evaluate()
       {
-         return Evaluation.Evaluate(Board);
+         return Evaluation.Evaluation.Evaluate(Board);
       }
 
       public void UCIParseGo(string[] command)

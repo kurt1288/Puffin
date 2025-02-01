@@ -2,6 +2,8 @@
 using System.Runtime.CompilerServices;
 using static Puffin.Constants;
 using static Puffin.Attacks.Attacks;
+using Puffin.Evaluation;
+using static Puffin.Evaluation.Evaluation;
 
 namespace Puffin
 {
@@ -345,8 +347,8 @@ namespace Puffin
 
          Debug.Assert(Zobrist.Verify(UniqueHash, this));
          Debug.Assert(Phase == VerifyPhase());
-         Debug.Assert(MaterialScore[0] == Evaluation.Material(this, Color.White));
-         Debug.Assert(MaterialScore[1] == Evaluation.Material(this, Color.Black));
+         Debug.Assert(MaterialScore[0] == Material(this, Color.White));
+         Debug.Assert(MaterialScore[1] == Material(this, Color.Black));
 
          return !IsAttacked(KingSquares[(int)SideToMove ^ 1], (int)SideToMove);
       }
@@ -433,8 +435,8 @@ namespace Puffin
          UniqueHash = previousState.Hash;
          Debug.Assert(Zobrist.Verify(Hash, this));
          Debug.Assert(Phase == VerifyPhase());
-         Debug.Assert(MaterialScore[0] == Evaluation.Material(this, Color.White));
-         Debug.Assert(MaterialScore[1] == Evaluation.Material(this, Color.Black));
+         Debug.Assert(MaterialScore[0] == Material(this, Color.White));
+         Debug.Assert(MaterialScore[1] == Material(this, Color.Black));
       }
 
       public void UnmakeNullMove()
@@ -461,8 +463,8 @@ namespace Puffin
          Squares[square] = piece;
          Phase += PHASE_VALUES[(int)piece.Type];
          Zobrist.UpdatePieces(ref UniqueHash, piece, square);
-         MaterialScore[(int)piece.Color] += Evaluation.PieceValues[(int)piece.Type];
-         MaterialScore[(int)piece.Color] += Evaluation.GetPSTScore(piece, square);
+         MaterialScore[(int)piece.Color] += EvalTerms.PieceValues[(int)piece.Type];
+         MaterialScore[(int)piece.Color] += GetPSTScore(piece, square);
       }
 
       [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -474,8 +476,8 @@ namespace Puffin
          Squares[square] = Piece.Null;
          Phase -= PHASE_VALUES[(int)piece.Type];
          Zobrist.UpdatePieces(ref UniqueHash, piece, square);
-         MaterialScore[(int)piece.Color] -= Evaluation.PieceValues[(int)piece.Type];
-         MaterialScore[(int)piece.Color] -= Evaluation.GetPSTScore(piece, square);
+         MaterialScore[(int)piece.Color] -= EvalTerms.PieceValues[(int)piece.Type];
+         MaterialScore[(int)piece.Color] -= GetPSTScore(piece, square);
       }
 
       public int GetSquareByPiece(PieceType piece, Color color)
