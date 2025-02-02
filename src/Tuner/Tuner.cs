@@ -15,7 +15,6 @@ using static Puffin.Constants;
 using static Puffin.Attacks.Attacks;
 using System.Reflection;
 using Puffin.Evaluation;
-using System;
 
 namespace Puffin.Tuner
 {
@@ -650,6 +649,13 @@ namespace Puffin.Tuner
             score += EvalTerms.BishopMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()];
             trace.IncrementTrace(nameof(EvalTerms.BishopMobility), new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits(), color);
 
+            bool isLSqBishop = ((WHITE_SQUARES >> square) & 1) == 1;
+            Bitboard samePawns = board.ColorPieceBB(color, PieceType.Pawn);
+            samePawns &= isLSqBishop ? WHITE_SQUARES : DARK_SQUARES;
+
+            score -= EvalTerms.SameColorBishopPawns[samePawns.CountBits()];
+            trace.DecrementTrace(nameof(EvalTerms.SameColorBishopPawns), samePawns.CountBits(), color);
+
             if ((moves & info.KingZones[(int)color ^ 1]) != 0)
             {
                info.KingAttacksWeight[(int)color] += EvalTerms.KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & info.KingZones[(int)color ^ 1]).CountBits();
@@ -948,7 +954,7 @@ namespace Puffin.Tuner
                   else
                   {
                      sb.AppendLine($"[Eval(\"{param.DisplayName}\")]");
-                     sb.AppendLine($"public static readonly Score {param.Name} = new({(int)paramWeight.Mg,3}, {(int)paramWeight.Eg,3});");
+                     sb.AppendLine($"public static Score {param.Name} = new({(int)paramWeight.Mg,3}, {(int)paramWeight.Eg,3});");
                   }
                }
 

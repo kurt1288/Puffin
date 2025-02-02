@@ -5,6 +5,8 @@ namespace Puffin
    public static class Constants
    {
       public const string START_POS = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      public const ulong WHITE_SQUARES = 0xaa55aa55aa55aa55;
+      public const ulong DARK_SQUARES = 0x55aa55aa55aa55aa;
 
       public const int MAX_PLY = 254;
       public const int INFINITY = 30000;

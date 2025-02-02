@@ -196,6 +196,13 @@ namespace Puffin.Evaluation
             ulong moves = GetBishopAttacks(square, board.ColorBoard(Color.Both).Value);
             score += EvalTerms.BishopMobility[new Bitboard(moves & info.MobilitySquares[(int)color]).CountBits()];
 
+            // Pawns on same color squares
+            bool isLSqBishop = ((WHITE_SQUARES >> square) & 1) == 1;
+            Bitboard samePawns = board.ColorPieceBB(color, PieceType.Pawn);
+            samePawns &= isLSqBishop ? WHITE_SQUARES : DARK_SQUARES;
+
+            score -= EvalTerms.SameColorBishopPawns[samePawns.CountBits()];
+
             if ((moves & info.KingZones[(int)color ^ 1]) != 0)
             {
                info.KingAttacksWeight[(int)color] += EvalTerms.KingAttackWeights[(int)PieceType.Bishop] * new Bitboard(moves & info.KingZones[(int)color ^ 1]).CountBits();
