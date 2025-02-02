@@ -1,8 +1,10 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace Puffin
 {
+   [DebuggerDisplay("{DebuggerDisplay,nq}")]
    internal struct Bitboard
    {
       public ulong Value { get; private set; }
@@ -87,5 +89,27 @@ namespace Puffin
       public static bool operator ==(Bitboard a, Bitboard b) => a.Value == b.Value;
       public static bool operator !=(Bitboard a, Bitboard b) => a.Value != b.Value;
       public static implicit operator bool(Bitboard a) => a.Value != 0;
+
+      private readonly string DebuggerDisplay
+      {
+         get
+         {
+            string result = "\n";
+
+            for (int rank = 0; rank < 8; rank++)
+            {
+               for (int file = 0; file < 8; file++)
+               {
+                  int square = rank * 8 + file;
+                  bool isSet = ((Value >> square) & 1UL) == 1;
+                  result += isSet ? "1 " : "0 ";
+               }
+
+               result += "\n";
+            }
+
+            return result;
+         }
+      }
    }
 }
