@@ -14,22 +14,22 @@ namespace Puffin
 
    public struct TTEntry(ulong hash, byte depth, ushort move, HashFlag flag, int score)
    {
-      public ulong Hash { get; private set; } = hash; // 8 bytes
-      public int Score { get; private set; } = score; // 4 bytes
+      public ushort Hash { get; private set; } = (ushort)(hash >> 48); // 2 bytes
+      public short Score { get; private set; } = (short)score; // 2 bytes
       public ushort Move { get; private set; } = move; // 2 bytes
       public byte Depth { get; private set; } = depth; // 1 byte
       public HashFlag Flag { get; private set; } = flag; // 1 byte
 
       public void Update(ulong hash, byte depth, ushort move, int score, HashFlag flag)
       {
-         if (move != 0 || hash != Hash)
+         if (move != 0 || (ushort)(hash >> 48) != Hash)
          {
             Move = move;
          }
 
-         Hash = hash;
+         Hash = (ushort)(hash >> 48);
          Depth = depth;
-         Score = score;
+         Score = (short)score;
          Flag = flag;
       }
    }
@@ -56,22 +56,22 @@ namespace Puffin
       {
          ref TTEntry current = ref GetEntry(hash);
 
-         if (current.Hash != hash)
+         if (current.Hash != (ushort)(hash >> 48))
          {
             entry = default;
             return false;
          }
 
-         int adjustedScore = current.Score;
+         short adjustedScore = current.Score;
 
          // Mate score adjustments
          if (adjustedScore > MATE - MAX_PLY)
          {
-            adjustedScore -= ply;
+            adjustedScore -= (short)ply;
          }
          else if (adjustedScore < -(MATE - MAX_PLY))
          {
-            adjustedScore += ply;
+            adjustedScore += (short)ply;
          }
 
          entry = new(current.Hash, current.Depth, current.Move, current.Flag, adjustedScore);
