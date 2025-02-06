@@ -346,6 +346,11 @@ namespace Puffin
 
             Board.UndoMove(move);
 
+            if (TimeManager.Stopped)
+            {
+               return 0;
+            }
+
             if (score > bestScore)
             {
                bestScore = score;
@@ -527,6 +532,11 @@ namespace Puffin
             int score = -Quiescence(-beta, -alpha, ply + 1, isPVNode);
 
             Board.UndoMove(move);
+
+            if (TimeManager.Stopped)
+            {
+               return 0;
+            }
 
             if (score > bestScore)
             {
