@@ -202,9 +202,9 @@ namespace Puffin
          if (EnPassant != Square.Null)
          {
             Zobrist.UpdateEnPassant(ref UniqueHash, EnPassant);
+            EnPassant = Square.Null;
          }
 
-         EnPassant = Square.Null;
          Halfmoves += 1;
 
          if (piece.Type == PieceType.Pawn || move.HasType(MoveType.Capture))
@@ -694,9 +694,9 @@ namespace Puffin
 
          if (piece.Type == PieceType.Pawn)
          {
-            if (move.Flag == MoveFlag.EPCapture && EnPassant != Square.Null && Squares[move.To - up].Type == PieceType.Pawn && Squares[move.To - up].Color != piece.Color)
+            if (move.Flag == MoveFlag.EPCapture)
             {
-               return true;
+               return EnPassant != Square.Null && Squares[move.To - up].Type == PieceType.Pawn && Squares[move.To - up].Color != piece.Color;
             }
 
             // moving backwards
