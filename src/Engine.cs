@@ -37,6 +37,11 @@ namespace Puffin
          Board.SetPosition(fen);
       }
 
+      public bool IsRepetition()
+      {
+         return Board.IsRepeated();
+      }
+
       public void MakeMoves(string[] moves)
       {
          foreach (string move in moves)
@@ -63,13 +68,15 @@ namespace Puffin
 
             if (piece.Type == PieceType.King)
             {
-               if (move == "e1g1" || move == "e8g8")
+               if (move == "e1g1" || move == "e1h1" || move == "e8g8" || move == "e8h8")
                {
                   flag = MoveFlag.KingCastle;
+                  to = from + 2;
                }
-               else if (move == "e1c1" || move == "e8c8")
+               else if (move == "e1c1" || move == "e1a1" || move == "e8c8" || move == "e8a8")
                {
                   flag = MoveFlag.QueenCastle;
+                  to = from - 2;
                }
             }
 

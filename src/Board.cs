@@ -242,26 +242,26 @@ namespace Puffin
                }
             case MoveFlag.KingCastle:
                {
-                  // Move king
-                  SetPiece(piece, to);
-
                   // Move rook
                   int rFrom = new Bitboard(CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetMSB();
                   int rTo = SideToMove == Color.White ? (int)Square.F1 : (int)Square.F8;
                   SetPiece(Squares[rFrom], rTo);
                   RemovePiece(Squares[rFrom], rFrom);
+
+                  // Move king
+                  SetPiece(piece, to);
                   break;
                }
             case MoveFlag.QueenCastle:
                {
-                  // Move king
-                  SetPiece(piece, to);
-
                   // Move rook
                   int rFrom = new Bitboard(CastleSquares & RANK_MASKS[SideToMove == Color.White ? (int)Rank.Rank_1 : (int)Rank.Rank_8]).GetLSB();
                   int rTo = SideToMove == Color.White ? (int)Square.D1 : (int)Square.D8;
                   SetPiece(Squares[rFrom], rTo);
                   RemovePiece(Squares[rFrom], rFrom);
+
+                  // Move king
+                  SetPiece(piece, to);
                   break;
                }
             case MoveFlag.KnightPromotion:
@@ -941,6 +941,26 @@ namespace Puffin
          }
 
          return res != 0;
+      }
+
+      public bool IsRepeated()
+      {
+         if (Halfmoves < 4 || History.Count <= 1)
+         {
+            return false;
+         }
+
+         int last = Math.Max(History.Count - Halfmoves, 0);
+
+         for (int i = History.Count - 4; i >= last; i -= 2)
+         {
+            if (History[i].Hash == Hash)
+            {
+               return true;
+            }
+         }
+
+         return false;
       }
 
       private int VerifyPhase()

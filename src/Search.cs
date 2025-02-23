@@ -569,27 +569,7 @@ namespace Puffin
 
       public bool IsDraw()
       {
-         return IsRepeated() || Board.Halfmoves >= 100 || Board.IsDrawn();
-      }
-
-      private bool IsRepeated()
-      {
-         if (Board.Halfmoves < 4 || Board.History.Count <= 1)
-         {
-            return false;
-         }
-
-         int last = Math.Max(Board.History.Count - Board.Halfmoves, 0);
-
-         for (int i = Board.History.Count - 4; i >= last; i -= 2)
-         {
-            if (Board.History[i].Hash == Board.Hash)
-            {
-               return true;
-            }
-         }
-
-         return false;
+         return Board.IsRepeated() || Board.Halfmoves >= 100 || Board.IsDrawn();
       }
    }
 }
