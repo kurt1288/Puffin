@@ -61,6 +61,7 @@ namespace Puffin
          UniqueHash = other.Hash;
          Checkers = other.Checkers;
          KingSquares = other.KingSquares;
+         History = new(other.History);
          Array.Copy(other.Squares, Squares, Squares.Length);
          Array.Copy(other.ColorBB, ColorBB, ColorBB.Length);
          Array.Copy(other.PieceBB, PieceBB, PieceBB.Length);

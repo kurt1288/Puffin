@@ -10,12 +10,20 @@
       public Square En_Passant { get; } = en_passant;
    }
 
-   internal class History()
+   internal class History
    {
       private readonly BoardState[] Stack = new BoardState[1000]; // arbitrary max length
 
       public int Count { get; private set; } = 0;
       public ref readonly BoardState this[int index] => ref Stack[index];
+
+      public History() { }
+
+      public History(History other)
+      {
+         Array.Copy(other.Stack, Stack, Stack.Length);
+         Count = other.Count;
+      }
 
       public void Reset()
       {
