@@ -4,18 +4,31 @@ namespace Puffin
 {
    enum Stage
    {
+      // Regular search
       HashMove,
       GenNoisy,
-      Noisy,
+      GoodNoisy,
       Killers,
       Counter,
       GenQuiet,
       Quiet,
       BadNoisyInit,
       BadNoisy,
+
+      // Qsearch
+      Qs_HashMove,
+      Qs_GenNoisy,
+      Qs_Noisy,
+
+      // In check
+      InCheck_HashMove,
+      InCheck_GenNoisy,
+      InCheck_Noisy,
+      InCheck_GenQuiet,
+      InCheck_Quiet,
    }
 
-   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove)
+   internal sealed class MovePicker(Board board, SearchInfo info, int ply, Move hashMove, Stage stage)
    {
       private readonly Board Board = board;
       private readonly Move HashMove = hashMove;
@@ -26,7 +39,7 @@ namespace Puffin
       private readonly SearchInfo SearchInfo = info;
 
       public bool SkipQuiets { get; set; } = false;
-      public Stage Stage { get; private set; } = Stage.HashMove;
+      public Stage Stage { get; private set; } = stage;
 
       public Move? Next(ref MoveList MoveList)
       {
@@ -48,9 +61,9 @@ namespace Puffin
                   MoveGen.Generate(ref MoveList, Board, MoveGenType.Noisy);
                   ScoreNoisyMoves(ref MoveList);
                   Stage++;
-                  goto case Stage.Noisy;
+                  goto case Stage.GoodNoisy;
                }
-            case Stage.Noisy:
+            case Stage.GoodNoisy:
                {
                   while (Index < MoveList.Count)
                   {
@@ -134,6 +147,81 @@ namespace Puffin
                   {
                      Debug.Assert(MoveList[Index].Flag != MoveFlag.Quiet);
                      return MoveList[Index++];
+                  }
+
+                  return null;
+               }
+            case Stage.Qs_HashMove:
+               {
+                  Stage++;
+
+                  if (Board.IsPseudoLegal(HashMove))
+                  {
+                     return HashMove;
+                  }
+
+                  goto case Stage.Qs_GenNoisy;
+               }
+            case Stage.Qs_GenNoisy:
+               {
+                  MoveGen.Generate(ref MoveList, Board, MoveGenType.Noisy);
+                  ScoreNoisyMoves(ref MoveList);
+                  Stage++;
+                  goto case Stage.Qs_Noisy;
+               }
+            case Stage.Qs_Noisy:
+               {
+                  while (Index < MoveList.Count)
+                  {
+                     return NextMove(ref MoveList, Index++);
+                  }
+
+                  return null;
+               }
+            case Stage.InCheck_HashMove:
+               {
+                  Stage++;
+
+                  if (Board.IsPseudoLegal(HashMove))
+                  {
+                     return HashMove;
+                  }
+
+                  goto case Stage.InCheck_GenNoisy;
+               }
+            case Stage.InCheck_GenNoisy:
+               {
+                  MoveGen.Generate(ref MoveList, Board, MoveGenType.Noisy);
+                  ScoreNoisyMoves(ref MoveList);
+                  Stage++;
+                  goto case Stage.InCheck_Noisy;
+               }
+            case Stage.InCheck_Noisy:
+               {
+                  while (Index < MoveList.Count)
+                  {
+                     return NextMove(ref MoveList, Index++);
+                  }
+
+                  Stage++;
+                  goto case Stage.InCheck_GenQuiet;
+               }
+            case Stage.InCheck_GenQuiet:
+               {
+                  if (!SkipQuiets)
+                  {
+                     MoveGen.Generate(ref MoveList, Board, MoveGenType.Quiet);
+                     ScoreQuietMoves(ref MoveList);
+                  }
+
+                  Stage++;
+                  goto case Stage.InCheck_Quiet;
+               }
+            case Stage.InCheck_Quiet:
+               {
+                  if (!SkipQuiets && Index < MoveList.Count)
+                  {
+                     return NextMove(ref MoveList, Index++);
                   }
 
                   return null;

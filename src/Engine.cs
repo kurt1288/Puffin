@@ -39,7 +39,7 @@ namespace Puffin
 
       public bool IsRepetition()
       {
-         return Board.IsRepeated();
+         return Board.IsThreefold();
       }
 
       public void MakeMoves(string[] moves)

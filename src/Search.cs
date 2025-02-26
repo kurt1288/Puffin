@@ -258,7 +258,7 @@ namespace Puffin
 
          Span<(Move, int)> moveBuffer = stackalloc (Move, int)[218];
          MoveList list = new(moveBuffer);
-         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove));
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), Stage.HashMove);
 
          while (moves.Next(ref list) is Move move)
          {
@@ -493,10 +493,7 @@ namespace Puffin
          HashFlag flag = HashFlag.Alpha;
          Span<(Move, int)> moveBuffer = stackalloc (Move, int)[218];
          MoveList list = new(moveBuffer);
-         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove))
-         {
-            SkipQuiets = true
-         };
+         MovePicker moves = new(Board, ThreadInfo, ply, new(ttMove), inCheck ? Stage.InCheck_HashMove : Stage.Qs_HashMove);
 
          while (moves.Next(ref list) is Move move)
          {
@@ -536,6 +533,11 @@ namespace Puffin
             if (TimeManager.Stopped)
             {
                return 0;
+            }
+
+            if (score > -MATING)
+            {
+               moves.SkipQuiets = true;
             }
 
             if (score > bestScore)
